@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>aulaPass</title>
+    <!-- Fuentes de Material Design -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Favicon para navegadores -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/fav-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/fav-16.png">
+
+    <!-- Ícono para dispositivos Apple -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/fav-180.png">
+
+    <!-- Manifest para PWA -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Meta tags para PWA -->
+    <meta name="theme-color" content="#1F2937">
+    <meta name="mobile-web-app-capable" content="yes">
+    <style>
+        body {
+            -webkit-user-select: none;
+            /* Chrome, Safari */
+            -moz-user-select: none;
+            /* Firefox */
+            -ms-user-select: none;
+            /* IE 10+ */
+            user-select: none;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .hidden-fields {
+            display: none;
+        }
+
+        /* Animación de entrada para el contenedor principal */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fadeInUp {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        /* Spinner para la animación de carga del QR */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #ffffff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Transición para mostrar/ocultar campos */
+        .transition-fields {
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .transition-fields.active {
+            max-height: 500px;
+            /* Ajusta este valor según el contenido */
+        }
+
+        /* Estilos para navegadores WebKit (Chrome, Safari, Edge, Opera) */
+        #camposAdicionales::-webkit-scrollbar {
+            width: 8px;
+            /* Ancho de la barra */
+        }
+
+        #camposAdicionales::-webkit-scrollbar-track {
+            /* Color de la pista - coincide con bg-gray-700 */
+            background-color: #4B5563;
+            /* Valor HEX para gray-700 */
+            border-radius: 10px;
+            /* Bordes redondeados */
+        }
+
+        #camposAdicionales::-webkit-scrollbar-thumb {
+            /* Color del pulgar - coincide con gray-500 */
+            background-color: #6B7280;
+            /* Valor HEX para gray-500 */
+            border-radius: 10px;
+            /* Bordes redondeados */
+            border: 2px solid #4B5563;
+            /* Opcional: añade un borde del color de la pista para padding visual */
+        }
+
+        #camposAdicionales::-webkit-scrollbar-thumb:hover {
+            /* Color del pulgar en hover - coincide con gray-400 */
+            background-color: #9CA3AF;
+            /* Valor HEX para gray-400 */
+        }
+
+        /* Estilos para Firefox */
+        #camposAdicionales {
+            /* scrollbar-width necesita dos valores: track y thumb */
+            scrollbar-color: #6B7280 #4B5563;
+            /* thumb(gray-500) track(gray-700) */
+            scrollbar-width: thin;
+            /* Opciones: auto, thin, none */
+        }
+
+        .modal-hidden {
+            display: none;
+        }
+
+        .modal-visible {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body class="bg-white min-h-screen dark:bg-gray-900 flex items-center justify-center p-4">
+    <div class="max-w-sm p-6 border border-gray-700 rounded-lg shadow-sm  bg-gray-800 animate-fadeInUp"
+        id="qr-container">
+        <a href="#">
+            <h3 class=" font-bold text-white mb-4 text-center">aulaPass beta 1.2</h3>
+
+            <!-- Contenedor QR -->
+
+            <div id="qrcode" class="mt-4 mx-auto w-48">
+
+            </div>
+
+        </a>
+        <br>
+        <div class="p-1 ">
+            <a href="#">
+                <!-- Botones -->
+                <!-- <center> -->
+                <div class="flex justify-center rounded-md shadow-xs" role="group">
+
+                    <button id="generate-button"
+                        class="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 transition-transform transition-colors disabled:opacity-50 px-4 py-2 text-sm font-medium rounded-s-full focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700"
+                        onclick=" makeCode()">
+                        <span class="material-icons">qr_code</span>
+                        Generar QR
+                    </button>
+
+                    <button id="download-button"
+                        class="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 hover:scale-105 transition-transform transition-colors disabled:opacity-50 px-4 py-2 text-sm font-medium rounded-e-full focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700">
+                        <span class="material-icons">download</span>
+                        Descargar
+                    </button>
+                </div>
+                <!--  </center> -->
+
+                <br><br>
+                <!-- Formulario -->
+                <form class="max-w-sm mx-auto">
+                    <div class="form-group">
+                        <label class="block mb-2 text-sm font-semibold text-white">Número de Control:</label>
+                        <center>
+                            <div class=" items-center">
+                                <input type="text" id="numeroControl" maxlength="14" pattern="\d{14}"
+                                    placeholder="Número de control completo" class="bg-gray-50 border border-gray-300 text-gray-900 text-lg rounded-full focus:ring-blue-500 focus:border-blue-500 w-full p-2.5 bg-gray-700 border-gray-500 placeholder-gray-200 text-white focus:ring-blue-500 focus:border-blue-500 text-center
+                            " required onclick="quitaQR()">
+                                <!-- <span class="text-white mx-1 p-2.5 align-middle font-semibold">309060</span>
+                                <input type="text" id="numeroControlFin" maxlength="6" pattern="\d{6}"
+                                    placeholder="Últimos 6 dígitos" class="bg-gray-50 border border-gray-300 text-gray-900 text-lg rounded-full focus:ring-blue-500 focus:border-blue-500 w-2/6 p-2.5 bg-gray-700 border-gray-500 placeholder-gray-200 text-white focus:ring-blue-500 focus:border-blue-500 text-center
+                            " required onclick="quitaQR()"> -->
+
+                            </div>
+                        </center>
+                    </div>
+                    <br>
+                    <hr class="border-gray-500">
+                    <br>
+
+                    <!-- contenido adicional -->
+                    <div id="camposAdicionales" class="space-y-5 hidden-fields overflow-y-auto max-h-64 pr-2 w-full ">
+                        <div>
+                            <label class="block mb-2 text-sm font-semibold text-white">Apellido
+                                Paterno:</label>
+                            <input type="text" id="apellidoPaterno"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-full focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 bg-gray-700 border-gray-500 placeholder-gray-200 text-white focus:ring-blue-500 focus:border-blue-500"
+                                required onclick="quitaQR()" disabled>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block mb-2 text-sm font-semibold text-white">Apellido
+                                Materno:</label>
+                            <input type="text" id="apellidoMaterno"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-full focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 bg-gray-700 border-gray-500 placeholder-gray-200 text-white focus:ring-blue-500 focus:border-blue-500"
+                                required onclick="quitaQR()" disabled>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block mb-2 text-sm font-semibold text-white">Nombre(s):</label>
+                            <input type="text" id="nombres"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-full focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 bg-gray-700 border-gray-500 placeholder-gray-200 text-white focus:ring-blue-500 focus:border-blue-500"
+                                required onclick="quitaQR()" disabled>
+                        </div>
+
+
+
+                        <!-- Se divide el select Grupo en dos selects: uno para Semestre y otro para Grupo -->
+                        <div class="form-group flex space-x-4">
+                            <div class="w-1/2">
+                                <label class="block mb-2 text-sm font-semibold text-white">Semestre:</label>
+                                <center>
+                                    <select id="semestre"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-full focus:ring-blue-500 focus:border-blue-500 block w-1/2 p-2.5 bg-gray-700 border-gray-500 placeholder-gray-200 text-white focus:ring-blue-500 focus:border-blue-500 text-center"
+                                        onclick="quitaQR()">
+                                        <option value="" selected>Elige</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                    </select>
+                                </center>
+                            </div>
+                            <div class="w-1/2">
+                                <label class="block mb-2 text-sm font-semibold text-white">Grupo:</label>
+                                <center>
+                                    <select id="grupoLetra"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-full focus:ring-blue-500 focus:border-blue-500 block w-1/2 p-2.5 bg-gray-700 border-gray-500 placeholder-gray-200 text-white focus:ring-blue-500 focus:border-blue-500 text-center"
+                                        onclick="quitaQR()">
+                                        <option value="" selected>Elige</option>
+                                        <option value="A">A</option>
+                                        <option value="B">B</option>
+                                        <option value="C">C</option>
+                                        <option value="D">D</option>
+                                        <option value="E">E</option>
+                                    </select>
+                                </center>
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <label class="block mb-2 text-sm font-semibold text-white">Especialidad:</label>
+                            <select id="especialidad"
+                                class=" border  text-sm rounded-full  block w-full p-2.5 bg-gray-700 border-gray-500 placeholder-gray-200 text-white focus:ring-blue-500 focus:border-blue-500"
+                                onclick="quitaQR()">
+                                <option value="" selected>Elige una especialidad</option>
+                                <option value="Enfermeria">Enfermería</option>
+                                <option value="Radiologia">Radiología</option>
+                            </select>
+                        </div>
+                        <br>
+                    </div>
+                </form>
+            </a>
+        </div>
+    </div>
+
+    <!-- ======================== MODAL DE ERROR ======================== -->
+    <div id="errorModal" tabindex="-1" aria-hidden="true"
+        class="modal-hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-full max-h-full bg-gray-900 bg-opacity-50">
+        <!-- ^^^^ Añadido fondo semi-transparente -->
+        <div class="relative p-4 w-full max-w-md max-h-full ">
+            <!-- Contenido del Modal -->
+            <div class="relative rounded-lg shadow-sm bg-gray-700 border border-red-800">
+                <!-- Botón de Cerrar (X) -->
+                <button id="closeErrorModalX" type="button"
+                    class="absolute top-3 end-2.5 text-gray-400 bg-transparent  rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                    </svg>
+                    <span class="sr-only">Cerrar</span>
+                </button>
+                <!-- Cuerpo del Modal -->
+                <div class="p-4 md:p-5 text-center">
+                    <!-- Icono de Advertencia -->
+                    <svg class="shrink-0 inline w-7 h-7 me-3 mt-[2px]" aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg" fill="rgb(248 113 113)" viewBox="0 0 20 20">
+                        <path
+                            d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                    </svg>
+                    <!-- Mensaje del Modal (se actualizará con JS) -->
+                    <h3 id="errorModalMessage" class="mb-5 text-lg font-normal text-red-400">
+                        Número de control incorrecto. No se encontró en la base de datos.
+                    </h3>
+                    <!-- Botón de Aceptar/Cerrar -->
+                    <button id="closeErrorModalButton" type="button"
+                        class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center">
+                        Aceptar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ==================== FIN MODAL DE ERROR ====================== -->
+
+
+    <script src="https://cdn.jsdelivr.net/gh/baroninn/qrcodejs@master/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/baroninn/qrcodejs@master/qrcode.js"></script>
+    <script>
+        let estudiantesData = []; // Almacena los datos del JSON
+
+        // Cargar el archivo csvjson.json al iniciar
+        fetch('csvjson.json')
+            .then(response => response.json())
+            .then(data => {
+                estudiantesData = data;
+            })
+            .catch(error => console.error('Error cargando csvjson.json:', error));
+        // Agregar escuchadores de eventos a los inputs para verificar campos completos
+        const camposAdicionales = document.getElementById('camposAdicionales');
+
+        document.getElementById('numeroControl').addEventListener('keydown', function (e) {
+            if (e.keyCode === 13) {
+                buscarYAutoRellenar()
+
+
+            }
+        });
+
+        document.getElementById('apellidoPaterno').addEventListener('input', checkFields);
+        document.getElementById('apellidoMaterno').addEventListener('input', checkFields);
+        document.getElementById('nombres').addEventListener('input', checkFields);
+        document.getElementById('numeroControl').addEventListener('input', checkFields);
+        document.getElementById('numeroControl').addEventListener('input', function () {
+            const finValue = this.value.trim();
+            if (finValue.length === 14) {
+                buscarYAutoRellenar();
+
+            } else if (finValue.length < 14) {
+                // Ocultar campos adicionales si el número de control es menor a 2 dígitos
+                camposAdicionales.classList.add('hidden-fields');
+                document.getElementById('generate-button').disabled = true;
+                document.getElementById('download-button').disabled = true;
+            }
+
+
+        });
+
+        /* document.getElementById('numeroControlFin').addEventListener('input', checkFields); */
+        document.getElementById('numeroControl').addEventListener('focusout', buscarYAutoRellenar);
+        /* document.getElementById('numeroControlFin').addEventListener('input', function () {
+            const finValue = this.value.trim();
+            if (finValue.length === 6) {
+                buscarYAutoRellenar();
+
+            } else if (finValue.length < 6) {
+                // Ocultar campos adicionales si el número de control es menor a 6 dígitos
+                camposAdicionales.classList.add('hidden-fields');
+                document.getElementById('generate-button').disabled = true;
+                document.getElementById('download-button').disabled = true;
+            }
+        }); */
+        /* document.getElementById('numeroControl').addEventListener('input', checkFields);
+        document.getElementById('numeroControl').addEventListener('focusout', validarNumeroControl); */
+        // Actualizamos los escuchadores para los nuevos selects de Semestre y Grupo
+        document.getElementById('semestre').addEventListener('input', checkFields);
+        document.getElementById('grupoLetra').addEventListener('input', checkFields);
+        document.getElementById('especialidad').addEventListener('input', checkFields);
+
+        // Cargar datos al iniciar
+        loadData();
+        // Inicialmente deshabilitar los botones
+        checkFields();
+
+        // Función para generar el nombre completo a partir de los inputs
+        function generarNombreCompleto() {
+            const apellidoPaterno = document.getElementById('apellidoPaterno').value.trim();
+            const apellidoMaterno = document.getElementById('apellidoMaterno').value.trim();
+            const nombres = document.getElementById('nombres').value.trim();
+            return `${apellidoPaterno} ${apellidoMaterno} ${nombres}`;
+        }
+
+        // Función para comprobar que todos los campos requeridos estén llenos
+        function checkFields() {
+            const apellidoPaterno = document.getElementById('apellidoPaterno').value.trim();
+            const apellidoMaterno = document.getElementById('apellidoMaterno').value.trim();
+            const nombres = document.getElementById('nombres').value.trim();
+            const numeroControl = document.getElementById('numeroControl').value.trim();
+           /*  const numeroControlFin = document.getElementById('numeroControlFin').value.trim(); */
+            /* const numeroControl = document.getElementById('numeroControl').value.trim(); */
+            const semestre = document.getElementById('semestre').value.trim();
+            const grupoLetra = document.getElementById('grupoLetra').value.trim();
+            const especialidad = document.getElementById('especialidad').value.trim();
+
+            // Se forma la variable grupo uniendo el semestre y el grupo seleccionado
+            const grupo = semestre + grupoLetra;
+
+            /* const allFieldsFilled = apellidoPaterno && apellidoMaterno && nombres && numeroControl && semestre && grupoLetra && especialidad; */
+            const allFieldsFilled = apellidoPaterno && apellidoMaterno && nombres && numeroControl && semestre && grupoLetra && especialidad;
+            document.getElementById('generate-button').disabled = !allFieldsFilled;
+            document.getElementById('download-button').disabled = !allFieldsFilled;
+
+        }
+        function quitaQR() {
+            document.querySelector('#qrcode').style.display = 'none';
+        }
+        // Función para buscar en el JSON y autorellenar los campos
+        function buscarYAutoRellenar() {
+            quitaQR()
+            const numeroControl = document.getElementById('numeroControl').value.trim();
+           /*  const numeroControlFin = document.getElementById('numeroControlFin').value.trim(); */
+            if (numeroControl.length === 14) {
+                /* const nControlCompleto = `${numeroControlInicio}309060${numeroControlFin}`; */
+                const estudiante = estudiantesData.find(est => est["No. Control"] == numeroControl);
+                if (estudiante) {
+                    // Mostrar campos adicionales
+                    camposAdicionales.classList.remove('hidden-fields');
+                    document.getElementById('apellidoPaterno').value = estudiante["Apellido Paterno"];
+                    document.getElementById('apellidoMaterno').value = estudiante["Apellido Materno"];
+                    document.getElementById('nombres').value = estudiante["Nombre(s)"];
+                    document.getElementById('semestre').value = estudiante["Grupo"].charAt(0);
+                    document.getElementById('grupoLetra').value = estudiante["Grupo"].charAt(1);
+                    document.getElementById('especialidad').value = estudiante["Carrera"] === "ENFERMERÍA GENERAL" ? "Enfermeria" : "Radiologia";
+
+                   
+                    checkFields();
+                    saveData() // Actualizar estado de los botones
+
+                } else {
+                    document.getElementById('generate-button').disabled = true;
+                    document.getElementById('download-button').disabled = true;
+                    document.getElementById('numeroControl').disabled = true;
+                    showModal('Número de control incorrecto. No se encontró en la base de datos.');
+                    /* alert('Número de control incorrecto. No se encontró en la base de datos.'); */
+                    // Ocultar campos adicionales
+                    camposAdicionales.classList.add('hidden-fields');
+                    // Borrar todos los campos
+                    document.getElementById('apellidoPaterno').value = '';
+                    document.getElementById('apellidoMaterno').value = '';
+                    document.getElementById('nombres').value = '';
+                    document.getElementById('numeroControl').value = '';
+                  /*   document.getElementById('numeroControlFin').value = ''; */
+                    document.getElementById('semestre').value = '';
+                    document.getElementById('grupoLetra').value = '';
+                    document.getElementById('especialidad').value = '';
+                    /* checkFields();  */// Actualizar estado de los botones
+                }
+            }
+        }
+
+        function validarNumeroControl() {
+            const numeroControl = document.getElementById('numeroControl').value.trim();
+            /* const numeroControlFin = document.getElementById('numeroControlFin').value.trim(); */
+            const regexInicio = /^\d{14}$/;
+            /* const regexFin = /^\d{6}$/; */
+
+            if (!regexInicio.test(numeroControl)) {
+                alert('Por favor, ingrese exactamente 14 dígitos para el número de control.');
+                document.getElementById('generate-button').disabled = true;
+                document.getElementById('download-button').disabled = true;
+            } else {
+                makeCode();
+            }
+        }
+
+        /* function validarNumeroControl() {
+            const numeroControl = document.getElementById('numeroControl').value.trim();
+            const regex = /^\d{6}$/; // Expresión regular para exactamente 6 dígitos numéricos
+
+            if (!regex.test(numeroControl)) {
+                alert('Por favor, ingrese exactamente 6 dígitos numéricos para el número de control.');
+                document.getElementById('generate-button').disabled = true;
+                document.getElementById('downloa-button').disabled = true;
+
+            } else {
+                makeCode();
+            }
+        } */
+
+
+
+        // Función para guardar datos en localStorage
+        function saveData() {
+            const data = {
+                /* apellidoPaterno: document.getElementById('apellidoPaterno').value,
+                apellidoMaterno: document.getElementById('apellidoMaterno').value,
+                nombres: document.getElementById('nombres').value, */
+                numeroControl: document.getElementById('numeroControl').value
+                /* numeroControlFin: document.getElementById('numeroControlFin').value, */
+                /* numeroControl: document.getElementById('numeroControl').value, */
+                /* semestre: document.getElementById('semestre').value,
+                grupoLetra: document.getElementById('grupoLetra').value,
+                especialidad: document.getElementById('especialidad').value */
+            };
+            localStorage.setItem('userData', JSON.stringify(data));
+        }
+
+        // Función para cargar datos desde localStorage
+        function loadData() {
+            const data = JSON.parse(localStorage.getItem('userData'));
+            if (data) {
+                /* document.getElementById('apellidoPaterno').value = data.apellidoPaterno || '';
+                document.getElementById('apellidoMaterno').value = data.apellidoMaterno || '';
+                document.getElementById('nombres').value = data.nombres || ''; */
+                document.getElementById('numeroControl').value = data.numeroControl || '';
+                /* document.getElementById('numeroControlFin').value = data.numeroControlFin || ''; */
+                /* document.getElementById('numeroControl').value = data.numeroControl || ''; */
+                /* document.getElementById('semestre').value = data.semestre || '';
+                document.getElementById('grupoLetra').value = data.grupoLetra || '';
+                document.getElementById('especialidad').value = data.especialidad || ''; */
+                /*  buscarYAutoRellenar(); */ // Verificar número de control al cargar
+                checkFields(); // Verificar campos después de cargar
+            }
+        }
+
+
+
+
+        // Función para generar el código QR
+        function makeCode() {
+            var nombreCompleto = generarNombreCompleto();
+            const numeroControl = document.getElementById('numeroControl').value.trim();
+            /* const numeroControlFin = document.getElementById('numeroControlFin').value.trim(); */
+            /* const nControlCompleto = `${numeroControlInicio}309060${numeroControlFin}`; */
+            /*  var numeroControl = document.getElementById('numeroControl').value;
+             var nControlCompleto = `2230906076${numeroControl}`; */
+            // Obtener los valores de semestre y grupoLetra y unirlos para formar la variable "grupo"
+            var semestre = document.getElementById('semestre').value;
+            var grupoLetra = document.getElementById('grupoLetra').value;
+            var grupo = semestre + grupoLetra;
+            var especialidad = document.getElementById('especialidad').value;
+            var qrText = `No=${nombreCompleto}&ID=${numeroControl}&Gr=${grupo}&Es=${especialidad}`;
+            var encodedQRText = encodeURIComponent(qrText);
+
+            // Utilizar la API de QRServer para generar el código QR
+            var qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedQRText}&bgcolor=fcd2dd`;
+            document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}">`;
+
+            // Cambiar los colores del QR y la interfaz
+
+
+            saveData()
+            // Habilitar el botón de descarga tras generar el código QR
+            document.getElementById('download-button').disabled = false;
+            document.querySelector('#qrcode').style.display = 'block';
+        }
+
+        // --- Referencias para el Modal ---
+        const errorModal = document.getElementById('errorModal');
+        const errorModalMessage = document.getElementById('errorModalMessage');
+        const closeErrorModalButton = document.getElementById('closeErrorModalButton');
+        const closeErrorModalX = document.getElementById('closeErrorModalX');
+
+        // --- Funciones para controlar el Modal ---
+        function showModal(message) {
+            errorModalMessage.textContent = message; // Actualiza el mensaje
+            errorModal.classList.remove('modal-hidden');
+            errorModal.classList.add('modal-visible');
+            window.navigator.vibrate(500);
+            errorModal.setAttribute('aria-hidden', 'false');
+        }
+
+        function hideModal() {
+            errorModal.classList.add('modal-hidden');
+            errorModal.classList.remove('modal-visible');
+            errorModal.setAttribute('aria-hidden', 'true');
+            document.getElementById('numeroControl').disabled = false;
+        }
+
+        // --- Event Listeners para cerrar el Modal ---
+        closeErrorModalButton.addEventListener('click', hideModal);
+        closeErrorModalX.addEventListener('click', hideModal);
+        // Opcional: Cerrar al hacer clic fuera del contenido del modal
+        errorModal.addEventListener('click', (event) => {
+            if (event.target === errorModal) { // Si el clic fue directamente en el fondo
+                hideModal();
+            }
+        });
+
+
+        // Generar el primer QR (comentado para evitar ejecución automática)
+        /* makeCode(); */
+
+        // Añadir eventos para generar el QR al presionar Enter o al perder el foco
+        $("#text").on("blur", function () {
+            makeCode();
+        }).on("keydown", function (e) {
+            if (e.keyCode == 13) {
+                makeCode();
+            }
+        });
+
+        // Función para descargar el QR
+        function downloadQR() {
+            const qrImage = document.querySelector('#qrcode img');
+            if (!qrImage) {
+                alert('No hay código QR para descargar.');
+                return;
+            }
+            fetch(qrImage.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    const link = document.createElement('a');
+                    const numeroControl = document.getElementById('numeroControl').value.trim();
+                   /*  const nControlFin = document.getElementById('numeroControlFin').value.trim(); */
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `aulaPass_${numeroControl}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                })
+                .catch(error => console.error('Error al descargar el código QR:', error));
+        }
+
+
+        // Añadir eventos a los botones
+        document.getElementById('generate-button').addEventListener('click', makeCode);
+        document.getElementById('download-button').addEventListener('click', downloadQR);
+
+    </script>
+</body>
+
+</html>

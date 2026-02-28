@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gray-750: #2d3748;
+  --color-gray-850: #1a202c;
+  --color-gray-900: #111827;
+
+  --animate-fade-in: fade-in 0.4s ease-out forwards;
+  --animate-fade-in-up: fade-in-up 0.5s ease-out forwards;
+  --animate-pulse-slow: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse-slow {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.5;
+    }
+  }
+}
+
+:root {
+  background-color: var(--color-gray-900);
+  color: white;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-height: 100vh;
+  justify-content: center;
+}
+
+#root {
+  width: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.override-html5-qrcode button {
+  background: #3b82f6 !important;
+  border: none !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 1rem !important;
+  margin-top: 0.5rem !important;
+  cursor: pointer;
+}
+
+.override-html5-qrcode a {
+  color: #60a5fa !important;
+  text-decoration: none !important;
+}

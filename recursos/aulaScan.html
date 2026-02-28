@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="author" content="Marko">
+    <title>aulaScan</title>
+    <!-- Precarga de fuentes y CSS de normalización -->
+    <link rel="preload" as="style" onload="this.rel='stylesheet';this.onload=null"
+        href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+    <link rel="preload" as="style" onload="this.rel='stylesheet';this.onload=null"
+        href="https://unpkg.com/normalize.css@8.0.0/normalize.css">
+    <!-- Carga de datos (JSON) y Tailwind (para estilos responsivos) -->
+    <script src="datos.json"></script>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <!-- Favicon y meta tags para PWA -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/fav-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/fav-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/fav-180.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1E429F">
+    <meta name="mobile-web-app-capable" content="yes">
+    <style>
+        /* Deshabilita la selección de texto en la página */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Estilo personalizado para el botón "Leer QR" cuando está deshabilitado */
+        #startButton:disabled {
+            background: #cbd5e0 !important;
+            color: #718096 !important;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-white [--pattern-fg:var(--color-gray-950)]/5 dark:bg-gray-950 dark:[--pattern-fg:var(--color-white)]/10">
+    <!-- Botón de información en la esquina superior derecha -->
+    <!-- <button id="infoBtn" class="fixed top-4 right-4 bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 focus:outline-none">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M13 16h-1v-4h-1m1-4h.01M12 20.5A8.5 8.5 0 1112 3.5a8.5 8.5 0 010 17z" />
+    </svg>
+  </button> -->
+
+    <!-- Modal de información -->
+    <!-- <div id="infoModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-gray-700 rounded-lg p-6 max-w-md w-full">
+      <h2 class="text-xl text-white font-bold mb-4">Mejoras en la versión 1.1</h2>
+      <ul class="list-disc pl-5 text-white">
+        <li>La tabla de asistencias se divide en varias tablas por día, cada una con su botón para descargar CSV.</li>
+        <li>Se agregó un símbolo de información en la esquina superior derecha para mostrar estas mejoras.</li>
+        <li>Validación de campos para habilitar el botón de lectura de QR.</li>
+      </ul>
+      <button id="closeInfoBtn" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700">Cerrar</button>
+    </div>
+  </div> -->
+
+    <center>
+        <main class="wrapper" style="padding-top:2em">
+            <section class="container" id="demo-content">
+
+                <div
+                    class="container mx-auto p-4 block max-w-sm p-6 border border-gray-700 rounded-lg shadow-sm bg-gray-800">
+                    <h2 class="title text-blue-900 dark:text-blue-200">AulaScan beta 1.3</h2>
+                    <!-- Pestañas para separar controles y tabla de asistencia -->
+                    <div class="mb-4 border-b border-gray-700">
+                        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="main-tabs" role="tablist">
+                            <li class="mr-2" role="presentation">
+                                <button id="tab-escaneo" data-tabs-target="#panel-escaneo" type="button" role="tab"
+                                    aria-controls="panel-escaneo" aria-selected="true"
+                                    class="inline-block p-4 border-b-2 rounded-t-lg text-blue-600 border-blue-600">
+                                    Escaneo
+                                </button>
+                            </li>
+                            <li class="mr-2" role="presentation">
+                                <button id="tab-asistencia" data-tabs-target="#panel-asistencia" type="button"
+                                    role="tab" aria-controls="panel-asistencia" aria-selected="false"
+                                    class="inline-block p-4 border-b-2 rounded-t-lg text-gray-500 hover:text-gray-600 hover:border-gray-300">
+                                    Asistencia
+                                </button>
+                            </li>
+                            <li class="mr-2" role="presentation">
+                                <a href="look.html"
+                                    target="_blank">
+                                    <button id="tab-reporte" type="button" role="tab" aria-controls="panel-repirte"
+                                        aria-selected="false"
+                                        class="inline-block p-4 border-b-2 rounded-t-lg text-gray-500 hover:text-gray-600 hover:border-gray-300">
+                                        Reporte
+                                    </button>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Contenedor de pestañas -->
+                    <div id="main-tab-content">
+                        <!-- Panel de Escaneo -->
+                        <div id="panel-escaneo" role="tabpanel" aria-labelledby="tab-escaneo"
+                            class="p-4 rounded-lg bg-gray-800">
+                            <div id="video-container">
+                                <video id="video" width="300" height="400"
+                                    class="block max-w-sm p-6 bg-black border border-gray-700 rounded-lg shadow-sm"></video>
+                            </div>
+                            <br>
+                            <div class="inline-flex rounded-md shadow-xs" role="group">
+                                <button type="button" id="startButton" disabled
+                                    class="flex items-center gap-2 text-white bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-800 font-medium rounded-s-full text-sm px-5 py-2.5 text-center me-2 mb-2">
+                                    Leer QR
+                                </button>
+                                <button type="button" id="resetButton"
+                                    class="flex items-center gap-2 text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-800 font-medium rounded-e-full text-sm px-5 py-2.5 text-center me-2 mb-2">
+                                    Reset
+                                </button>
+                            </div>
+                            <br><br>
+                            <!-- Selectores -->
+                            <label for="profesor" class="block text-white text-sm font-bold mb-2">Profesor:</label>
+                            <select id="profesor" name="profesor"
+                                class="shadow appearance-none border rounded-full w-full py-2 px-3 text-white leading-tight focus:outline-none focus:shadow-outline bg-blue-900">
+                                <option value="" disabled selected>Seleccione un profesor</option>
+                            </select>
+                            <br><br>
+                            <label for="periodo" class="block text-white text-sm font-bold mb-2">Parcial:</label>
+                            <select id="periodo" name="periodo"
+                                class="shadow appearance-none border rounded-full w-full py-2 px-3 text-white leading-tight focus:outline-none focus:shadow-outline bg-blue-900">
+                                <option value="" disabled selected>Seleccione un parcial</option>
+                                <option value="1">Primer Parcial</option>
+                                <option value="2">Segundo Parcial</option>
+                                <option value="3">Tercer Parcial</option>
+                            </select>
+                            <br><br>
+                            <label for="materia" class="block text-white text-sm font-bold mb-2">Materia:</label>
+                            <select id="materia" name="materia"
+                                class="shadow appearance-none border rounded-full w-full py-2 px-3 text-white leading-tight focus:outline-none focus:shadow-outline bg-blue-900">
+                                <option value="" disabled selected>Seleccione una materia</option>
+                            </select>
+                            <br><br>
+                            <div id="sourceSelectPanel" style="display:none">
+                                <label for="sourceSelect" class="text-white">Fuente de video cambiada:</label>
+                                <select id="sourceSelect" style="max-width:400px"></select>
+                            </div>
+                            <label class="text-white">Resultado:</label>
+                            <div>
+                                <p id="result"></p>
+                            </div>
+                        </div>
+                        <!-- Panel de Asistencia -->
+                        <div id="panel-asistencia" role="tabpanel" aria-labelledby="tab-asistencia"
+                            class="hidden p-4 rounded-lg bg-gray-800">
+                            <div id="tabla"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <footer class="footer">
+                <!-- Pie de página -->
+            </footer>
+        </main>
+    </center>
+
+    <!-- Librería ZXing -->
+    <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
+    <!-- Librería Howler.js -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.1.2/howler.min.js"></script>
+    <script type="text/javascript">
+        // Referencias globales a los selectores y botón
+        const selectProfesor = document.getElementById('profesor');
+        const selectMateria = document.getElementById('materia');
+        const selectPeriodo = document.getElementById('periodo');
+        const startButton = document.getElementById('startButton');
+        var jsonEntrada; // Almacena el contenido leído del QR
+
+        // Constantes para la lógica de cooldown
+        const COOLDOWN_PERIOD_MS = 10 * 60 * 1000; // 10 minutos en milisegundos
+        const QR_COOLDOWN_STORAGE_KEY = 'qrCooldownTimestamps';
+
+
+        // Validación de campos para habilitar "Leer QR"
+        function validateFields() {
+            if (selectProfesor.value !== "" &&
+                selectMateria.value !== "" &&
+                selectPeriodo.value !== "") {
+                startButton.disabled = false;
+            } else {
+                startButton.disabled = true;
+            }
+        }
+        selectProfesor.addEventListener("change", validateFields);
+        selectMateria.addEventListener("change", validateFields);
+        selectPeriodo.addEventListener("change", validateFields);
+
+        // Guardar selecciones en localStorage al cambiar
+        selectProfesor.addEventListener("change", function () {
+            localStorage.setItem('profesorSeleccionado', selectProfesor.value);
+            validateFields();
+        });
+        selectMateria.addEventListener("change", function () {
+            localStorage.setItem('materiaSeleccionada', selectMateria.value);
+            validateFields();
+        });
+        selectPeriodo.addEventListener("change", validateFields);
+
+        // Función para determinar el parcial según la fecha actual
+        function determinarParcial() {
+            const hoy = new Date();
+            const fechaPrimerParcial = new Date('2026-03-20');
+            const fechaSegundoParcial = new Date('2025-05-14');
+            const fechaTercerParcial = new Date('2026-06-19');
+
+            if (hoy < fechaPrimerParcial) {
+                selectPeriodo.value = '1'; // Primer Parcial
+            } else if (hoy >= fechaPrimerParcial && hoy < fechaSegundoParcial) {
+                selectPeriodo.value = '2'; // Segundo Parcial
+            } else if (hoy >= fechaSegundoParcial && hoy < fechaTercerParcial) {
+                selectPeriodo.value = '3'; // Tercer Parcial
+            } else {
+                selectPeriodo.value = ''; // Fuera de rango, no seleccionar ningún parcial
+            }
+            validateFields(); // Validar después de establecer el parcial
+        }
+
+        // Ejecutar determinarParcial inmediatamente al cargar la página
+        document.addEventListener('DOMContentLoaded', function () {
+            determinarParcial();
+        });
+
+        // Cargar datos desde datos.json
+        fetch('datos.json')
+            .then(response => response.json())
+            .then(data => {
+                data.profesores.forEach(profesor => {
+                    const option = document.createElement('option');
+                    option.value = profesor.value;
+                    option.text = profesor.text;
+                    selectProfesor.appendChild(option);
+                });
+                data.materias.forEach(materia => {
+                    const option = document.createElement('option');
+                    option.value = materia.value;
+                    option.text = materia.text;
+                    selectMateria.appendChild(option);
+                });
+                // Cargar selecciones guardadas desde localStorage
+                const profesorGuardado = localStorage.getItem('profesorSeleccionado');
+                const materiaGuardada = localStorage.getItem('materiaSeleccionada');
+                if (profesorGuardado) {
+                    selectProfesor.value = profesorGuardado;
+                }
+                if (materiaGuardada) {
+                    selectMateria.value = materiaGuardada;
+                }
+                validateFields();
+            })
+            .catch(error => console.error('Error cargando datos:', error));
+
+        // Enviar datos mediante iframe
+        function handleClick() {
+            var Pro = selectProfesor.value;
+            var Pe = selectPeriodo.value;
+            var selectedValue = selectMateria.value;
+            var url = 'https://script.google.com/macros/s/AKfycbxu6pGpJy-e21jaH9mp-r4aO1E4Tqar3sxxkC7o2w9I70KIyAGTiup3SME6XseGrN5c/exec?';
+            const iframe = document.createElement('iframe');
+            iframe.src = url + jsonEntrada + '&Pe=' + Pe + '&Pro=' + Pro + '&Ma=' + selectedValue;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+            console.log(iframe.src);
+        }
+
+        // Pinta la tabla y guarda la asistencia en localStorage
+        function pintarTabla(qrData) {
+            const tablaDiv = document.getElementById('tabla');
+            const pairs = qrData.split("&");
+            const rowData = {};
+            pairs.forEach(pair => {
+                const [key, value] = pair.split("=");
+                rowData[key] = decodeURIComponent(value);
+            });
+            let now = new Date();
+            rowData["Fecha"] = now.toLocaleDateString();
+            rowData["Hora"] = now.toLocaleTimeString();
+            const materiaSelect = document.getElementById('materia');
+            rowData["Materia"] = materiaSelect.options[materiaSelect.selectedIndex].text;
+            // Se guarda la asistencia en localStorage y se limpia registros antiguos
+            saveRowToLocalStorage(rowData);
+            cleanupOldRecords();
+        }
+
+        // Guarda la asistencia en localStorage agrupada por día
+        function saveRowToLocalStorage(rowData) {
+            let today = new Date().toISOString().slice(0, 10);
+            let key = 'asistencia_' + today;
+            let records = localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key)) : [];
+            records.push(rowData);
+            localStorage.setItem(key, JSON.stringify(records));
+        }
+
+        // Elimina registros de más de 7 días
+        function cleanupOldRecords() {
+            const today = new Date();
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.startsWith('asistencia_')) {
+                    let datePart = key.substring('asistencia_'.length);
+                    let recordDate = new Date(datePart);
+                    const diffDays = (today - recordDate) / (1000 * 60 * 60 * 24);
+                    if (diffDays > 15) {
+                        localStorage.removeItem(key);
+                    }
+                }
+            });
+        }
+
+        // Descarga CSV de una tabla dada
+        function downloadCSVForTable(table) {
+            let csv = [];
+            let rows = table.querySelectorAll("tr");
+            rows.forEach(row => {
+                let cols = row.querySelectorAll("th, td");
+                let rowData = [];
+                cols.forEach(col => {
+                    rowData.push('"' + col.innerText.replace(/"/g, '""') + '"');
+                });
+                csv.push(rowData.join(","));
+            });
+            let csvString = csv.join("\n");
+            let blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            let url = URL.createObjectURL(blob);
+            let link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "asistencia.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Carga y muestra las asistencias agrupadas por día con su botón de descarga
+        function loadLocalAttendances() {
+            const tablaDiv = document.getElementById("tabla");
+            tablaDiv.innerHTML = "";
+            let keys = Object.keys(localStorage).filter(key => key.startsWith("asistencia_"));
+            if (keys.length === 0) {
+                tablaDiv.innerHTML = "<p class='text-gray-500'>No hay asistencias registradas.</p>";
+                return;
+            }
+            keys.sort();
+            keys.forEach(key => {
+                let records = JSON.parse(localStorage.getItem(key));
+                if (records && records.length > 0) {
+                    const dateHeader = document.createElement("h3");
+                    dateHeader.className = "text-lg font-bold mb-2 text-white";
+                    dateHeader.textContent = "Asistencias del " + key.replace("asistencia_", "");
+                    tablaDiv.appendChild(dateHeader);
+
+                    const tableWrapper = document.createElement("div");
+                    tableWrapper.className = "relative overflow-x-auto shadow-md sm:rounded-lg mb-4";
+
+                    const table = document.createElement("table");
+                    table.className = "w-full text-sm text-left text-gray-400";
+                    const thead = document.createElement("thead");
+                    thead.className = "text-xs text-gray-400 uppercase bg-gray-700";
+                    const headerRow = document.createElement("tr");
+                    const firstRecord = records[0];
+                    for (let col in firstRecord) {
+                        const th = document.createElement("th");
+                        th.scope = "col";
+                        th.className = "px-6 py-3";
+                        th.textContent = col;
+                        headerRow.appendChild(th);
+                    }
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement("tbody");
+                    records.forEach(record => {
+                        const tr = document.createElement("tr");
+                        tr.className = "border-b bg-gray-800 border-gray-700 hover:bg-gray-600";
+                        let first = true;
+                        for (let col in record) {
+                            if (first) {
+                                const th = document.createElement("th");
+                                th.scope = "row";
+                                th.className = "px-6 py-4 font-medium whitespace-nowrap text-white";
+                                th.textContent = record[col];
+                                tr.appendChild(th);
+                                first = false;
+                            } else {
+                                const td = document.createElement("td");
+                                td.className = "px-6 py-4";
+                                td.textContent = record[col];
+                                tr.appendChild(td);
+                            }
+                        }
+                        tbody.appendChild(tr);
+                    });
+                    table.appendChild(tbody);
+                    tableWrapper.appendChild(table);
+                    tablaDiv.appendChild(tableWrapper);
+
+                    // Botón individual para descargar CSV de este día
+                    const downloadBtn = document.createElement("button");
+                    downloadBtn.textContent = "Descargar CSV";
+                    downloadBtn.className = "flex items-center gap-2 text-white bg-gradient-to-r from-green-500 via-green-600 to-green-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-800 font-medium rounded-full text-sm px-5 py-2.5 text-center mb-6";
+                    downloadBtn.addEventListener("click", function () {
+                        downloadCSVForTable(table);
+                    });
+                    tablaDiv.appendChild(downloadBtn);
+                }
+            });
+        }
+
+        // Inicialización del lector de QR y eventos
+        window.addEventListener('load', function () {
+            let selectedDeviceId;
+            const codeReader = new ZXing.BrowserQRCodeReader();
+            console.log('aulaCheck iniciado');
+            codeReader.getVideoInputDevices()
+                .then((videoInputDevices) => {
+                    if (videoInputDevices.length >= 1) {
+                        videoInputDevices.forEach((element) => console.log(element));
+                        const sourceSelect = document.getElementById('sourceSelect');
+                        let length = videoInputDevices.length - 1;
+                        if (videoInputDevices[length].deviceId) {
+                            selectedDeviceId = videoInputDevices[length].deviceId;
+                            document.getElementById('startButton').addEventListener('click', () => {
+                                codeReader.decodeFromInputVideoDevice(selectedDeviceId, 'video')
+                                    .then((result) => {
+                                        console.log(result);
+                                        window.navigator.vibrate(100);
+
+                                        const qrDataString = result.text; // Guarda el texto original
+                                        const pairs = qrDataString.split("&");
+                                        const qrData = {};
+                                        pairs.forEach(pair => {
+                                            if (pair.includes('=')) {
+                                                const [key, value] = pair.split("=");
+                                                qrData[key] = decodeURIComponent(value.replace(/\+/g, ' '));
+                                            }
+                                        });
+
+                                        const carrera = qrData['Es'];
+                                        console.log(nombre);
+
+                                        if (carrera && carrera === carrera.toLowerCase()) {
+                                            // *** LÓGICA DE COOLDOWN ***
+                                            const currentTime = new Date().getTime();
+                                            let cooldownTimestamps = JSON.parse(localStorage.getItem(QR_COOLDOWN_STORAGE_KEY)) || {};
+                                            const lastScanTime = cooldownTimestamps[qrDataString];
+
+                                            if (lastScanTime && (currentTime - lastScanTime < COOLDOWN_PERIOD_MS)) {
+                                                // Cooldown activo para este QR
+                                                const timeLeftMs = COOLDOWN_PERIOD_MS - (currentTime - lastScanTime);
+                                                const minutesLeft = Math.ceil(timeLeftMs / (60 * 1000));
+                                                
+                                                window.navigator.vibrate([300,100,300]); // Vibración de error
+                                                var sound = new Howl({
+                                                    src: ['https://github.com/marcoC76/audios/raw/refs/heads/main/error.mp3']
+                                                });
+                                                sound.play();
+                                                
+                                                document.getElementById('result').innerHTML = `
+                                                <br>
+                                                <div class="flex items-center p-4 mb-4 text-sm text-yellow-400 border border-yellow-800 rounded-lg bg-gray-800 dark:text-yellow-300 dark:border-yellow-600" role="alert">
+                                                    <svg class="shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                                                    </svg>
+                                                    <span class="sr-only">Advertencia</span>
+                                                    <div>Este QR ya fue escaneado. Intente de nuevo en ${minutesLeft} min.</div>
+                                                </div>`;
+                                            } else {
+                                                // *** CASO DE ÉXITO (QR Válido y sin cooldown) ***
+                                                document.getElementById('result').innerHTML = `
+                                                <br>
+                                                <div class="flex items-center p-4 mb-4 text-sm text-blue-400 border border-blue-800 rounded-lg bg-gray-800" role="alert">
+                                                    <svg class="shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                                                    </svg>
+                                                    <span class="sr-only">Info</span>
+                                                    <div>Asistencia registrada.</div>
+                                                </div>`;
+                                                jsonEntrada = qrDataString;
+                                                pintarTabla(qrDataString);
+                                                var sound = new Howl({
+                                                    src: ['https://marcoc76.github.io/audios/a-sudden-appearance-143034.mp3']
+                                                });
+                                                sound.play();
+                                                handleClick();
+
+                                                // Actualizar el timestamp para este QR
+                                                cooldownTimestamps[qrDataString] = currentTime;
+                                                localStorage.setItem(QR_COOLDOWN_STORAGE_KEY, JSON.stringify(cooldownTimestamps));
+                                            }
+                                        } else {
+                                            // *** CASO DE FALLO (QR no válido) ***
+                                            window.navigator.vibrate([300, 100, 300]);
+                                            var sound = new Howl({
+                                                src: ['https://github.com/marcoC76/audios/raw/refs/heads/main/error.mp3']
+                                            });
+                                            sound.play();
+                                            alert('El QR debe actualizarse a la versión más reciente');
+                                            document.getElementById('result').innerHTML = `
+                                            <br>
+                                            <div class="flex items-center p-4 mb-4 text-sm text-red-400 border border-red-800 rounded-lg bg-gray-800" role="alert">
+                                                <svg class="shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM10 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-4a1 1 0 0 1-2 0V6a1 1 0 0 1 2 0v5Z"/>
+                                                </svg>
+                                                <span class="sr-only">Error</span>
+                                                <div>QR no válido. Actualizar QR a la version mas reciente.</div>
+                                            </div>`;
+                                        }
+                                        codeReader.reset();
+                                    })
+                                    .catch((err) => {
+                                        console.error(err);
+                                        document.getElementById('result').textContent = err;
+                                        codeReader.reset(); // Asegurarse de resetear en caso de error de decodificación
+                                    });
+                                console.log(`Decodificación iniciada desde la cámara con ${selectedDeviceId}`);
+                            });
+                        } else { // Este bloque 'else' es para el caso en que videoInputDevices[length].deviceId no sea truthy
+                            document.getElementById('startButton').addEventListener('click', () => {
+                                codeReader.decodeFromInputVideoDevice(undefined, 'video') // Usa undefined, ZXing elegirá la cámara
+                                    .then((result) => {
+                                        // La lógica de este bloque parece ser un fallback y no registra asistencia
+                                        // por lo que la lógica de cooldown no se aplica aquí directamente.
+                                        // Si se quisiera que este bloque también registre, se necesitaría replicar la lógica completa.
+                                        console.log(result);
+                                        document.getElementById('result').textContent = result.text;
+                                        var sound = new Howl({
+                                            src: ['https://github.com/marcoC76/audios/raw/refs/heads/main/error.mp3']
+                                        });
+                                        sound.play();
+                                        codeReader.reset(); // Añadido reset aquí para consistencia
+                                    })
+                                    .catch((err) => {
+                                        console.error(err);
+                                        document.getElementById('result').textContent = err;
+                                        codeReader.reset(); // Asegurarse de resetear
+                                    });
+                                console.log(`Decodificación iniciada desde la cámara por defecto (selectedDeviceId no encontrado explícitamente)`);
+                            });
+                        }
+                        console.log("Dispositivos:", length, selectedDeviceId);
+                    } else {
+                         console.warn("No se encontraron dispositivos de entrada de video.");
+                         document.getElementById('result').innerHTML = `
+                            <br>
+                            <div class="flex items-center p-4 mb-4 text-sm text-red-400 border border-red-800 rounded-lg bg-gray-800" role="alert">
+                                <svg class="shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM10 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-4a1 1 0 0 1-2 0V6a1 1 0 0 1 2 0v5Z"/>
+                                </svg>
+                                <span class="sr-only">Error</span>
+                                <div>No se encontraron cámaras. Asegúrese de permitir el acceso.</div>
+                            </div>`;
+                    }
+
+                    document.getElementById('resetButton').addEventListener('click', () => {
+                        codeReader.reset();
+                        document.getElementById('result').textContent = ''; // Limpiar resultado al resetear
+                        console.log('Reset.');
+                    });
+                })
+                .catch((err) => {
+                    console.error("Error al obtener dispositivos de video:", err);
+                    document.getElementById('result').innerHTML = `
+                        <br>
+                        <div class="flex items-center p-4 mb-4 text-sm text-red-400 border border-red-800 rounded-lg bg-gray-800" role="alert">
+                            <svg class="shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM10 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-4a1 1 0 0 1-2 0V6a1 1 0 0 1 2 0v5Z"/>
+                            </svg>
+                            <span class="sr-only">Error</span>
+                            <div>Error al acceder a la cámara: ${err.message}</div>
+                        </div>`;
+                });
+        });
+
+        // Manejo de pestañas
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabButtons = document.querySelectorAll('[data-tabs-target]');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const target = button.getAttribute('data-tabs-target');
+                    const tabPanels = document.querySelectorAll('#main-tab-content > div');
+                    tabPanels.forEach(panel => panel.classList.add('hidden'));
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('text-blue-600', 'border-blue-600');
+                        btn.classList.add('text-gray-500');
+                    });
+                    document.querySelector(target).classList.remove('hidden');
+button.classList.remove('text-gray-500');
+                    button.classList.add('text-blue-600', 'border-blue-600');
+                    if (target === "#panel-asistencia") {
+                        loadLocalAttendances();
+                    }
+                });
+            });
+
+            // Eventos para mostrar/ocultar el modal de información (si se descomenta el HTML)
+            // const infoBtn = document.getElementById('infoBtn');
+            // const closeInfoBtn = document.getElementById('closeInfoBtn');
+            // const infoModal = document.getElementById('infoModal');
+
+            // if(infoBtn && closeInfoBtn && infoModal) {
+            //   infoBtn.addEventListener('click', () => {
+            //     infoModal.classList.remove('hidden');
+            //   });
+            //   closeInfoBtn.addEventListener('click', () => {
+            //     infoModal.classList.add('hidden');
+            //   });
+            // }
+        });
+    </script>
+</body>
+</html>

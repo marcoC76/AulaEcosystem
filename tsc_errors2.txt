@@ -1,0 +1,3 @@
+﻿src/components/layout/PinGuard.tsx(1,31): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/ui/Stepper.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/hooks/useLocalStorage.ts(1,20): error TS6133: 'useEffect' is declared but its value is never read.
