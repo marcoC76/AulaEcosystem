@@ -3,7 +3,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
     BarChart, Bar, Cell
 } from 'recharts';
-import { fetchAppConfig, fetchReportData, updateAttendanceRecord, deleteAttendanceRecord } from '../../lib/dataService';
+import { fetchAppConfig, fetchReportData, fetchStudentsDB, updateAttendanceRecord, deleteAttendanceRecord, insertJustifiedAbsence } from '../../lib/dataService';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
@@ -11,6 +11,8 @@ import { Stepper } from '../../components/ui/Stepper';
 import { Modal } from '../../components/ui/Modal';
 import { cn } from '../../lib/utils';
 import type { ConfigOption, AttendanceRecord } from '../../types';
+
+type ExtendedAttendanceRecord = AttendanceRecord & { faltasCalculadas?: string[] };
 
 export default function AulaLook() {
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
@@ -22,15 +24,21 @@ export default function AulaLook() {
     const [selectedGroup, setSelectedGroup] = useState('');
 
     // Data State
-    const [data, setData] = useState<AttendanceRecord[]>([]);
+    const [data, setData] = useState<ExtendedAttendanceRecord[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedStudent, setSelectedStudent] = useState<AttendanceRecord | null>(null);
+    const [selectedStudent, setSelectedStudent] = useState<ExtendedAttendanceRecord | null>(null);
     const [modalView, setModalView] = useState<'list' | 'sheet'>('list');
 
-    const groups = ['2A', '2B', '2E', '4A', '4B']; // Mock groups derived from DB
+    const [availableGroups, setAvailableGroups] = useState<string[]>([]);
+    const [studentsDB, setStudentsDB] = useState<any[]>([]);
 
     useEffect(() => {
         fetchAppConfig().then(setConfig);
+        fetchStudentsDB().then(students => {
+            setStudentsDB(students);
+            const uniqueGroups = Array.from(new Set(students.map(s => s.Grupo))).filter(Boolean).sort();
+            setAvailableGroups(uniqueGroups);
+        });
     }, []);
 
     const handleNext = async () => {
@@ -43,7 +51,112 @@ export default function AulaLook() {
             setIsLoading(true);
             setStep(3);
             const res = await fetchReportData({ teacher: selectedTeacher, subject: selectedSubject, group: selectedGroup });
-            setData(res);
+
+            // 1. Find maxAsistencias and master student from server response
+            let maxAsistencias = 0;
+            let masterStudent: AttendanceRecord | null = null;
+            res.forEach(d => {
+                const asis = Number(d.Asistencias);
+                if (asis > maxAsistencias) {
+                    maxAsistencias = asis;
+                    masterStudent = d;
+                }
+            });
+
+            // 1.5. Prepare complete group list
+            const groupStudents = studentsDB.filter(s => String(s.Grupo).trim() === String(selectedGroup).trim());
+            const mergedRes: AttendanceRecord[] = [];
+
+            groupStudents.forEach(gs => {
+                // Find matching student in server response
+                const serverRecord = res.find(r => {
+                    const rControl = String(r['Número de Control']).trim();
+                    const sControlKey = Object.keys(gs).find(k => k.toLowerCase().includes('control'));
+                    const sControl = sControlKey ? String(gs[sControlKey]).trim() : '';
+                    return rControl === sControl;
+                });
+
+                if (serverRecord) {
+                    mergedRes.push(serverRecord);
+                } else {
+                    // Create empty dummy record
+                    const nameKey = Object.keys(gs).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
+                    const patKey = Object.keys(gs).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
+                    const matKey = Object.keys(gs).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
+                    const careerKey = Object.keys(gs).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad')) || 'Carrera';
+                    const sControlKey = Object.keys(gs).find(k => k.toLowerCase().includes('control'));
+
+                    const rawName = String(gs[nameKey] || '').trim();
+                    const rawPat = String(gs[patKey] || '').trim();
+                    const rawMat = String(gs[matKey] || '').trim();
+
+                    mergedRes.push({
+                        "Número de Control": sControlKey ? String(gs[sControlKey]) : '000',
+                        "Nombre del Alumno": `${rawName} ${rawPat} ${rawMat}`.trim(),
+                        "Profesor": selectedTeacher,
+                        "Materia": selectedSubject,
+                        "Grupo": selectedGroup,
+                        "Periodo": 1,
+                        "Asistencias": 0,
+                        "Total de Clases": maxAsistencias > 0 ? maxAsistencias : 1, // Will be overridden
+                        "Porcentaje": 0,
+                        "Fechas y Horas de Asistencia": '[]',
+                        "Especialidad": careerKey ? String(gs[careerKey]) : 'Desconocido'
+                    });
+                }
+            });
+
+            // If we have some anomalous server records not in DB, push them too
+            res.forEach(r => {
+                if (!mergedRes.some(m => String(m['Número de Control']).trim() === String(r['Número de Control']).trim())) {
+                    mergedRes.push(r);
+                }
+            });
+
+            // 2. Extract master dates
+            const masterDates = new Set<string>();
+            if (masterStudent && masterStudent['Fechas y Horas de Asistencia']) {
+                try {
+                    const fechas = JSON.parse(masterStudent['Fechas y Horas de Asistencia']);
+                    fechas.forEach((fStr: string) => {
+                        const dateObj = new Date(fStr);
+                        if (!isNaN(dateObj.getTime())) {
+                            masterDates.add(dateObj.toISOString().split('T')[0]);
+                        }
+                    });
+                } catch (e) { }
+            }
+
+            // 3. Process data against merged records
+            const processedData = mergedRes.map(d => {
+                const newTotal = maxAsistencias > 0 ? maxAsistencias : 1;
+                const studentDates = new Set<string>();
+                try {
+                    const fechas = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
+                    fechas.forEach((fStr: string) => {
+                        const dateObj = new Date(fStr);
+                        if (!isNaN(dateObj.getTime())) {
+                            studentDates.add(dateObj.toISOString().split('T')[0]);
+                        }
+                    });
+                } catch (e) { }
+
+                const faltas: string[] = [];
+                masterDates.forEach(md => {
+                    if (!studentDates.has(md)) {
+                        faltas.push(md);
+                    }
+                });
+
+                return {
+                    ...d,
+                    'Total de Clases': newTotal,
+                    Porcentaje: Number(d.Asistencias) / newTotal,
+                    faltasCalculadas: faltas.sort()
+                };
+            });
+
+            setData(processedData);
             setIsLoading(false);
         } else {
             setStep(s => s + 1);
@@ -66,7 +179,73 @@ export default function AulaLook() {
     };
 
     // --- Derived Metrics ---
+    // Exportar CSV
+    const downloadAbsenceReport = () => {
+        if (data.length === 0) {
+            alert("No hay datos para exportar.");
+            return;
+        }
+
+        // CSV Header
+        const headers = ["Control", "Alumno", "Grupo", "Clases Impartidas", "Asistencias", "Porcentaje (%)", "Total Faltas", "Fechas Ausentes"];
+
+        const rows = data.map(student => {
+            const control = student['Número de Control'];
+            const nombre = student['Nombre del Alumno'];
+            const grupo = student.Grupo;
+            const clases = student['Total de Clases'] || 0;
+            const asistencias = student.Asistencias || 0;
+            const porcentaje = Math.round((student.Porcentaje || 0) * 100);
+
+            const faltasArr = student.faltasCalculadas || [];
+            const totalFaltas = faltasArr.length;
+            const fechasFaltas = faltasArr.join(" | ");
+
+            return [
+                control,
+                `"${nombre}"`,
+                grupo,
+                clases,
+                asistencias,
+                porcentaje,
+                totalFaltas,
+                `"${fechasFaltas}"`
+            ].join(",");
+        });
+
+        const csvContent = [headers.join(","), ...rows].join("\n");
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `ReporteFaltas_${selectedSubject}_${selectedGroup}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const totalStudents = data.length;
+    let totalAsistencias = 0;
+    const dateCounts: Record<string, { date: Date, count: number }> = {};
+
+    data.forEach(d => {
+        totalAsistencias += d.Asistencias;
+        try {
+            const fechas = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
+            fechas.forEach((fStr: string) => {
+                const dateObj = new Date(fStr);
+                if (isNaN(dateObj.getTime())) return;
+                const dateKey = dateObj.toISOString().split('T')[0];
+                if (!dateCounts[dateKey]) {
+                    dateCounts[dateKey] = { date: dateObj, count: 0 };
+                }
+                dateCounts[dateKey].count++;
+            });
+        } catch (e) { }
+    });
+
     const avgAttendance = totalStudents ? data.reduce((acc, curr) => acc + curr.Porcentaje, 0) / totalStudents : 0;
     const atRisk = data.filter(d => d.Porcentaje < 0.8).length;
     const perfect = data.filter(d => d.Porcentaje === 1.0).length;
@@ -77,14 +256,13 @@ export default function AulaLook() {
         { name: 'Perfecta', value: perfect, color: '#10b981' } // emerald-500
     ];
 
-    // Mock line chart data building
-    const timelineData = [
-        { name: 'Lun', asistencias: Math.floor(totalStudents * 0.9) },
-        { name: 'Mar', asistencias: Math.floor(totalStudents * 0.85) },
-        { name: 'Mié', asistencias: Math.floor(totalStudents * 0.95) },
-        { name: 'Jue', asistencias: Math.floor(totalStudents * 0.8) },
-        { name: 'Vie', asistencias: Math.floor(totalStudents * 1.0) }
-    ];
+    // Real line chart data building
+    const timelineData = Object.values(dateCounts)
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
+        .map(item => ({
+            name: item.date.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }),
+            asistencias: item.count
+        }));
 
     // Rendering Helper
     const getRiskColor = (percent: number) => {
@@ -124,7 +302,7 @@ export default function AulaLook() {
                         <h3 className="text-xl font-bold text-center mb-6">Selecciona el Grupo</h3>
                         <Select value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)} className="h-12 text-lg">
                             <option value="">-- Elige un grupo --</option>
-                            {groups.map(g => <option key={g} value={g}>{g}</option>)}
+                            {availableGroups.map(g => <option key={g} value={g}>{g}</option>)}
                         </Select>
                     </div>
                 )}
@@ -176,9 +354,9 @@ export default function AulaLook() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {[
                                     { title: "Total Alumnos", value: totalStudents, icon: "groups", color: "text-blue-400" },
-                                    { title: "Asistencia Promedio", value: `${(avgAttendance * 100).toFixed(1)}%`, icon: "timeline", color: "text-emerald-400" },
-                                    { title: "En Riesgo (<80%)", value: atRisk, icon: "warning", color: "text-red-400" },
-                                    { title: "Asistencia Perfecta", value: perfect, icon: "workspace_premium", color: "text-yellow-400" }
+                                    { title: "Total Asistencias", value: totalAsistencias, icon: "fact_check", color: "text-emerald-400" },
+                                    { title: "Asistencia Promedio", value: `${(avgAttendance * 100).toFixed(1)}%`, icon: "timeline", color: "text-yellow-400" },
+                                    { title: "En Riesgo (<80%)", value: atRisk, icon: "warning", color: "text-red-400" }
                                 ].map((kpi, i) => (
                                     <Card key={i} className="border-gray-800 bg-gray-850 p-4 flex items-center gap-4">
                                         <div className={cn("p-3 rounded-xl bg-gray-900 shadow-inner border border-gray-800", kpi.color)}>
@@ -244,6 +422,16 @@ export default function AulaLook() {
                             <Card className="border-gray-800 bg-gray-850 overflow-hidden">
                                 <div className="p-4 border-b border-gray-800 flex justify-between items-center">
                                     <h3 className="text-lg font-bold">Listado de Alumnos</h3>
+                                    <Button
+                                        onClick={downloadAbsenceReport}
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 gap-2 text-sm border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                                        disabled={isLoading || data.length === 0}
+                                    >
+                                        <span className="material-icons-round text-[18px]">download</span>
+                                        Descargar Faltas (CSV)
+                                    </Button>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
@@ -340,29 +528,65 @@ export default function AulaLook() {
                                 {modalView === 'list' ? (
                                     <div className="space-y-3 mt-4 max-h-[40vh] overflow-y-auto">
                                         <p className="font-medium mb-2 border-b border-gray-800 pb-2">Registro Cronológico</p>
+
+                                        {selectedStudent.faltasCalculadas && selectedStudent.faltasCalculadas.length > 0 && (
+                                            <div className="mb-4">
+                                                <p className="text-sm text-red-500 font-semibold mb-2 flex items-center gap-1">
+                                                    <span className="material-icons-round text-sm">warning</span> Faltas Detectadas ({selectedStudent.faltasCalculadas.length})
+                                                </p>
+                                                {selectedStudent.faltasCalculadas.map((falta, i) => {
+                                                    const parts = falta.split('-');
+                                                    const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+
+                                                    const handleJustifyMissing = async () => {
+                                                        if (!confirm('¿Deseas registrar esta falta como Justificada en la base de datos?')) return;
+
+                                                        const success = await insertJustifiedAbsence({
+                                                            No: selectedStudent['Nombre del Alumno'],
+                                                            ID: selectedStudent['Número de Control'],
+                                                            Gr: selectedStudent.Grupo,
+                                                            Es: selectedStudent.Especialidad || 'Desconocido',
+                                                            Pe: selectedStudent.Periodo || 1,
+                                                            Pro: selectedTeacher,
+                                                            Ma: selectedSubject,
+                                                            date: falta
+                                                        });
+
+                                                        if (success) {
+                                                            alert('Falta justificada y reportada al servidor como nuevo registro.');
+                                                            setSelectedStudent(null);
+                                                            // Trigger a full re-fetch to reflect the new justified status
+                                                            fetchReportData({ subject: selectedSubject, teacher: selectedTeacher, group: selectedGroup }).then(setData);
+                                                        } else {
+                                                            alert('Error al insertar el registro en el servidor.');
+                                                        }
+                                                    };
+
+                                                    return (
+                                                        <div key={`f-${i}`} className="flex justify-between items-center p-3 mb-2 bg-red-500/10 rounded-lg border border-red-500/20 gap-3">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-red-400 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
+                                                                <span className="text-xs text-red-500/70">Asistencia registrada para el grupo, pero no para este alumno.</span>
+                                                            </div>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8 text-xs py-0 shrink-0 border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10"
+                                                                onClick={handleJustifyMissing}
+                                                            >
+                                                                Justificar
+                                                            </Button>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
+
                                         {/* Parse JSON string array of dates as specified */}
                                         {(() => {
                                             try {
                                                 const dates = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
                                                 if (!Array.isArray(dates) || dates.length === 0) return <p className="text-gray-500 text-sm">Sin registros.</p>;
-
-                                                const handleJustify = async (dateStr: string) => {
-                                                    if (!confirm('¿Marcar esta falta como Justificada?')) return;
-                                                    const success = await updateAttendanceRecord(selectedSubject, selectedStudent['Número de Control'], dateStr, 'Justificado');
-                                                    if (success) {
-                                                        alert('Registro actualizado correctamente.');
-                                                        // Update local data state optimistically
-                                                        setData(prev => prev.map(s => {
-                                                            if (s['Número de Control'] === selectedStudent['Número de Control']) {
-                                                                // In a real app we'd fetch fresh data, or update this student's count
-                                                                return { ...s, status: 'Justificado' };
-                                                            }
-                                                            return s;
-                                                        }));
-                                                    } else {
-                                                        alert('Error al actualizar registro en el servidor.');
-                                                    }
-                                                };
 
                                                 const handleDelete = async (dateStr: string) => {
                                                     if (!confirm('¿Estás seguro de ELIMINAR permanentemente esta asistencia?')) return;
@@ -386,14 +610,6 @@ export default function AulaLook() {
                                                             </div>
                                                             <div className="flex gap-2 w-full sm:w-auto">
                                                                 <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    className="h-8 text-xs py-0 flex-1 sm:flex-none border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10"
-                                                                    onClick={() => handleJustify(d)}
-                                                                >
-                                                                    Justificar
-                                                                </Button>
-                                                                <Button
                                                                     variant="ghost"
                                                                     size="sm"
                                                                     className="h-8 text-xs py-0 flex-1 sm:flex-none text-red-400 hover:bg-red-400/10"
@@ -412,18 +628,82 @@ export default function AulaLook() {
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto mt-4 p-4 bg-gray-800 rounded-xl max-h-[40vh]">
-                                        <p className="font-medium mb-4">Vista Tabular Mensual</p>
-                                        {/* Simplified representation for sheet view */}
-                                        <div className="grid grid-cols-[auto_1fr] gap-4">
-                                            <div className="font-medium text-gray-400 rotate-180" style={{ writingMode: 'vertical-rl' }}>Febrero 2026</div>
-                                            <div className="flex gap-2 flex-wrap">
-                                                {Array.from({ length: 28 }).map((_, i) => (
-                                                    <div key={i} className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-mono bg-gray-900 border border-gray-700">
-                                                        {i + 1}
+                                        <p className="font-medium mb-4 flex items-center gap-2">
+                                            <span className="material-icons-round text-blue-400">calendar_month</span> Vista Mensual de Periodo
+                                        </p>
+
+                                        {(() => {
+                                            // 1. Recolectar todas las fechas (Asistencias + Faltas)
+                                            let rawAsistencias: Date[] = [];
+                                            try {
+                                                const parsed = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
+                                                if (Array.isArray(parsed)) {
+                                                    rawAsistencias = parsed.map(d => new Date(d)).filter(d => !isNaN(d.getTime()));
+                                                }
+                                            } catch (e) { }
+
+                                            const faltasArr = selectedStudent.faltasCalculadas || [];
+                                            const rawFaltas: Date[] = faltasArr.map(f => {
+                                                const parts = f.split('-');
+                                                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                                            });
+
+                                            // 2. Unificar y estructurar
+                                            const allRecords: { date: Date, type: 'asistencia' | 'falta' }[] = [
+                                                ...rawAsistencias.map(d => ({ date: d, type: 'asistencia' as const })),
+                                                ...rawFaltas.map(d => ({ date: d, type: 'falta' as const }))
+                                            ];
+
+                                            // Ordenar cronológicamente
+                                            allRecords.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+                                            if (allRecords.length === 0) {
+                                                return <p className="text-gray-500 text-sm">No hay registro en este periodo.</p>;
+                                            }
+
+                                            // 3. Agrupar por Mes
+                                            const numFormat = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' });
+                                            const groups: Record<string, { date: Date, type: 'asistencia' | 'falta' }[]> = {};
+
+                                            allRecords.forEach(rec => {
+                                                const monthKey = numFormat.format(rec.date);
+                                                if (!groups[monthKey]) groups[monthKey] = [];
+                                                groups[monthKey].push(rec);
+                                            });
+
+                                            // 4. Renderizar grupos
+                                            return Object.entries(groups).map(([monthName, records], idx) => (
+                                                <div key={idx} className="mb-6 last:mb-0">
+                                                    <div className="grid grid-cols-[auto_1fr] gap-4 items-center mb-3">
+                                                        <div className="font-medium text-gray-400 uppercase text-xs tracking-wider border-r border-gray-700 pr-4 w-28 text-right">
+                                                            {monthName}
+                                                        </div>
+                                                        <div className="flex gap-2 flex-wrap">
+                                                            {records.map((rec, rIdx) => {
+                                                                const isAsistencia = rec.type === 'asistencia';
+                                                                return (
+                                                                    <div
+                                                                        key={rIdx}
+                                                                        className={cn(
+                                                                            "w-[2.5rem] h-[3rem] rounded-lg flex flex-col items-center justify-center text-xs font-mono shadow-sm border",
+                                                                            isAsistencia ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"
+                                                                        )}
+                                                                        title={`${rec.date.toLocaleDateString('es-MX')}: ${isAsistencia ? 'Asistió' : 'Faltó'}`}
+                                                                    >
+                                                                        <span className="font-bold mb-1">{rec.date.getDate()}</span>
+                                                                        {isAsistencia
+                                                                            ? <span className="material-icons-round text-[14px]">check_circle</span>
+                                                                            : <span className="material-icons-round text-[14px]">close</span>
+                                                                        }
+                                                                    </div>
+                                                                )
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </div>
+                                                </div>
+                                            ));
+
+                                        })()}
                                     </div>
                                 )}
                             </div>

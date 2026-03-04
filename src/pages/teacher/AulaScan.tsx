@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { fetchAppConfig, sendAttendance } from '../../lib/dataService';
+import { fetchAppConfig, sendAttendance, fetchStudentsDB } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { cn } from '../../lib/utils';
-import type { ConfigOption } from '../../types';
+import type { ConfigOption, StudentDBRecord } from '../../types';
 
 // Audio Context for Beeps
 const playBeep = (type: 'success' | 'error') => {
@@ -50,6 +50,7 @@ interface ScanHistoryEntry {
 
 export default function AulaScan() {
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
+    const [studentsDB, setStudentsDB] = useState<StudentDBRecord[]>([]);
 
     // Form State
     const [selectedTeacher, setSelectedTeacher] = useLocalStorage('scan_teacher', '');
@@ -69,6 +70,7 @@ export default function AulaScan() {
 
     useEffect(() => {
         fetchAppConfig().then(setConfig);
+        fetchStudentsDB().then(setStudentsDB);
     }, []);
 
     // Initialize Scanner when configured
@@ -176,8 +178,39 @@ export default function AulaScan() {
 
     const handleManualSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (manualInput.trim()) {
-            processAttendance(`ID=${manualInput}&No=${manualInput}&Gr=Manual&Es=Manual`);
+        const input = manualInput.trim();
+        if (input) {
+            const student = studentsDB.find(s => {
+                const sObj = s as any;
+                const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
+                const sId = controlKey ? sObj[controlKey] : undefined;
+                return sId && String(sId).trim().toLowerCase() === String(input).trim().toLowerCase();
+            });
+
+            if (student) {
+                const sObj = student as any;
+                const nameKey = Object.keys(sObj).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
+                const patKey = Object.keys(sObj).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
+                const matKey = Object.keys(sObj).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
+                const groupKey = Object.keys(sObj).find(k => k.toLowerCase().includes('grupo')) || 'Grupo';
+                const careerKey = Object.keys(sObj).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad')) || 'Carrera';
+
+                const rawName = String(sObj[nameKey] || '').trim();
+                const rawPat = String(sObj[patKey] || '').trim();
+                const rawMat = String(sObj[matKey] || '').trim();
+                const fullName = `${rawName} ${rawPat} ${rawMat}`.trim();
+
+                const dGroup = String(sObj[groupKey] || 'Desconocido').trim();
+                const dSpecialty = String(sObj[careerKey] || 'Desconocido').trim();
+
+                const encodedName = encodeURIComponent(fullName);
+                const encodedGroup = encodeURIComponent(dGroup);
+                const encodedSpecialty = encodeURIComponent(dSpecialty);
+
+                processAttendance(`ID=${input}&No=${encodedName}&Gr=${encodedGroup}&Es=${encodedSpecialty}`);
+            } else {
+                processAttendance(`ID=${input}&No=${input}&Gr=No Registrado&Es=No Registrado`);
+            }
             setManualInput('');
         }
     };

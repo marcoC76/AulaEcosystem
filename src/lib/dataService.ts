@@ -64,8 +64,9 @@ export const sendAttendance = async (data: ScanPayload): Promise<boolean> => {
             }
         });
 
-        // Usar parámetros cortos para máxima fiabilidad
+        // Usar parámetros cortos para máxima fiabilidad y el original
         if (data.status) {
+            url.searchParams.append('status', String(data.status)); // Original para compatibilidad con backend
             url.searchParams.append('s', String(data.status)); // Nuevo estándar corto
             url.searchParams.append('st_reg', String(data.status)); // Backup
         }
@@ -80,6 +81,52 @@ export const sendAttendance = async (data: ScanPayload): Promise<boolean> => {
         return true;
     } catch (error) {
         console.error("Error sending attendance:", error);
+        return false;
+    }
+};
+
+/**
+ * Inserta forzadamente un nuevo pase de lista para fechas pasadas donde el alumno no tuvo registro
+ */
+export const insertJustifiedAbsence = async (data: {
+    No: string;
+    ID: string;
+    Gr: string;
+    Es: string;
+    Pe: string | number;
+    Pro: string;
+    Ma: string;
+    date: string;
+}): Promise<boolean> => {
+    try {
+        const url = new URL(API_URL);
+        url.searchParams.append('action', 'add');
+
+        url.searchParams.append('No', data.No);
+        url.searchParams.append('ID', data.ID);
+        url.searchParams.append('Gr', data.Gr);
+        url.searchParams.append('Es', data.Es);
+        url.searchParams.append('Pe', String(data.Pe));
+        url.searchParams.append('Pro', data.Pro);
+        url.searchParams.append('Ma', data.Ma);
+
+        url.searchParams.append('status', 'Justificado');
+        url.searchParams.append('s', 'Justificado');
+        url.searchParams.append('st_reg', 'Justificado');
+        url.searchParams.append('notes', 'Justificante histórico (' + data.date + ')');
+
+        // Pass the explicit date strings so GAS can intercept them 
+        url.searchParams.append('Time', data.date);
+        url.searchParams.append('date', data.date);
+
+        await fetch(url.toString(), {
+            method: "GET",
+            mode: "no-cors" // Crucial for ignoring CORS blocks to GAS
+        });
+
+        return true;
+    } catch (error) {
+        console.error("Error force inserting justified record:", error);
         return false;
     }
 };

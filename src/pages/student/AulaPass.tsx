@@ -27,7 +27,8 @@ export default function AulaPass() {
         if (!term) return;
 
         const found = db.find(s => {
-            const studentId = s['No. Control'] || s['No. Control '] || s['Número de Control'] || '';
+            const extraS = s as Record<string, any>;
+            const studentId = extraS['No. Control'] || extraS['No. Control '] || '';
             return String(studentId).trim().toLowerCase() === term;
         });
         if (found) {
