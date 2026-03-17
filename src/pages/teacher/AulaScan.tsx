@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { fetchAppConfig, sendAttendance, fetchStudentsDB } from '../../lib/dataService';
+import { fetchAppConfig, sendAttendance, fetchStudentsDB, fetchParcialesConfig, type ParcialConfig } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -50,6 +50,7 @@ interface ScanHistoryEntry {
 
 export default function AulaScan() {
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
+    const [parcialesLocal, setParcialesLocal] = useState<ParcialConfig[]>([]);
     const [studentsDB, setStudentsDB] = useState<StudentDBRecord[]>([]);
 
     // Form State
@@ -71,6 +72,7 @@ export default function AulaScan() {
     useEffect(() => {
         fetchAppConfig().then(setConfig);
         fetchStudentsDB().then(setStudentsDB);
+        fetchParcialesConfig().then(setParcialesLocal);
     }, []);
 
     // Initialize Scanner when configured
@@ -257,9 +259,9 @@ export default function AulaScan() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400 uppercase tracking-widest">Parcial</label>
                             <Select value={selectedParcial} onChange={e => setSelectedParcial(e.target.value)}>
-                                <option value="1">Parcial 1</option>
-                                <option value="2">Parcial 2</option>
-                                <option value="3">Parcial 3</option>
+                                {parcialesLocal.map(p => (
+                                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                                ))}
                             </Select>
                         </div>
 

@@ -1,0 +1,16 @@
+{
+    "parciales": [
+        {
+            "id": "1",
+            "nombre": "Parcial 1"
+        },
+        {
+            "id": "2",
+            "nombre": "Parcial 2"
+        },
+        {
+            "id": "3",
+            "nombre": "Parcial 3"
+        }
+    ]
+}

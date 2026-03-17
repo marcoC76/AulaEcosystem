@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import PinGuard from './PinGuard';
 import { cn } from '../../lib/utils';
+import { TEACHER_PIN } from '../../lib/constants';
 
 export default function TeacherLayout() {
     const location = useLocation();
@@ -11,7 +12,12 @@ export default function TeacherLayout() {
     ];
 
     return (
-        <PinGuard>
+        <PinGuard
+            authKey="teacher_auth"
+            correctPin={TEACHER_PIN}
+            title="Acceso Docente"
+            themeColor="blue"
+        >
             <div className="flex flex-col min-h-screen bg-gray-900 text-white">
 
                 {/* Desktop Top Navbar */}

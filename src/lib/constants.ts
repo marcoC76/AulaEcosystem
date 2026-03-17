@@ -5,6 +5,7 @@ export const REPORT_API_URL = "https://script.google.com/macros/s/AKfycbwiWogccR
 export const REMOTE_STUDENTS_URL = "https://raw.githubusercontent.com/aulaPass/aulaPass.github.io/refs/heads/main/csvjson.json";
 export const REMOTE_CONFIG_URL = "https://raw.githubusercontent.com/aulaScan/aulascan.github.io/refs/heads/main/datos.json";
 export const TEACHER_PIN = "C762026";
+export const CONSULTA_PIN = "C76CONSULTA";
 
 export const MOCK_ATTENDANCE_DATA: AttendanceRecord[] = [
     {

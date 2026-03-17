@@ -3,7 +3,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
     BarChart, Bar, Cell
 } from 'recharts';
-import { fetchAppConfig, fetchReportData, fetchStudentsDB, updateAttendanceRecord, deleteAttendanceRecord, insertJustifiedAbsence } from '../../lib/dataService';
+import { fetchAppConfig, fetchReportData, fetchStudentsDB, deleteAttendanceRecord, insertJustifiedAbsence } from '../../lib/dataService';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
@@ -14,7 +14,7 @@ import type { ConfigOption, AttendanceRecord } from '../../types';
 
 type ExtendedAttendanceRecord = AttendanceRecord & { faltasCalculadas?: string[] };
 
-export default function AulaLook() {
+export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'consulta' }) {
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
 
     // Wizard State
@@ -568,14 +568,16 @@ export default function AulaLook() {
                                                                 <span className="text-red-400 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
                                                                 <span className="text-xs text-red-500/70">Asistencia registrada para el grupo, pero no para este alumno.</span>
                                                             </div>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="h-8 text-xs py-0 shrink-0 border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10"
-                                                                onClick={handleJustifyMissing}
-                                                            >
-                                                                Justificar
-                                                            </Button>
+                                                            {role !== 'consulta' && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-8 text-xs py-0 shrink-0 border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10"
+                                                                    onClick={handleJustifyMissing}
+                                                                >
+                                                                    Justificar
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     )
                                                 })}
@@ -609,14 +611,16 @@ export default function AulaLook() {
                                                                 <span className="text-xs text-gray-500 font-mono">{date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
                                                             </div>
                                                             <div className="flex gap-2 w-full sm:w-auto">
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-8 text-xs py-0 flex-1 sm:flex-none text-red-400 hover:bg-red-400/10"
-                                                                    onClick={() => handleDelete(d)}
-                                                                >
-                                                                    Eliminar
-                                                                </Button>
+                                                                {role !== 'consulta' && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="h-8 text-xs py-0 flex-1 sm:flex-none text-red-400 hover:bg-red-400/10"
+                                                                        onClick={() => handleDelete(d)}
+                                                                    >
+                                                                        Eliminar
+                                                                    </Button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     )

@@ -4,6 +4,7 @@ import TeacherLayout from './components/layout/TeacherLayout';
 import AulaPass from './pages/student/AulaPass';
 import AulaScan from './pages/teacher/AulaScan';
 import AulaLook from './pages/teacher/AulaLook';
+import ConsultaLayout from './components/layout/ConsultaLayout';
 
 function App() {
   return (
@@ -12,9 +13,12 @@ function App() {
       <Route path="/student" element={<AulaPass />} />
 
       <Route path="/teacher" element={<TeacherLayout />}>
-        {/* We can redirect /teacher to /teacher/scan if needed, but for now we rely on explicit links */}
         <Route path="scan" element={<AulaScan />} />
-        <Route path="report" element={<AulaLook />} />
+        <Route path="report" element={<AulaLook role="teacher" />} />
+      </Route>
+
+      <Route path="/consulta" element={<ConsultaLayout />}>
+        <Route path="report" element={<AulaLook role="consulta" />} />
       </Route>
     </Routes>
   );

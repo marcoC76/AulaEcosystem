@@ -1,6 +1,13 @@
 import { API_URL, REPORT_API_URL, MOCK_ATTENDANCE_DATA, REMOTE_STUDENTS_URL, REMOTE_CONFIG_URL } from './constants';
 import type { AttendanceRecord, StudentDBRecord, ConfigOption } from '../types';
 
+export interface ParcialConfig {
+    id: string;
+    nombre: string;
+    inicio?: string;
+    fin?: string;
+}
+
 export interface ScanPayload {
     Time: Date;
     No: string; // Nombre
@@ -37,7 +44,18 @@ export const fetchAppConfig = async (): Promise<{ profesores: ConfigOption[], ma
     try {
         const res = await fetch(REMOTE_CONFIG_URL);
         if (!res.ok) throw new Error("Remote failed");
-        const data = await res.json();
+
+        let rawText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
+            // Attempt to fix common structural errors (like trailing extra '}')
+            console.warn("Syntax error parsing remote JSON, attempting sanitization...", parseError);
+            rawText = rawText.trim().replace(/}(\s*})+$/, '}');
+            data = JSON.parse(rawText);
+        }
+
         // Guardar copia local
         localStorage.setItem('cached_app_config', JSON.stringify(data));
         return data;
@@ -49,6 +67,22 @@ export const fetchAppConfig = async (): Promise<{ profesores: ConfigOption[], ma
             try { return JSON.parse(cached); } catch (e) { return { profesores: [], materias: [] }; }
         }
         return { profesores: [], materias: [] };
+    }
+};
+
+export const fetchParcialesConfig = async (): Promise<ParcialConfig[]> => {
+    try {
+        const res = await fetch('/config.json');
+        if (!res.ok) throw new Error("Local config failed");
+        const data = await res.json();
+        return data.parciales || [];
+    } catch (error) {
+        console.warn("Using fallback for parciales:", error);
+        return [
+            { id: "1", nombre: "Parcial 1" },
+            { id: "2", nombre: "Parcial 2" },
+            { id: "3", nombre: "Parcial 3" }
+        ];
     }
 };
 
