@@ -133,17 +133,21 @@ export default function AulaPass() {
 
     if (!student) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-900 animate-fade-in">
-                <div className="w-full max-w-md">
+            <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-[#0F1115] relative overflow-hidden animate-fade-in">
+                {/* Ambient Glows */}
+                <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none" />
+                
+                <div className="w-full max-w-md z-10 relative">
                     <div className="text-center mb-8">
-                        <div className="inline-flex p-4 bg-gray-800 rounded-full mb-4 border border-gray-700 shadow-lg">
+                        <div className="inline-flex p-4 bg-[#16181D]/80 backdrop-blur-xl rounded-full mb-4 border border-white/5 shadow-lg">
                             <span className="material-icons-round text-5xl text-emerald-400">badge</span>
                         </div>
                         <h1 className="text-3xl font-bold text-white mb-2">Generar Credencial</h1>
                         <p className="text-gray-400">Ingresa tu Número de Control para continuar</p>
                     </div>
 
-                    <Card className="border-gray-700 shadow-2xl">
+                    <Card className="border-white/5 bg-[#16181D]/80 backdrop-blur-xl shadow-2xl">
                         <form onSubmit={handleSearch} className="p-6 space-y-4">
                             <div className="space-y-2">
                                 <Input
@@ -178,8 +182,11 @@ export default function AulaPass() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 p-4 pb-24 sm:py-12 flex flex-col items-center animate-fade-in">
-            <div className="w-full max-w-md flex justify-between items-center mb-6">
+        <div className="min-h-screen bg-[#0F1115] p-4 pb-24 sm:py-12 flex flex-col items-center animate-fade-in relative overflow-hidden">
+            {/* Ambient glows behind the credential */}
+            <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[30rem] h-[30rem] bg-emerald-600/10 rounded-full blur-[100px] pointer-events-none" />
+            
+            <div className="w-full max-w-md flex justify-between items-center mb-6 z-10">
                 <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
                     <span className="material-icons-round text-emerald-400">task_alt</span>
                     AulaPass
@@ -192,7 +199,7 @@ export default function AulaPass() {
 
             <div
                 ref={credentialRef}
-                className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border ${getCareerColors(student.Carrera)} bg-gray-850 relative`}
+                className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border ${getCareerColors(student.Carrera)} bg-[#16181D]/90 backdrop-blur-md relative z-10`}
             >
                 {/* Header Color Band */}
                 <div className={`h-32 bg-gradient-to-br ${getCareerColors(student.Carrera)} flex items-center justify-center relative overflow-hidden`}>
@@ -246,10 +253,10 @@ export default function AulaPass() {
                 </div>
             </div>
 
-            <div className="w-full max-w-md mt-6">
+            <div className="w-full max-w-md mt-6 z-10">
                 <Button
                     variant="outline"
-                    className="w-full bg-gray-850 hover:bg-gray-800 h-14 text-white text-lg rounded-2xl border-gray-700 hover:border-blue-500/50"
+                    className="w-full bg-[#16181D]/80 backdrop-blur-lg hover:bg-[#1f2229] h-14 text-white text-lg rounded-2xl border-white/5 hover:border-blue-500/50"
                     onClick={downloadPNG}
                     disabled={isLoading}
                 >

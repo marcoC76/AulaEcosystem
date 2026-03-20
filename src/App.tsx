@@ -5,6 +5,7 @@ import AulaPass from './pages/student/AulaPass';
 import AulaScan from './pages/teacher/AulaScan';
 import AulaLook from './pages/teacher/AulaLook';
 import ConsultaLayout from './components/layout/ConsultaLayout';
+import PinEncoder from './pages/tools/PinEncoder';
 
 function App() {
   return (
@@ -20,6 +21,9 @@ function App() {
       <Route path="/consulta" element={<ConsultaLayout />}>
         <Route path="report" element={<AulaLook role="consulta" />} />
       </Route>
+
+      {/* Herramienta oculta para codificar PINs */}
+      <Route path="/tools/encoder" element={<PinEncoder />} />
     </Routes>
   );
 }

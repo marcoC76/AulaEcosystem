@@ -13,6 +13,12 @@ import type { ConfigOption, StudentDBRecord } from '../../types';
 const playBeep = (type: 'success' | 'error') => {
     try {
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        
+        // iOS Safari AudioContext resume fix
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
+
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
 
@@ -83,7 +89,15 @@ export default function AulaScan() {
                 if (!scannerRef.current) {
                     scannerRef.current = new Html5QrcodeScanner(
                         scannerId,
-                        { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
+                        { 
+                            fps: 10, 
+                            qrbox: { width: 250, height: 250 }, 
+                            rememberLastUsedCamera: false,
+                            videoConstraints: {
+                                facingMode: "environment" // Force back camera for iOS compatibility
+                            },
+                            supportedScanTypes: [0] // Html5QrcodeScanType.QR_CODE = 0
+                        },
             /* verbose= */ false
                     );
 
@@ -235,7 +249,7 @@ export default function AulaScan() {
 
             {!isConfigured ? (
                 <Card className="border-gray-700 shadow-xl mt-4">
-                    <div className="p-6 border-b border-gray-800 bg-gray-850 rounded-t-2xl flex items-center gap-3">
+                    <div className="p-6 border-b border-white/5 bg-white/5 flex items-center gap-3">
                         <span className="material-icons-round text-3xl text-blue-500">settings</span>
                         <h2 className="text-xl font-bold">Configuración de Clase</h2>
                     </div>
@@ -275,7 +289,7 @@ export default function AulaScan() {
                     {/* Scanner view */}
                     <div className="space-y-6">
                         <Card className="border-gray-700 overflow-hidden shadow-xl">
-                            <div className="flex items-center justify-between p-4 bg-gray-850 border-b border-gray-800">
+                            <div className="flex items-center justify-between p-4 bg-white/5 border-b border-white/5">
                                 <div className="flex items-center gap-2">
                                     <span className="material-icons-round text-blue-500 animate-pulse">videocam</span>
                                     <span className="font-semibold text-white">Escaneando...</span>
@@ -284,7 +298,7 @@ export default function AulaScan() {
                                     Cambiar Clase
                                 </Button>
                             </div>
-                            <div className="bg-black/50 p-4">
+                            <div className="bg-black/30 p-4">
                                 {/* HTML5 QR Scanner Target */}
                                 <div id={scannerId} className="w-full override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
                             </div>
@@ -298,8 +312,8 @@ export default function AulaScan() {
                                         className={cn(
                                             "flex items-center justify-center gap-2 p-3 rounded-xl border transition-all",
                                             attendanceStatus === 'Asistencia'
-                                                ? "bg-emerald-600/20 border-emerald-500 text-emerald-400 font-bold"
-                                                : "bg-gray-800 border-gray-700 text-gray-400"
+                                                ? "bg-emerald-600/20 border-emerald-500/50 text-emerald-400 font-bold"
+                                                : "bg-[#0F1115]/50 border-white/10 text-gray-400 hover:bg-white/5"
                                         )}
                                     >
                                         <span className="material-icons-round text-lg">check_circle</span>
@@ -310,8 +324,8 @@ export default function AulaScan() {
                                         className={cn(
                                             "flex items-center justify-center gap-2 p-3 rounded-xl border transition-all",
                                             attendanceStatus === 'Retardo'
-                                                ? "bg-yellow-600/20 border-yellow-500 text-yellow-400 font-bold"
-                                                : "bg-gray-800 border-gray-700 text-gray-400"
+                                                ? "bg-yellow-600/20 border-yellow-500/50 text-yellow-400 font-bold"
+                                                : "bg-[#0F1115]/50 border-white/10 text-gray-400 hover:bg-white/5"
                                         )}
                                     >
                                         <span className="material-icons-round text-lg">schedule</span>
@@ -346,7 +360,7 @@ export default function AulaScan() {
 
                     {/* History view */}
                     <Card className="border-gray-700 shadow-xl flex flex-col max-h-[600px]">
-                        <div className="flex items-center justify-between p-4 bg-gray-850 border-b border-gray-800">
+                        <div className="flex items-center justify-between p-4 bg-white/5 border-b border-white/5">
                             <span className="font-semibold text-white">Sesión Actual ({history.length})</span>
                             <div className="flex gap-2">
                                 <Button variant="outline" size="sm" onClick={downloadCSV} disabled={history.length === 0}>
@@ -366,7 +380,7 @@ export default function AulaScan() {
                                 </div>
                             ) : (
                                 history.map((entry, i) => (
-                                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-gray-800 border border-gray-700 hover:bg-gray-750 transition-colors">
+                                    <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-[#0F1115]/50 border border-white/5 hover:bg-white/5 transition-colors">
                                         <div className="truncate pr-2">
                                             <p className="font-medium text-white truncate text-sm flex items-center gap-2">
                                                 {entry.name}

@@ -1,0 +1,37 @@
+{
+  "api_url": "https://script.google.com/macros/s/AKfycbwiWogccR5ri7QfLu06kXd_R2OH9pRKiUAMFRFCBVcsnEHpipTxc1UCv41AoN1EWpK7/exec",
+  "report_api_url": "https://script.google.com/macros/s/AKfycbwiWogccR5ri7QfLu06kXd_R2OH9pRKiUAMFRFCBVcsnEHpipTxc1UCv41AoN1EWpK7/exec",
+  "students_url": "https://raw.githubusercontent.com/aulaPass/aulaPass.github.io/refs/heads/main/csvjson.json",
+  "teacher_pin": "Qzc2MjAyNg==",
+  "consulta_pin": "Qzc2Q09OU1VMVEE=",
+  "encoder_pin": "Qzc2RU5DT0RFUg==",
+  "profesores": [
+    { "value": "caballero_eduardo_nava", "text": "Caballero Eduardo Nava" },
+    { "value": "david_martinez_martinez", "text": "David Martinez Martinez" },
+    { "value": "felipe_donaldo_reyes_hernandez", "text": "Felipe Donaldo Reyes Hernandez" },
+    { "value": "israel_baruc_lopez_fernandez", "text": "Israel Baruc Lopez Fernandez" },
+    { "value": "maria_guadalupe_lizaola_diaz", "text": "María Guadalupe Lizaola Díaz" },
+    { "value": "maria_lina_olvera_jimenez", "text": "María Lina Olvera Jiménez" },
+    { "value": "sierra_griselda_gonzalez", "text": "Sierra Griselda González" },
+    { "value": "marco_antonio_perez_fajardo", "text": "Marco Antonio Pérez Fajardo" }
+  ],
+  "materias": [
+    { "value": "conciencia_historica_1", "text": "Conciencia Histórica 1" },
+    { "value": "conciencia_historica_2", "text": "Conciencia Histórica 2" },
+    { "value": "conciencia_historica_3", "text": "Conciencia historica 3" },
+    { "value": "identifica_factores_de_exposicion_y_materiales_para_la_obtencion_de_imagenes", "text": "Identifica factores de exposición y materiales para la obtención de imágenes." },
+    { "value": "lengua_y_comunicacion_ii", "text": "Lengua y Comunicación II" },
+    { "value": "organismos_estructuras_y_procesos", "text": "Organismos: estructuras y procesos" },
+    { "value": "radioterapia", "text": "RADIOTERAPIA" },
+    { "value": "temas_selectos_de_matematicas_lll", "text": "Temas selectos de matemáticas lll" },
+    { "value": "tutoria", "text": "Tutoria" },
+    { "value": "tutoria_2", "text": "Tutoría 2" },
+    { "value": "tutoria_4", "text": "Tutoría 4" },
+    { "value": "prueba_ii", "text": "Prueba 2" }
+  ],
+  "parciales": [
+    { "id": "1", "nombre": "Parcial 1", "inicio": "2026-02-03", "fin": "2026-03-14" },
+    { "id": "2", "nombre": "Parcial 2", "inicio": "2026-03-17", "fin": "2026-05-02" },
+    { "id": "3", "nombre": "Parcial 3", "inicio": "2026-05-04", "fin": "2026-06-20" }
+  ]
+}

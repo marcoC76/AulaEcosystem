@@ -273,7 +273,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
 
     // Wizard Views
     const WizardContent = () => (
-        <Card className="max-w-xl mx-auto border-gray-700 shadow-2xl p-6 sm:p-8 mt-12 animate-fade-in-up">
+        <Card className="max-w-xl mx-auto border-white/5 shadow-2xl p-6 sm:p-8 mt-12 animate-fade-in-up">
             <div className="mb-8">
                 <Stepper steps={['Profesor', 'Materia', 'Grupo', 'Resultados']} currentStep={step} />
             </div>
@@ -308,8 +308,8 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                 )}
             </div>
 
-            <div className="flex justify-between mt-8 pt-6 border-t border-gray-800">
-                <Button variant="ghost" onClick={handleBack} disabled={step === 0} className="w-24">
+            <div className="flex justify-between mt-8 pt-6 border-t border-white/5">
+                <Button variant="ghost" onClick={handleBack} disabled={step === 0} className="w-24 text-gray-400 hover:text-white hover:bg-white/5">
                     Atrás
                 </Button>
                 <Button onClick={handleNext} className="w-32 bg-blue-600 hover:bg-blue-700">
@@ -320,13 +320,13 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
     );
 
     return (
-        <div className="p-4 sm:p-6 pb-24 min-h-screen bg-gray-900">
+        <div className="p-4 sm:p-6 pb-24 min-h-screen bg-transparent">
             {step < 3 ? (
                 <WizardContent />
             ) : (
                 <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
                     {/* Dashboard Header */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-850 p-4 sm:p-6 rounded-2xl border border-gray-800 shadow-md">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#16181D]/80 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/5 shadow-md">
                         <div>
                             <h1 className="text-2xl font-bold text-white mb-1">Reporte de Asistencia</h1>
                             <p className="text-gray-400 text-sm">
@@ -358,8 +358,8 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                     { title: "Asistencia Promedio", value: `${(avgAttendance * 100).toFixed(1)}%`, icon: "timeline", color: "text-yellow-400" },
                                     { title: "En Riesgo (<80%)", value: atRisk, icon: "warning", color: "text-red-400" }
                                 ].map((kpi, i) => (
-                                    <Card key={i} className="border-gray-800 bg-gray-850 p-4 flex items-center gap-4">
-                                        <div className={cn("p-3 rounded-xl bg-gray-900 shadow-inner border border-gray-800", kpi.color)}>
+                                    <Card key={i} className="border-white/5 bg-white/5 p-4 flex items-center gap-4">
+                                        <div className={cn("p-3 rounded-xl bg-black/20 shadow-inner border border-white/5", kpi.color)}>
                                             <span className="material-icons-round text-2xl">{kpi.icon}</span>
                                         </div>
                                         <div>
@@ -372,7 +372,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
 
                             {/* Charts */}
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                <Card className="lg:col-span-2 border-gray-800 bg-gray-850 p-6">
+                                <Card className="lg:col-span-2 border-white/5 bg-white/5 p-6">
                                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                                         <span className="material-icons-round text-blue-400">insights</span>
                                         Tendencia de Asistencia
@@ -392,7 +392,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                         </ResponsiveContainer>
                                     </div>
                                 </Card>
-                                <Card className="border-gray-800 bg-gray-850 p-6">
+                                <Card className="border-white/5 bg-white/5 p-6">
                                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                                         <span className="material-icons-round text-emerald-400">pie_chart</span>
                                         Distribución de Estatus
@@ -419,8 +419,8 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                             </div>
 
                             {/* Data Table */}
-                            <Card className="border-gray-800 bg-gray-850 overflow-hidden">
-                                <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+                            <Card className="border-white/5 bg-white/5 overflow-hidden">
+                                <div className="p-4 border-b border-white/5 flex justify-between items-center">
                                     <h3 className="text-lg font-bold">Listado de Alumnos</h3>
                                     <Button
                                         onClick={downloadAbsenceReport}
@@ -436,7 +436,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
-                                            <tr className="bg-gray-900/50 text-gray-400 text-xs uppercase tracking-wider">
+                                            <tr className="bg-black/20 text-gray-400 text-xs uppercase tracking-wider">
                                                 <th className="p-4 font-medium">Alumno</th>
                                                 <th className="p-4 font-medium">Control</th>
                                                 <th className="p-4 font-medium">Clases</th>
@@ -444,11 +444,11 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                 <th className="p-4 font-medium text-right">Estatus</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="text-sm divide-y divide-gray-800">
+                                        <tbody className="text-sm divide-y divide-white/5">
                                             {data.map((student, i) => (
                                                 <tr
                                                     key={i}
-                                                    className="hover:bg-gray-800 transition-colors cursor-pointer group"
+                                                    className="hover:bg-white/5 transition-colors cursor-pointer group"
                                                     onClick={() => setSelectedStudent(student)}
                                                 >
                                                     <td className="p-4 text-white font-medium group-hover:text-blue-400 transition-colors">
@@ -459,7 +459,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                     <td className="p-4 w-48">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-semibold w-8">{Math.round(student.Porcentaje * 100)}%</span>
-                                                            <div className="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
+                                                            <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden">
                                                                 <div
                                                                     className={cn("h-full transition-all duration-500", student.Porcentaje < 0.8 ? "bg-red-500" : student.Porcentaje < 0.9 ? "bg-yellow-500" : "bg-emerald-500")}
                                                                     style={{ width: `${student.Porcentaje * 100}%` }}
@@ -495,22 +495,22 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                     >
                         {selectedStudent && (
                             <div className="space-y-6">
-                                <div className="flex gap-2 p-1 bg-gray-800 rounded-lg">
+                                <div className="flex gap-2 p-1 bg-black/20 rounded-lg">
                                     <button
-                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'list' ? "bg-gray-700 text-white shadow" : "text-gray-400")}
+                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'list' ? "bg-white/10 text-white shadow backdrop-blur-sm" : "text-gray-400 hover:bg-white/5")}
                                         onClick={() => setModalView('list')}
                                     >
                                         Lista Histórica
                                     </button>
                                     <button
-                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'sheet' ? "bg-gray-700 text-white shadow" : "text-gray-400")}
+                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'sheet' ? "bg-white/10 text-white shadow backdrop-blur-sm" : "text-gray-400 hover:bg-white/5")}
                                         onClick={() => setModalView('sheet')}
                                     >
                                         Vista Mes (Hoja)
                                     </button>
                                 </div>
 
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-850 rounded-xl border border-gray-800">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
                                     <div>
                                         <span className="text-xs text-gray-500 uppercase">Control</span>
                                         <p className="font-mono text-sm">{selectedStudent['Número de Control']}</p>
@@ -526,8 +526,8 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                 </div>
 
                                 {modalView === 'list' ? (
-                                    <div className="space-y-3 mt-4 max-h-[40vh] overflow-y-auto">
-                                        <p className="font-medium mb-2 border-b border-gray-800 pb-2">Registro Cronológico</p>
+                                    <div className="space-y-3 mt-4 max-h-[40vh] overflow-y-auto pr-2">
+                                        <p className="font-medium mb-2 border-b border-white/5 pb-2">Registro Cronológico</p>
 
                                         {selectedStudent.faltasCalculadas && selectedStudent.faltasCalculadas.length > 0 && (
                                             <div className="mb-4">
@@ -605,7 +605,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                 return dates.map((d: string, i: number) => {
                                                     const date = new Date(d);
                                                     return (
-                                                        <div key={i} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-gray-800 rounded-lg border border-gray-700 gap-3">
+                                                        <div key={i} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-white/5 rounded-xl border border-white/5 gap-3">
                                                             <div className="flex flex-col">
                                                                 <span className="text-gray-200 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
                                                                 <span className="text-xs text-gray-500 font-mono">{date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -631,7 +631,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                         })()}
                                     </div>
                                 ) : (
-                                    <div className="overflow-x-auto mt-4 p-4 bg-gray-800 rounded-xl max-h-[40vh]">
+                                    <div className="overflow-x-auto mt-4 p-4 bg-white/5 border border-white/5 rounded-2xl max-h-[40vh]">
                                         <p className="font-medium mb-4 flex items-center gap-2">
                                             <span className="material-icons-round text-blue-400">calendar_month</span> Vista Mensual de Periodo
                                         </p>
@@ -679,7 +679,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                             return Object.entries(groups).map(([monthName, records], idx) => (
                                                 <div key={idx} className="mb-6 last:mb-0">
                                                     <div className="grid grid-cols-[auto_1fr] gap-4 items-center mb-3">
-                                                        <div className="font-medium text-gray-400 uppercase text-xs tracking-wider border-r border-gray-700 pr-4 w-28 text-right">
+                                                        <div className="font-medium text-gray-400 uppercase text-xs tracking-wider border-r border-white/10 pr-4 w-28 text-right">
                                                             {monthName}
                                                         </div>
                                                         <div className="flex gap-2 flex-wrap">

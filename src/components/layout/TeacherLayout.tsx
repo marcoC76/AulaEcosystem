@@ -1,27 +1,54 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import PinGuard from './PinGuard';
 import { cn } from '../../lib/utils';
-import { TEACHER_PIN } from '../../lib/constants';
+import { getConfig } from '../../lib/dataService';
 
 export default function TeacherLayout() {
     const location = useLocation();
+    const [pin, setPin] = useState<string | null>(null);
+    const [encoderPin, setEncoderPin] = useState<string | null>(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        getConfig().then(cfg => {
+            setPin(cfg.teacher_pin);
+            setEncoderPin(cfg.encoder_pin);
+        });
+    }, []);
 
     const navItems = [
         { name: 'Escanear', path: '/teacher/scan', icon: 'qr_code_scanner' },
         { name: 'Reportes', path: '/teacher/report', icon: 'bar_chart' },
     ];
 
+    // Mostrar loading mientras se carga el PIN del config remoto
+    if (pin === null) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-[#0F1115]">
+                <div className="flex flex-col items-center gap-4 animate-pulse">
+                    <span className="material-icons-round text-blue-500 text-5xl">sync</span>
+                    <span className="text-gray-400 text-sm">Cargando configuración...</span>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <PinGuard
             authKey="teacher_auth"
-            correctPin={TEACHER_PIN}
+            correctPin={pin}
+            extraPins={encoderPin ? [{ pin: encoderPin, onMatch: () => navigate('/tools/encoder') }] : []}
             title="Acceso Docente"
             themeColor="blue"
         >
-            <div className="flex flex-col min-h-screen bg-gray-900 text-white">
+            <div className="flex flex-col min-h-screen bg-[#0F1115] text-white relative overflow-hidden">
+                {/* Ambient Background Glows */}
+                <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 
                 {/* Desktop Top Navbar */}
-                <header className="hidden sm:flex items-center justify-between px-8 py-4 bg-gray-850 border-b border-gray-800 shadow-md sticky top-0 z-40">
+                <header className="hidden sm:flex items-center justify-between px-8 py-4 bg-[#16181D]/80 backdrop-blur-xl border-b border-white/5 shadow-md sticky top-0 z-40">
                     <div className="flex items-center gap-3">
                         <span className="material-icons-round text-blue-500 text-3xl">admin_panel_settings</span>
                         <span className="font-bold tracking-tight text-xl">AulaDocente</span>
@@ -62,7 +89,7 @@ export default function TeacherLayout() {
                 </main>
 
                 {/* Mobile Bottom Navbar */}
-                <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-850 border-t border-gray-800 pb-safe">
+                <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#16181D]/80 backdrop-blur-xl border-t border-white/5 pb-safe">
                     <div className="flex justify-around items-center h-16 px-2">
                         {navItems.map((item) => {
                             const isActive = location.pathname.startsWith(item.path);

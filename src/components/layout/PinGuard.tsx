@@ -5,6 +5,7 @@ interface PinGuardProps {
     children: ReactNode;
     authKey: string;
     correctPin: string;
+    extraPins?: { pin: string, onMatch: () => void }[];
     title: string;
     description?: string;
     themeColor?: 'blue' | 'purple';
@@ -14,6 +15,7 @@ export default function PinGuard({
     children,
     authKey,
     correctPin,
+    extraPins = [],
     title,
     description = "Ingresa tu PIN de seguridad para continuar.",
     themeColor = 'blue'
@@ -31,6 +33,14 @@ export default function PinGuard({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Verificar PINs extra primero (p.ej. para el encoder)
+        const match = extraPins.find(ep => ep.pin === pin);
+        if (match) {
+            match.onMatch();
+            return;
+        }
+
         if (pin === correctPin) {
             localStorage.setItem(authKey, 'true');
             setIsAuthenticated(true);

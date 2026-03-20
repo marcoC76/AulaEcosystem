@@ -27,3 +27,22 @@ export interface ConfigOption {
     value: string;
     text: string;
 }
+
+export interface ParcialConfig {
+    id: string;
+    nombre: string;
+    inicio?: string;
+    fin?: string;
+}
+
+export interface AppConfig {
+    api_url: string;
+    report_api_url: string;
+    students_url: string;
+    teacher_pin: string;   // Base64 encoded
+    consulta_pin: string;  // Base64 encoded
+    encoder_pin: string;   // Base64 encoded
+    profesores: ConfigOption[];
+    materias: ConfigOption[];
+    parciales: ParcialConfig[];
+}
