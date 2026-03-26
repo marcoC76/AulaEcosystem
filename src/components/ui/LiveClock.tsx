@@ -26,10 +26,10 @@ export function LiveClock() {
 
     return (
         <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-900/50 border border-gray-700 backdrop-blur-sm animate-pulse-slow">
-            <div className="text-xl font-mono font-bold tracking-wider text-emerald-400">
+            <div className="text-xl font-mono font-bold tracking-wider text-theme-accent2-400">
                 {timeString}
             </div>
-            <div className="text-xs font-medium text-gray-400 uppercase tracking-widest mt-0.5">
+            <div className="text-xs font-medium text-theme-muted uppercase tracking-widest mt-0.5">
                 {dateString}
             </div>
         </div>

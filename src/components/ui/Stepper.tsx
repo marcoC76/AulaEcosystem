@@ -13,7 +13,7 @@ export function Stepper({ steps, currentStep }: StepperProps) {
 
                 {/* Active Line Progress */}
                 <div
-                    className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2 bg-blue-600 transition-all duration-500 ease-out"
+                    className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2 bg-theme-accent1-600 transition-all duration-500 ease-out"
                     style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
                 />
 
@@ -28,8 +28,8 @@ export function Stepper({ steps, currentStep }: StepperProps) {
                                 className={cn(
                                     "flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300",
                                     isActive
-                                        ? "border-blue-500 bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                                        : "border-gray-700 bg-gray-850 text-gray-500",
+                                        ? "border-theme-accent1-500 bg-theme-accent1-600 text-theme-text shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+                                        : "border-gray-700 bg-gray-850 text-theme-muted/80",
                                     isCurrent && "ring-4 ring-blue-500/20 scale-110"
                                 )}
                             >
@@ -37,7 +37,7 @@ export function Stepper({ steps, currentStep }: StepperProps) {
                             </div>
                             <span className={cn(
                                 "absolute top-10 text-[11px] sm:text-xs font-semibold whitespace-nowrap text-center transition-colors",
-                                isCurrent ? "text-blue-400" : isCompleted ? "text-gray-300" : "text-gray-600"
+                                isCurrent ? "text-theme-accent1-400" : isCompleted ? "text-gray-300" : "text-gray-600"
                             )}>
                                 {label}
                             </span>

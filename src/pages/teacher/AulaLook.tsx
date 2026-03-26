@@ -297,12 +297,12 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
     const getRiskColor = (percent: number) => {
         if (percent < 0.8) return 'text-red-500 bg-red-500/10 border-red-500/20';
         if (percent < 0.9) return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
-        return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+        return 'text-theme-accent2-500 bg-theme-accent2-500/10 border-theme-accent2-500/20';
     };
 
     // Wizard Views
     const WizardContent = () => (
-        <Card className="max-w-xl mx-auto border-white/5 shadow-2xl p-6 sm:p-8 mt-12 animate-fade-in-up">
+        <Card className="max-w-xl mx-auto border-theme-border shadow-2xl p-6 sm:p-8 mt-12 animate-fade-in-up">
             <div className="mb-8">
                 <Stepper steps={['Profesor', 'Materia', 'Grupo', 'Resultados']} currentStep={step} />
             </div>
@@ -337,11 +337,11 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                 )}
             </div>
 
-            <div className="flex justify-between mt-8 pt-6 border-t border-white/5">
-                <Button variant="ghost" onClick={handleBack} disabled={step === 0} className="w-24 text-gray-400 hover:text-white hover:bg-white/5">
+            <div className="flex justify-between mt-8 pt-6 border-t border-theme-border">
+                <Button variant="ghost" onClick={handleBack} disabled={step === 0} className="w-24 text-theme-muted hover:text-theme-text hover:bg-theme-border/50">
                     Atrás
                 </Button>
-                <Button onClick={handleNext} className="w-32 bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleNext} className="w-32 bg-theme-accent1-600 hover:bg-theme-accent1-700">
                     {step === 2 ? 'Generar' : 'Siguiente'}
                 </Button>
             </div>
@@ -355,10 +355,10 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
             ) : (
                 <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
                     {/* Dashboard Header */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#16181D]/80 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/5 shadow-md">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-theme-card/80 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-theme-border shadow-md">
                         <div>
-                            <h1 className="text-2xl font-bold text-white mb-1">Reporte de Asistencia</h1>
-                            <p className="text-gray-400 text-sm">
+                            <h1 className="text-2xl font-bold text-theme-text mb-1">Reporte de Asistencia</h1>
+                            <p className="text-theme-muted text-sm">
                                 {selectedTeacher} &bull; {selectedSubject} &bull; {selectedGroup}
                             </p>
                         </div>
@@ -366,14 +366,14 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                             <Button variant="outline" onClick={() => setStep(0)} className="flex-1 sm:flex-none">
                                 <span className="material-icons-round text-sm mr-1">tune</span> Filtros
                             </Button>
-                            <Button onClick={downloadReport} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700">
+                            <Button onClick={downloadReport} className="flex-1 sm:flex-none bg-theme-accent2-600 hover:bg-theme-accent2-700">
                                 <span className="material-icons-round text-sm mr-1">download</span> Exportar
                             </Button>
                         </div>
                     </div>
 
                     {isLoading ? (
-                        <div className="h-64 flex flex-col items-center justify-center text-blue-500">
+                        <div className="h-64 flex flex-col items-center justify-center text-theme-accent1-500">
                             <span className="animate-spin material-icons-round text-5xl mb-4">settings</span>
                             <p className="font-medium animate-pulse">Procesando Analytics...</p>
                         </div>
@@ -382,18 +382,18 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                             {/* KPIs */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {[
-                                    { title: "Total Alumnos", value: totalStudents, icon: "groups", color: "text-blue-400" },
-                                    { title: "Total Asistencias", value: totalAsistencias, icon: "fact_check", color: "text-emerald-400" },
+                                    { title: "Total Alumnos", value: totalStudents, icon: "groups", color: "text-theme-accent1-400" },
+                                    { title: "Total Asistencias", value: totalAsistencias, icon: "fact_check", color: "text-theme-accent2-400" },
                                     { title: "Asistencia Promedio", value: `${(avgAttendance * 100).toFixed(1)}%`, icon: "timeline", color: "text-yellow-400" },
                                     { title: "En Riesgo (<80%)", value: atRisk, icon: "warning", color: "text-red-400" }
                                 ].map((kpi, i) => (
-                                    <Card key={i} className="border-white/5 bg-white/5 p-4 flex items-center gap-4">
-                                        <div className={cn("p-3 rounded-xl bg-black/20 shadow-inner border border-white/5", kpi.color)}>
+                                    <Card key={i} className="border-theme-border bg-theme-border/50 p-4 flex items-center gap-4">
+                                        <div className={cn("p-3 rounded-xl bg-black/20 shadow-inner border border-theme-border", kpi.color)}>
                                             <span className="material-icons-round text-2xl">{kpi.icon}</span>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">{kpi.title}</p>
-                                            <p className="text-xl font-bold text-white">{kpi.value}</p>
+                                            <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">{kpi.title}</p>
+                                            <p className="text-xl font-bold text-theme-text">{kpi.value}</p>
                                         </div>
                                     </Card>
                                 ))}
@@ -401,9 +401,9 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
 
                             {/* Charts */}
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                <Card className="lg:col-span-2 border-white/5 bg-white/5 p-6">
+                                <Card className="lg:col-span-2 border-theme-border bg-theme-border/50 p-6">
                                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                                        <span className="material-icons-round text-blue-400">insights</span>
+                                        <span className="material-icons-round text-theme-accent1-400">insights</span>
                                         Tendencia de Asistencia
                                     </h3>
                                     <div className="h-[250px] w-full">
@@ -421,9 +421,9 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                         </ResponsiveContainer>
                                     </div>
                                 </Card>
-                                <Card className="border-white/5 bg-white/5 p-6">
+                                <Card className="border-theme-border bg-theme-border/50 p-6">
                                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                                        <span className="material-icons-round text-emerald-400">pie_chart</span>
+                                        <span className="material-icons-round text-theme-accent2-400">pie_chart</span>
                                         Distribución de Estatus
                                     </h3>
                                     <div className="h-[250px] w-full mt-4">
@@ -448,14 +448,14 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                             </div>
 
                             {/* Data Table */}
-                            <Card className="border-white/5 bg-white/5 overflow-hidden">
-                                <div className="p-4 border-b border-white/5 flex justify-between items-center">
+                            <Card className="border-theme-border bg-theme-border/50 overflow-hidden">
+                                <div className="p-4 border-b border-theme-border flex justify-between items-center">
                                     <h3 className="text-lg font-bold">Listado de Alumnos</h3>
                                     <Button
                                         onClick={downloadAbsenceReport}
                                         variant="outline"
                                         size="sm"
-                                        className="h-9 gap-2 text-sm border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                                        className="h-9 gap-2 text-sm border-theme-accent1-500/50 text-theme-accent1-400 hover:bg-theme-accent1-500/10"
                                         disabled={isLoading || data.length === 0}
                                     >
                                         <span className="material-icons-round text-[18px]">download</span>
@@ -465,7 +465,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
-                                            <tr className="bg-black/20 text-gray-400 text-xs uppercase tracking-wider">
+                                            <tr className="bg-black/20 text-theme-muted text-xs uppercase tracking-wider">
                                                 <th className="p-4 font-medium">Alumno</th>
                                                 <th className="p-4 font-medium">Control</th>
                                                 <th className="p-4 font-medium">Clases</th>
@@ -477,20 +477,20 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                             {data.map((student, i) => (
                                                 <tr
                                                     key={i}
-                                                    className="hover:bg-white/5 transition-colors cursor-pointer group"
+                                                    className="hover:bg-theme-border/50 transition-colors cursor-pointer group"
                                                     onClick={() => setSelectedStudent(student)}
                                                 >
-                                                    <td className="p-4 text-white font-medium group-hover:text-blue-400 transition-colors">
+                                                    <td className="p-4 text-theme-text font-medium group-hover:text-theme-accent1-400 transition-colors">
                                                         {student['Nombre del Alumno']}
                                                     </td>
-                                                    <td className="p-4 text-gray-400 font-mono text-xs">{student['Número de Control']}</td>
+                                                    <td className="p-4 text-theme-muted font-mono text-xs">{student['Número de Control']}</td>
                                                     <td className="p-4 text-gray-300">{student.Asistencias} / {student['Total de Clases']}</td>
                                                     <td className="p-4 w-48">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-semibold w-8">{Math.round(student.Porcentaje * 100)}%</span>
                                                             <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden">
                                                                 <div
-                                                                    className={cn("h-full transition-all duration-500", student.Porcentaje < 0.8 ? "bg-red-500" : student.Porcentaje < 0.9 ? "bg-yellow-500" : "bg-emerald-500")}
+                                                                    className={cn("h-full transition-all duration-500", student.Porcentaje < 0.8 ? "bg-red-500" : student.Porcentaje < 0.9 ? "bg-yellow-500" : "bg-theme-accent2-500")}
                                                                     style={{ width: `${student.Porcentaje * 100}%` }}
                                                                 />
                                                             </div>
@@ -505,7 +505,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                             ))}
                                             {data.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={5} className="p-8 text-center text-gray-500 italic">No hay datos disponibles para estos filtros.</td>
+                                                    <td colSpan={5} className="p-8 text-center text-theme-muted/80 italic">No hay datos disponibles para estos filtros.</td>
                                                 </tr>
                                             )}
                                         </tbody>
@@ -526,37 +526,37 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                             <div className="space-y-6">
                                 <div className="flex gap-2 p-1 bg-black/20 rounded-lg">
                                     <button
-                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'list' ? "bg-white/10 text-white shadow backdrop-blur-sm" : "text-gray-400 hover:bg-white/5")}
+                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'list' ? "bg-theme-border/100 text-theme-text shadow backdrop-blur-sm" : "text-theme-muted hover:bg-theme-border/50")}
                                         onClick={() => setModalView('list')}
                                     >
                                         Lista Histórica
                                     </button>
                                     <button
-                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'sheet' ? "bg-white/10 text-white shadow backdrop-blur-sm" : "text-gray-400 hover:bg-white/5")}
+                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'sheet' ? "bg-theme-border/100 text-theme-text shadow backdrop-blur-sm" : "text-theme-muted hover:bg-theme-border/50")}
                                         onClick={() => setModalView('sheet')}
                                     >
                                         Vista Mes (Hoja)
                                     </button>
                                 </div>
 
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-theme-border/50 rounded-2xl border border-theme-border shadow-inner">
                                     <div>
-                                        <span className="text-xs text-gray-500 uppercase">Control</span>
+                                        <span className="text-xs text-theme-muted/80 uppercase">Control</span>
                                         <p className="font-mono text-sm">{selectedStudent['Número de Control']}</p>
                                     </div>
                                     <div>
-                                        <span className="text-xs text-gray-500 uppercase">Asistencias</span>
-                                        <p className="font-bold text-lg">{selectedStudent.Asistencias} <span className="text-sm font-normal text-gray-400">/ {selectedStudent['Total de Clases']}</span></p>
+                                        <span className="text-xs text-theme-muted/80 uppercase">Asistencias</span>
+                                        <p className="font-bold text-lg">{selectedStudent.Asistencias} <span className="text-sm font-normal text-theme-muted">/ {selectedStudent['Total de Clases']}</span></p>
                                     </div>
                                     <div>
-                                        <span className="text-xs text-gray-500 uppercase">Promedio</span>
-                                        <p className={cn("font-bold text-lg", selectedStudent.Porcentaje < 0.8 ? "text-red-400" : "text-emerald-400")}>{(selectedStudent.Porcentaje * 100).toFixed(0)}%</p>
+                                        <span className="text-xs text-theme-muted/80 uppercase">Promedio</span>
+                                        <p className={cn("font-bold text-lg", selectedStudent.Porcentaje < 0.8 ? "text-red-400" : "text-theme-accent2-400")}>{(selectedStudent.Porcentaje * 100).toFixed(0)}%</p>
                                     </div>
                                 </div>
 
                                 {modalView === 'list' ? (
                                     <div className="space-y-3 mt-4 max-h-[40vh] overflow-y-auto pr-2">
-                                        <p className="font-medium mb-2 border-b border-white/5 pb-2">Registro Cronológico</p>
+                                        <p className="font-medium mb-2 border-b border-theme-border pb-2">Registro Cronológico</p>
 
                                         {selectedStudent.faltasCalculadas && selectedStudent.faltasCalculadas.length > 0 && (
                                             <div className="mb-4">
@@ -617,7 +617,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                         {(() => {
                                             try {
                                                 const dates = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
-                                                if (!Array.isArray(dates) || dates.length === 0) return <p className="text-gray-500 text-sm">Sin registros.</p>;
+                                                if (!Array.isArray(dates) || dates.length === 0) return <p className="text-theme-muted/80 text-sm">Sin registros.</p>;
 
                                                 const handleDelete = async (dateStr: string) => {
                                                     if (!confirm('¿Estás seguro de ELIMINAR permanentemente esta asistencia?')) return;
@@ -634,10 +634,10 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                 return dates.map((d: string, i: number) => {
                                                     const date = new Date(d);
                                                     return (
-                                                        <div key={i} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-white/5 rounded-xl border border-white/5 gap-3">
+                                                        <div key={i} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-theme-border/50 rounded-xl border border-theme-border gap-3">
                                                             <div className="flex flex-col">
                                                                 <span className="text-gray-200 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
-                                                                <span className="text-xs text-gray-500 font-mono">{date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                <span className="text-xs text-theme-muted/80 font-mono">{date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
                                                             </div>
                                                             <div className="flex gap-2 w-full sm:w-auto">
                                                                 {role !== 'consulta' && (
@@ -655,14 +655,14 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                     )
                                                 });
                                             } catch (e) {
-                                                return <p className="text-gray-500 text-sm">Error cargando fechas.</p>
+                                                return <p className="text-theme-muted/80 text-sm">Error cargando fechas.</p>
                                             }
                                         })()}
                                     </div>
                                 ) : (
-                                    <div className="overflow-x-auto mt-4 p-4 bg-white/5 border border-white/5 rounded-2xl max-h-[40vh]">
+                                    <div className="overflow-x-auto mt-4 p-4 bg-theme-border/50 border border-theme-border rounded-2xl max-h-[40vh]">
                                         <p className="font-medium mb-4 flex items-center gap-2">
-                                            <span className="material-icons-round text-blue-400">calendar_month</span> Vista Mensual de Periodo
+                                            <span className="material-icons-round text-theme-accent1-400">calendar_month</span> Vista Mensual de Periodo
                                         </p>
 
                                         {(() => {
@@ -691,7 +691,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                             allRecords.sort((a, b) => a.date.getTime() - b.date.getTime());
 
                                             if (allRecords.length === 0) {
-                                                return <p className="text-gray-500 text-sm">No hay registro en este periodo.</p>;
+                                                return <p className="text-theme-muted/80 text-sm">No hay registro en este periodo.</p>;
                                             }
 
                                             // 3. Agrupar por Mes
@@ -708,7 +708,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                             return Object.entries(groups).map(([monthName, records], idx) => (
                                                 <div key={idx} className="mb-6 last:mb-0">
                                                     <div className="grid grid-cols-[auto_1fr] gap-4 items-center mb-3">
-                                                        <div className="font-medium text-gray-400 uppercase text-xs tracking-wider border-r border-white/10 pr-4 w-28 text-right">
+                                                        <div className="font-medium text-theme-muted uppercase text-xs tracking-wider border-r border-theme-border pr-4 w-28 text-right">
                                                             {monthName}
                                                         </div>
                                                         <div className="flex gap-2 flex-wrap">
@@ -719,7 +719,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                                         key={rIdx}
                                                                         className={cn(
                                                                             "w-[2.5rem] h-[3rem] rounded-lg flex flex-col items-center justify-center text-xs font-mono shadow-sm border",
-                                                                            isAsistencia ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"
+                                                                            isAsistencia ? "bg-theme-accent2-500/10 border-theme-accent2-500/20 text-theme-accent2-400" : "bg-red-500/10 border-red-500/20 text-red-400"
                                                                         )}
                                                                         title={`${rec.date.toLocaleDateString('es-MX')}: ${isAsistencia ? 'Asistió' : 'Faltó'}`}
                                                                     >

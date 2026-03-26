@@ -31,13 +31,13 @@ export default function PinEncoder() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-[#0F1115] overflow-hidden relative">
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-theme-base overflow-hidden relative">
             {/* Background glow */}
             <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
 
             <div className="w-full max-w-[440px] z-10">
-                <div className="bg-[#16181D] border border-white/5 rounded-[2rem] shadow-2xl overflow-hidden relative">
+                <div className="bg-theme-card border border-theme-border rounded-[2rem] shadow-2xl overflow-hidden relative">
                     {/* Ribbon */}
                     <div className="absolute top-0 inset-x-0 flex justify-center">
                         <div
@@ -49,8 +49,8 @@ export default function PinEncoder() {
                     <div className="px-8 pt-12 pb-10">
                         <div className="text-center mb-8">
                             <span className="material-icons-round text-amber-500 text-4xl mb-3 block">vpn_key</span>
-                            <h1 className="text-2xl font-bold text-white mb-2">Codificador de PINs</h1>
-                            <p className="text-sm text-gray-400">
+                            <h1 className="text-2xl font-bold text-theme-text mb-2">Codificador de PINs</h1>
+                            <p className="text-sm text-theme-muted">
                                 Escribe un PIN, copia el valor codificado y pégalo en el JSON de configuración.
                             </p>
                         </div>
@@ -58,7 +58,7 @@ export default function PinEncoder() {
                         <div className="space-y-6">
                             {/* Input */}
                             <div className="space-y-2 text-left">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest ml-1">
+                                <label className="text-xs font-semibold text-theme-muted/80 uppercase tracking-widest ml-1">
                                     PIN ORIGINAL
                                 </label>
                                 <input
@@ -71,7 +71,7 @@ export default function PinEncoder() {
                                         setCopied(false);
                                     }}
                                     onKeyDown={(e) => e.key === 'Enter' && handleEncode()}
-                                    className="w-full px-5 py-4 bg-gray-900 border border-white/10 rounded-2xl focus:outline-none focus:border-amber-500 text-white transition-all duration-300 text-lg"
+                                    className="w-full px-5 py-4 bg-gray-900 border border-theme-border rounded-2xl focus:outline-none focus:border-amber-500 text-theme-text transition-all duration-300 text-lg"
                                     autoFocus
                                 />
                             </div>
@@ -80,7 +80,7 @@ export default function PinEncoder() {
                             <button
                                 onClick={handleEncode}
                                 disabled={!input.trim()}
-                                className="w-full py-4 text-lg font-bold rounded-2xl transition-all duration-300 transform active:scale-[0.98] bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed border-0 text-white shadow-lg"
+                                className="w-full py-4 text-lg font-bold rounded-2xl transition-all duration-300 transform active:scale-[0.98] bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed border-0 text-theme-text shadow-lg"
                             >
                                 Codificar
                             </button>
@@ -88,7 +88,7 @@ export default function PinEncoder() {
                             {/* Result */}
                             {encoded && (
                                 <div className="space-y-3 animate-fade-in">
-                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest ml-1 block">
+                                    <label className="text-xs font-semibold text-theme-muted/80 uppercase tracking-widest ml-1 block">
                                         VALOR CODIFICADO (Base64)
                                     </label>
                                     <div className="flex gap-2">
@@ -99,8 +99,8 @@ export default function PinEncoder() {
                                             onClick={handleCopy}
                                             className={`px-4 rounded-xl border transition-all duration-300 flex items-center justify-center ${
                                                 copied
-                                                    ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400'
-                                                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'
+                                                    ? 'bg-theme-accent2-600/20 border-theme-accent2-500 text-theme-accent2-400'
+                                                    : 'bg-gray-800 border-gray-700 text-theme-muted hover:text-theme-text hover:border-gray-500'
                                             }`}
                                             title="Copiar al portapapeles"
                                         >
@@ -110,7 +110,7 @@ export default function PinEncoder() {
                                         </button>
                                     </div>
                                     {copied && (
-                                        <p className="text-xs text-emerald-400 text-center animate-fade-in">
+                                        <p className="text-xs text-theme-accent2-400 text-center animate-fade-in">
                                             ¡Copiado al portapapeles!
                                         </p>
                                     )}
@@ -131,7 +131,7 @@ export default function PinEncoder() {
 
                 {/* Back link */}
                 <div className="mt-6 text-center">
-                    <a href="/" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                    <a href="/" className="text-sm text-theme-muted/80 hover:text-gray-300 transition-colors">
                         ← Volver al inicio
                     </a>
                 </div>

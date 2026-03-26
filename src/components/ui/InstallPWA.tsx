@@ -48,24 +48,24 @@ export function InstallPWA() {
     }
 
     return (
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-[#16181D]/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-4 z-50 animate-fade-in-up">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-theme-card/90 backdrop-blur-xl border border-theme-border shadow-2xl rounded-2xl p-4 z-50 animate-fade-in-up">
             <div className="flex items-start gap-4">
-                <div className="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20 shrink-0">
-                    <span className="material-icons-round text-emerald-400 text-2xl">install_mobile</span>
+                <div className="bg-theme-accent2-500/10 p-2 rounded-xl border border-theme-accent2-500/20 shrink-0">
+                    <span className="material-icons-round text-theme-accent2-400 text-2xl">install_mobile</span>
                 </div>
                 <div className="flex-1">
-                    <h3 className="text-white font-bold text-sm mb-1">Instalar AulaEcosystem</h3>
-                    <p className="text-gray-400 text-xs mb-3">Obtén acceso rápido desde tu pantalla de inicio y mejor rendimiento.</p>
+                    <h3 className="text-theme-text font-bold text-sm mb-1">Instalar AulaEcosystem</h3>
+                    <p className="text-theme-muted text-xs mb-3">Obtén acceso rápido desde tu pantalla de inicio y mejor rendimiento.</p>
                     <div className="flex gap-2">
                         <button 
                             onClick={onClickInstall}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors flex-1"
+                            className="bg-theme-accent2-600 hover:bg-theme-accent2-700 text-theme-text text-xs font-semibold px-4 py-2 rounded-lg transition-colors flex-1"
                         >
                             Instalar
                         </button>
                         <button 
                             onClick={onDismiss}
-                            className="bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold px-4 py-2 rounded-lg transition-colors border border-white/5"
+                            className="bg-theme-border/50 hover:bg-theme-border/100 text-gray-300 text-xs font-semibold px-4 py-2 rounded-lg transition-colors border border-theme-border"
                         >
                             Ahora no
                         </button>

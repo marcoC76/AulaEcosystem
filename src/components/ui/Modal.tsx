@@ -25,10 +25,10 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreenO
                 aria-modal="true"
             >
                 <div className="flex shrink-0 items-center justify-between p-4 border-b border-gray-800 bg-gray-850">
-                    <h2 className="text-xl font-semibold text-white">{title}</h2>
+                    <h2 className="text-xl font-semibold text-theme-text">{title}</h2>
                     <button
                         onClick={onClose}
-                        className="rounded-full p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors flex shrink-0"
+                        className="rounded-full p-2 text-theme-muted hover:bg-gray-800 hover:text-theme-text transition-colors flex shrink-0"
                     >
                         <span className="material-icons-round">close</span>
                     </button>

@@ -10,8 +10,24 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['vite.svg'],
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/script\.google\.com\/macros\/s\/.*/i,
+            handler: 'NetworkOnly',
+            options: {
+              backgroundSync: {
+                name: 'attendance-queue',
+                options: {
+                  maxRetentionTime: 24 * 60,
+                },
+              },
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'AulaEcosystem',
         short_name: 'AulaApp',

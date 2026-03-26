@@ -47,9 +47,9 @@ export default function AulaPass() {
 
     const getCareerColors = (career: string = '') => {
         const c = career.toLowerCase();
-        if (c.includes('enfermería') || c.includes('enfermeria')) return 'from-emerald-600 to-teal-800 border-emerald-500/30';
-        if (c.includes('radiología') || c.includes('radiologia')) return 'from-blue-600 to-indigo-800 border-blue-500/30';
-        if (c.includes('sistemas')) return 'from-purple-600 to-violet-800 border-purple-500/30';
+        if (c.includes('enfermería') || c.includes('enfermeria')) return 'from-theme-accent2-600 to-teal-800 border-theme-accent2-500/30';
+        if (c.includes('radiología') || c.includes('radiologia')) return 'from-theme-accent1-600 to-indigo-800 border-theme-accent1-500/30';
+        if (c.includes('sistemas')) return 'from-theme-accent3-600 to-violet-800 border-theme-accent3-500/30';
         return 'from-gray-600 to-gray-800 border-gray-500/30';
     };
 
@@ -133,21 +133,21 @@ export default function AulaPass() {
 
     if (!student) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-[#0F1115] relative overflow-hidden animate-fade-in">
+            <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-theme-base relative overflow-hidden animate-fade-in">
                 {/* Ambient Glows */}
-                <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-theme-accent2-600/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-theme-accent2-600/10 rounded-full blur-[120px] pointer-events-none" />
                 
                 <div className="w-full max-w-md z-10 relative">
                     <div className="text-center mb-8">
-                        <div className="inline-flex p-4 bg-[#16181D]/80 backdrop-blur-xl rounded-full mb-4 border border-white/5 shadow-lg">
-                            <span className="material-icons-round text-5xl text-emerald-400">badge</span>
+                        <div className="inline-flex p-4 bg-theme-card/80 backdrop-blur-xl rounded-full mb-4 border border-theme-border shadow-lg">
+                            <span className="material-icons-round text-5xl text-theme-accent2-400">badge</span>
                         </div>
-                        <h1 className="text-3xl font-bold text-white mb-2">Generar Credencial</h1>
-                        <p className="text-gray-400">Ingresa tu Número de Control para continuar</p>
+                        <h1 className="text-3xl font-bold text-theme-text mb-2">Generar Credencial</h1>
+                        <p className="text-theme-muted">Ingresa tu Número de Control para continuar</p>
                     </div>
 
-                    <Card className="border-white/5 bg-[#16181D]/80 backdrop-blur-xl shadow-2xl">
+                    <Card className="border-theme-border bg-theme-card/80 backdrop-blur-xl shadow-2xl">
                         <form onSubmit={handleSearch} className="p-6 space-y-4">
                             <div className="space-y-2">
                                 <Input
@@ -160,7 +160,7 @@ export default function AulaPass() {
                                 />
                                 {error && <p className="text-red-400 text-sm text-center animate-pulse">{error}</p>}
                             </div>
-                            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-900/50">
+                            <Button type="submit" className="w-full bg-theme-accent2-600 hover:bg-theme-accent2-700 text-theme-text shadow-emerald-900/50">
                                 Buscar Alumno
                             </Button>
                         </form>
@@ -182,16 +182,16 @@ export default function AulaPass() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0F1115] p-4 pb-24 sm:py-12 flex flex-col items-center animate-fade-in relative overflow-hidden">
+        <div className="min-h-screen bg-theme-base p-4 pb-24 sm:py-12 flex flex-col items-center animate-fade-in relative overflow-hidden">
             {/* Ambient glows behind the credential */}
-            <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[30rem] h-[30rem] bg-emerald-600/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[30rem] h-[30rem] bg-theme-accent2-600/10 rounded-full blur-[100px] pointer-events-none" />
             
             <div className="w-full max-w-md flex justify-between items-center mb-6 z-10">
-                <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                    <span className="material-icons-round text-emerald-400">task_alt</span>
+                <h1 className="text-2xl font-bold text-theme-text tracking-tight flex items-center gap-2">
+                    <span className="material-icons-round text-theme-accent2-400">task_alt</span>
                     AulaPass
                 </h1>
-                <Button variant="ghost" size="sm" onClick={clearIdentity} className="text-gray-400 hover:text-red-400">
+                <Button variant="ghost" size="sm" onClick={clearIdentity} className="text-theme-muted hover:text-red-400">
                     <span className="material-icons-round text-lg mr-1">logout</span>
                     Cerrar
                 </Button>
@@ -199,35 +199,35 @@ export default function AulaPass() {
 
             <div
                 ref={credentialRef}
-                className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border ${getCareerColors(student.Carrera)} bg-[#16181D]/90 backdrop-blur-md relative z-10`}
+                className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border ${getCareerColors(student.Carrera)} bg-theme-card/90 backdrop-blur-md relative z-10`}
             >
                 {/* Header Color Band */}
                 <div className={`h-32 bg-gradient-to-br ${getCareerColors(student.Carrera)} flex items-center justify-center relative overflow-hidden`}>
                     <div className="absolute inset-0 bg-black/20" />
-                    <span className="material-icons-round text-8xl text-white/20 absolute -right-4 -bottom-4 rotate-12">school</span>
-                    <h2 className="text-3xl font-black text-white z-10 tracking-widest drop-shadow-md uppercase opacity-90">STUDENT</h2>
+                    <span className="material-icons-round text-8xl text-theme-text/20 absolute -right-4 -bottom-4 rotate-12">school</span>
+                    <h2 className="text-3xl font-black text-theme-text z-10 tracking-widest drop-shadow-md uppercase opacity-90">STUDENT</h2>
                 </div>
 
                 {/* Student Info */}
                 <div className="px-6 pt-6 pb-2 text-center relative">
                     <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-gray-800 rounded-full border-4 border-gray-850 flex items-center justify-center shadow-lg">
-                        <span className="material-icons-round text-5xl text-gray-400">person</span>
+                        <span className="material-icons-round text-5xl text-theme-muted">person</span>
                     </div>
 
                     <div className="mt-12 mb-6 space-y-1">
-                        <h3 className="text-xl sm:text-2xl font-bold text-white leading-tight">
+                        <h3 className="text-xl sm:text-2xl font-bold text-theme-text leading-tight">
                             {fullName}
                         </h3>
-                        <p className="text-blue-400 font-mono tracking-widest font-semibold">{student['No. Control']}</p>
+                        <p className="text-theme-accent1-400 font-mono tracking-widest font-semibold">{student['No. Control']}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-left">
                         <div className="bg-gray-900/50 p-3 rounded-xl border border-gray-800">
-                            <span className="block text-gray-500 text-xs uppercase mb-1">Carrera</span>
+                            <span className="block text-theme-muted/80 text-xs uppercase mb-1">Carrera</span>
                             <span className="text-gray-200 font-medium capitalize block truncate">{student.Carrera}</span>
                         </div>
                         <div className="bg-gray-900/50 p-3 rounded-xl border border-gray-800">
-                            <span className="block text-gray-500 text-xs uppercase mb-1">Grupo</span>
+                            <span className="block text-theme-muted/80 text-xs uppercase mb-1">Grupo</span>
                             <span className="text-gray-200 font-medium block truncate">{student.Grupo}</span>
                         </div>
                     </div>
@@ -247,7 +247,7 @@ export default function AulaPass() {
                         className="h-auto max-w-full w-full"
                         viewBox={`0 0 256 256`}
                     />
-                    <p className="text-gray-400 text-xs text-center mt-4 uppercase tracking-widest font-semibold">
+                    <p className="text-theme-muted text-xs text-center mt-4 uppercase tracking-widest font-semibold">
                         Escanear para asistencia
                     </p>
                 </div>
@@ -256,14 +256,14 @@ export default function AulaPass() {
             <div className="w-full max-w-md mt-6 z-10">
                 <Button
                     variant="outline"
-                    className="w-full bg-[#16181D]/80 backdrop-blur-lg hover:bg-[#1f2229] h-14 text-white text-lg rounded-2xl border-white/5 hover:border-blue-500/50"
+                    className="w-full bg-theme-card/80 backdrop-blur-lg hover:bg-[#1f2229] h-14 text-theme-text text-lg rounded-2xl border-theme-border hover:border-theme-accent1-500/50"
                     onClick={downloadPNG}
                     disabled={isLoading}
                 >
                     {isLoading ? (
                         <span className="animate-spin material-icons-round mr-2">refresh</span>
                     ) : (
-                        <span className="material-icons-round mr-2 text-blue-400">download</span>
+                        <span className="material-icons-round mr-2 text-theme-accent1-400">download</span>
                     )}
                     {isLoading ? 'Generando...' : 'Descargar Pase'}
                 </Button>

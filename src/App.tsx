@@ -7,10 +7,14 @@ import AulaLook from './pages/teacher/AulaLook';
 import ConsultaLayout from './components/layout/ConsultaLayout';
 import PinEncoder from './pages/tools/PinEncoder';
 import { InstallPWA } from './components/ui/InstallPWA';
+import { ThemeSelector } from './components/ui/ThemeSelector';
+import { ReloadPrompt } from './components/ui/ReloadPrompt';
 
 function App() {
   return (
     <>
+      <ThemeSelector />
+      <ReloadPrompt />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/student" element={<AulaPass />} />
