@@ -6,25 +6,29 @@ import AulaScan from './pages/teacher/AulaScan';
 import AulaLook from './pages/teacher/AulaLook';
 import ConsultaLayout from './components/layout/ConsultaLayout';
 import PinEncoder from './pages/tools/PinEncoder';
+import { InstallPWA } from './components/ui/InstallPWA';
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/student" element={<AulaPass />} />
+    <>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/student" element={<AulaPass />} />
 
-      <Route path="/teacher" element={<TeacherLayout />}>
-        <Route path="scan" element={<AulaScan />} />
-        <Route path="report" element={<AulaLook role="teacher" />} />
-      </Route>
+        <Route path="/teacher" element={<TeacherLayout />}>
+          <Route path="scan" element={<AulaScan />} />
+          <Route path="report" element={<AulaLook role="teacher" />} />
+        </Route>
 
-      <Route path="/consulta" element={<ConsultaLayout />}>
-        <Route path="report" element={<AulaLook role="consulta" />} />
-      </Route>
+        <Route path="/consulta" element={<ConsultaLayout />}>
+          <Route path="report" element={<AulaLook role="consulta" />} />
+        </Route>
 
-      {/* Herramienta oculta para codificar PINs */}
-      <Route path="/tools/encoder" element={<PinEncoder />} />
-    </Routes>
+        {/* Herramienta oculta para codificar PINs */}
+        <Route path="/tools/encoder" element={<PinEncoder />} />
+      </Routes>
+      <InstallPWA />
+    </>
   );
 }
 

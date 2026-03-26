@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function LandingPage() {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-[#0F1115] overflow-hidden">
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 py-12 bg-[#0F1115] overflow-x-hidden relative">
             {/* Background ambient lighting */}
             <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none" />
@@ -72,7 +72,7 @@ export default function LandingPage() {
             </div>
 
             {/* Footer */}
-            <div className="absolute bottom-6 text-center text-gray-500 text-xs sm:text-sm z-10 animate-fade-in opacity-80 font-medium tracking-wide">
+            <div className="mt-12 mb-6 text-center text-gray-500 text-xs sm:text-sm z-10 animate-fade-in opacity-80 font-medium tracking-wide">
                 AulaEcosystem v1.0.0 &copy; {new Date().getFullYear()}
             </div>
         </div>

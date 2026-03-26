@@ -36,10 +36,147 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
         fetchAppConfig().then(setConfig);
         fetchStudentsDB().then(students => {
             setStudentsDB(students);
-            const uniqueGroups = Array.from(new Set(students.map(s => s.Grupo))).filter(Boolean).sort();
+            const uniqueGroups = Array.from(new Set(students.map(s => {
+                const sObj = s as any;
+                const careerKey = Object.keys(sObj).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad'));
+                const specialty = careerKey && sObj[careerKey] ? String(sObj[careerKey]).trim() : '';
+                return specialty ? `${s.Grupo} - ${specialty}` : String(s.Grupo);
+            }))).filter(Boolean).sort();
             setAvailableGroups(uniqueGroups);
         });
     }, []);
+
+    const loadGroupData = async () => {
+        setIsLoading(true);
+        const [rawGroup, ...specParts] = selectedGroup.split(' - ');
+        const baseGroup = rawGroup.trim();
+        const specialtyFilter = specParts.join(' - ').trim();
+
+        const res = await fetchReportData({ teacher: selectedTeacher, subject: selectedSubject, group: baseGroup });
+
+        // FILTER Server Results by Specialty FIRST
+        const filteredRes = res.filter(r => {
+            if (!specialtyFilter) return true;
+            return String(r.Especialidad || '').trim() === specialtyFilter;
+        });
+
+        // 1. Find maxAsistencias and master student from server response
+        let maxAsistencias = 0;
+        let masterStudent: AttendanceRecord | null = null;
+        filteredRes.forEach(d => {
+            const asis = Number(d.Asistencias);
+            if (asis > maxAsistencias) {
+                maxAsistencias = asis;
+                masterStudent = d;
+            }
+        });
+
+        // 1.5. Prepare complete group list
+        const groupStudents = studentsDB.filter(s => {
+            if (String(s.Grupo).trim() !== baseGroup) return false;
+            if (!specialtyFilter) return true;
+            const sObj = s as any;
+            const careerKey = Object.keys(sObj).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad'));
+            return careerKey && String(sObj[careerKey]).trim() === specialtyFilter;
+        });
+        const mergedRes: AttendanceRecord[] = [];
+
+        groupStudents.forEach(gs => {
+            // Find matching student in server response
+            const serverRecord = filteredRes.find(r => {
+                const rControl = String(r['Número de Control']).trim();
+                const sControlKey = Object.keys(gs).find(k => k.toLowerCase().includes('control'));
+                const sControl = sControlKey ? String(gs[sControlKey]).trim() : '';
+                return rControl === sControl;
+            });
+
+            if (serverRecord) {
+                mergedRes.push(serverRecord);
+            } else {
+                // Create empty dummy record
+                const nameKey = Object.keys(gs).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
+                const patKey = Object.keys(gs).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
+                const matKey = Object.keys(gs).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
+                const careerKey = Object.keys(gs).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad')) || 'Carrera';
+                const sControlKey = Object.keys(gs).find(k => k.toLowerCase().includes('control'));
+
+                const rawName = String(gs[nameKey] || '').trim();
+                const rawPat = String(gs[patKey] || '').trim();
+                const rawMat = String(gs[matKey] || '').trim();
+
+                mergedRes.push({
+                    "Número de Control": sControlKey ? String(gs[sControlKey]) : '000',
+                    "Nombre del Alumno": `${rawName} ${rawPat} ${rawMat}`.trim(),
+                    "Profesor": selectedTeacher,
+                    "Materia": selectedSubject,
+                    "Grupo": baseGroup,
+                    "Periodo": 1,
+                    "Asistencias": 0,
+                    "Total de Clases": maxAsistencias > 0 ? maxAsistencias : 1, // Will be overridden
+                    "Porcentaje": 0,
+                    "Fechas y Horas de Asistencia": '[]',
+                    "Especialidad": careerKey ? String(gs[careerKey]) : 'Desconocido'
+                });
+            }
+        });
+
+        // If we have some anomalous server records not in DB, push them too
+        filteredRes.forEach(r => {
+            if (!mergedRes.some(m => String(m['Número de Control']).trim() === String(r['Número de Control']).trim())) {
+                mergedRes.push(r);
+            }
+        });
+
+        // 2. Extract master dates
+        const masterDates = new Set<string>();
+        if (masterStudent && masterStudent['Fechas y Horas de Asistencia']) {
+            try {
+                let fechasStr: any = masterStudent['Fechas y Horas de Asistencia'];
+                if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
+                const fechas = JSON.parse(fechasStr);
+                fechas.forEach((fStr: string) => {
+                    const dateObj = new Date(fStr);
+                    if (!isNaN(dateObj.getTime())) {
+                        masterDates.add(dateObj.toISOString().split('T')[0]);
+                    }
+                });
+            } catch (e) { }
+        }
+
+        // 3. Process data against merged records
+        const processedData = mergedRes.map(d => {
+            const newTotal = maxAsistencias > 0 ? maxAsistencias : 1;
+            const studentDates = new Set<string>();
+            try {
+                let fechasStr: any = d['Fechas y Horas de Asistencia'];
+                if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
+                const fechas = JSON.parse(fechasStr || '[]');
+                fechas.forEach((fStr: string) => {
+                    const dateObj = new Date(fStr);
+                    if (!isNaN(dateObj.getTime())) {
+                        studentDates.add(dateObj.toISOString().split('T')[0]);
+                    }
+                });
+            } catch (e) { }
+
+            const faltas: string[] = [];
+            masterDates.forEach(md => {
+                if (!studentDates.has(md)) {
+                    faltas.push(md);
+                }
+            });
+
+            return {
+                ...d,
+                'Total de Clases': newTotal,
+                Porcentaje: Number(d.Asistencias) / newTotal,
+                faltasCalculadas: faltas.sort()
+            };
+        });
+
+        setData(processedData);
+        setIsLoading(false);
+    };
 
     const handleNext = async () => {
         if (step === 0 && !selectedTeacher) return;
@@ -48,116 +185,8 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
 
         if (step === 2) {
             // Transitioning to Results
-            setIsLoading(true);
             setStep(3);
-            const res = await fetchReportData({ teacher: selectedTeacher, subject: selectedSubject, group: selectedGroup });
-
-            // 1. Find maxAsistencias and master student from server response
-            let maxAsistencias = 0;
-            let masterStudent: AttendanceRecord | null = null;
-            res.forEach(d => {
-                const asis = Number(d.Asistencias);
-                if (asis > maxAsistencias) {
-                    maxAsistencias = asis;
-                    masterStudent = d;
-                }
-            });
-
-            // 1.5. Prepare complete group list
-            const groupStudents = studentsDB.filter(s => String(s.Grupo).trim() === String(selectedGroup).trim());
-            const mergedRes: AttendanceRecord[] = [];
-
-            groupStudents.forEach(gs => {
-                // Find matching student in server response
-                const serverRecord = res.find(r => {
-                    const rControl = String(r['Número de Control']).trim();
-                    const sControlKey = Object.keys(gs).find(k => k.toLowerCase().includes('control'));
-                    const sControl = sControlKey ? String(gs[sControlKey]).trim() : '';
-                    return rControl === sControl;
-                });
-
-                if (serverRecord) {
-                    mergedRes.push(serverRecord);
-                } else {
-                    // Create empty dummy record
-                    const nameKey = Object.keys(gs).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
-                    const patKey = Object.keys(gs).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
-                    const matKey = Object.keys(gs).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
-                    const careerKey = Object.keys(gs).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad')) || 'Carrera';
-                    const sControlKey = Object.keys(gs).find(k => k.toLowerCase().includes('control'));
-
-                    const rawName = String(gs[nameKey] || '').trim();
-                    const rawPat = String(gs[patKey] || '').trim();
-                    const rawMat = String(gs[matKey] || '').trim();
-
-                    mergedRes.push({
-                        "Número de Control": sControlKey ? String(gs[sControlKey]) : '000',
-                        "Nombre del Alumno": `${rawName} ${rawPat} ${rawMat}`.trim(),
-                        "Profesor": selectedTeacher,
-                        "Materia": selectedSubject,
-                        "Grupo": selectedGroup,
-                        "Periodo": 1,
-                        "Asistencias": 0,
-                        "Total de Clases": maxAsistencias > 0 ? maxAsistencias : 1, // Will be overridden
-                        "Porcentaje": 0,
-                        "Fechas y Horas de Asistencia": '[]',
-                        "Especialidad": careerKey ? String(gs[careerKey]) : 'Desconocido'
-                    });
-                }
-            });
-
-            // If we have some anomalous server records not in DB, push them too
-            res.forEach(r => {
-                if (!mergedRes.some(m => String(m['Número de Control']).trim() === String(r['Número de Control']).trim())) {
-                    mergedRes.push(r);
-                }
-            });
-
-            // 2. Extract master dates
-            const masterDates = new Set<string>();
-            if (masterStudent && masterStudent['Fechas y Horas de Asistencia']) {
-                try {
-                    const fechas = JSON.parse(masterStudent['Fechas y Horas de Asistencia']);
-                    fechas.forEach((fStr: string) => {
-                        const dateObj = new Date(fStr);
-                        if (!isNaN(dateObj.getTime())) {
-                            masterDates.add(dateObj.toISOString().split('T')[0]);
-                        }
-                    });
-                } catch (e) { }
-            }
-
-            // 3. Process data against merged records
-            const processedData = mergedRes.map(d => {
-                const newTotal = maxAsistencias > 0 ? maxAsistencias : 1;
-                const studentDates = new Set<string>();
-                try {
-                    const fechas = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
-                    fechas.forEach((fStr: string) => {
-                        const dateObj = new Date(fStr);
-                        if (!isNaN(dateObj.getTime())) {
-                            studentDates.add(dateObj.toISOString().split('T')[0]);
-                        }
-                    });
-                } catch (e) { }
-
-                const faltas: string[] = [];
-                masterDates.forEach(md => {
-                    if (!studentDates.has(md)) {
-                        faltas.push(md);
-                    }
-                });
-
-                return {
-                    ...d,
-                    'Total de Clases': newTotal,
-                    Porcentaje: Number(d.Asistencias) / newTotal,
-                    faltasCalculadas: faltas.sort()
-                };
-            });
-
-            setData(processedData);
-            setIsLoading(false);
+            loadGroupData();
         } else {
             setStep(s => s + 1);
         }
@@ -556,7 +585,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                             alert('Falta justificada y reportada al servidor como nuevo registro.');
                                                             setSelectedStudent(null);
                                                             // Trigger a full re-fetch to reflect the new justified status
-                                                            fetchReportData({ subject: selectedSubject, teacher: selectedTeacher, group: selectedGroup }).then(setData);
+                                                            loadGroupData();
                                                         } else {
                                                             alert('Error al insertar el registro en el servidor.');
                                                         }
@@ -598,7 +627,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                         // Update local view
                                                         setSelectedStudent(null);
                                                         // Trigger a re-fetch since stats changed
-                                                        fetchReportData({ subject: selectedSubject, teacher: selectedTeacher, group: selectedGroup }).then(setData);
+                                                        loadGroupData();
                                                     }
                                                 };
 
