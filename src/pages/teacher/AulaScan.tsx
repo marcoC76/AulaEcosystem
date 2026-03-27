@@ -81,9 +81,28 @@ export default function AulaScan() {
     useEffect(() => {
         fetchAppConfig().then(setConfig);
         fetchStudentsDB().then(setStudentsDB);
-        fetchParcialesConfig().then(setParcialesLocal);
+        fetchParcialesConfig().then((parciales) => {
+            setParcialesLocal(parciales);
 
-        // Auto-purge old history (> 14 days)
+            // Auto-seleccionar el parcial activo basado en la fecha
+            const today = new Date();
+            let activeParcialId = '';
+            for (const p of parciales) {
+                if (p.inicio && p.fin) {
+                    const dInicio = new Date(`${p.inicio}T00:00:00`);
+                    const dFin = new Date(`${p.fin}T23:59:59`);
+                    if (today >= dInicio && today <= dFin) {
+                        activeParcialId = String(p.id);
+                        break;
+                    }
+                }
+            }
+            if (activeParcialId) {
+                const lsSetter = window.localStorage;
+                lsSetter.setItem('scan_parcial', JSON.stringify(activeParcialId));
+                setSelectedParcial(activeParcialId);
+            }
+        });
         try {
             const rawRaw = localStorage.getItem('scan_session_history');
             if (rawRaw) {
