@@ -1,10 +1,11 @@
 {
-  "api_url": "https://script.google.com/macros/s/AKfycbwiWogccR5ri7QfLu06kXd_R2OH9pRKiUAMFRFCBVcsnEHpipTxc1UCv41AoN1EWpK7/exec",
-  "report_api_url": "https://script.google.com/macros/s/AKfycbwiWogccR5ri7QfLu06kXd_R2OH9pRKiUAMFRFCBVcsnEHpipTxc1UCv41AoN1EWpK7/exec",
+  "api_url": "https://script.google.com/macros/s/AKfycbyKfRNnDwAjLiQCCs8Ru_m6EbWzOhBvAkgATX1QyvvKH9qBSZc712bpt3UdLYDuXbQ_/exec",
+  "report_api_url": "https://script.google.com/macros/s/AKfycbyKfRNnDwAjLiQCCs8Ru_m6EbWzOhBvAkgATX1QyvvKH9qBSZc712bpt3UdLYDuXbQ_/exec",
   "students_url": "https://raw.githubusercontent.com/aulaPass/aulaPass.github.io/refs/heads/main/csvjson.json",
   "teacher_pin": "Qzc2MjAyNg==",
   "consulta_pin": "Qzc2Q09OU1VMVEE=",
   "encoder_pin": "Qzc2RU5DT0RFUg==",
+  "qr_version": "1",
   "profesores": [
     { "value": "caballero_eduardo_nava", "text": "Caballero Eduardo Nava" },
     { "value": "david_martinez_martinez", "text": "David Martinez Martinez" },

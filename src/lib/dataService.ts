@@ -167,31 +167,43 @@ export const sendAttendance = async (data: ScanPayload): Promise<boolean> => {
 
     try {
         const url = new URL(apiUrl);
-        url.searchParams.append('action', 'add');
-        Object.keys(data).forEach(key => {
-            const val = data[key as keyof ScanPayload];
-            if (val !== undefined && val !== null && key !== 'status' && key !== 'notes' && key !== 'Time') {
-                url.searchParams.append(key, String(val));
-            }
-        });
-
+        const finalData: any = {
+           action: 'add',
+           ...data
+        };
+        // Mapeo duplicado para asegurar compatibilidad
         if (data.status) {
-            url.searchParams.append('status', String(data.status));
-            url.searchParams.append('s', String(data.status));
-            url.searchParams.append('st_reg', String(data.status));
+           finalData.s = data.status;
+           finalData.st_reg = data.status;
         }
-        if (data.notes) url.searchParams.append('notes', String(data.notes));
 
-        console.log('Sending attendance URL:', url.toString());
-        await fetch(url.toString(), {
-            method: "GET",
-            mode: "no-cors"
+        const bodyParams = new URLSearchParams();
+        bodyParams.append('payload', JSON.stringify(finalData));
+
+        console.log('Sending attendance POST:', url.toString());
+        const response = await fetch(url.toString(), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: bodyParams.toString()
         });
+
+        // Autodebug
+        try {
+            const respText = await response.text();
+            console.log('Server response:', respText);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} - ${respText.substring(0, 50)}`);
+            }
+        } catch (e) {
+            console.warn("Could not read response (might be opaque on GET redirect, or CORS):", e);
+        }
 
         return true;
     } catch (error) {
         console.error("Error sending attendance:", error);
-        return false;
+        throw error; // Lanzar error para que AulaScan lo atrape y lo muestre
     }
 };
 
@@ -212,33 +224,43 @@ export const insertJustifiedAbsence = async (data: {
 
     try {
         const url = new URL(apiUrl);
-        url.searchParams.append('action', 'add');
+        const finalData: any = {
+            action: 'add',
+            No: data.No,
+            ID: data.ID,
+            Gr: data.Gr,
+            Es: data.Es,
+            Pe: data.Pe,
+            Pro: data.Pro,
+            Ma: data.Ma,
+            status: 'Justificado',
+            s: 'Justificado',
+            st_reg: 'Justificado',
+            notes: 'Justificante histórico (' + data.date + ')',
+            Time: data.date,
+            date: data.date
+        };
 
-        url.searchParams.append('No', data.No);
-        url.searchParams.append('ID', data.ID);
-        url.searchParams.append('Gr', data.Gr);
-        url.searchParams.append('Es', data.Es);
-        url.searchParams.append('Pe', String(data.Pe));
-        url.searchParams.append('Pro', data.Pro);
-        url.searchParams.append('Ma', data.Ma);
+        const bodyParams = new URLSearchParams();
+        bodyParams.append('payload', JSON.stringify(finalData));
 
-        url.searchParams.append('status', 'Justificado');
-        url.searchParams.append('s', 'Justificado');
-        url.searchParams.append('st_reg', 'Justificado');
-        url.searchParams.append('notes', 'Justificante histórico (' + data.date + ')');
-
-        url.searchParams.append('Time', data.date);
-        url.searchParams.append('date', data.date);
-
-        await fetch(url.toString(), {
-            method: "GET",
-            mode: "no-cors"
+        const response = await fetch(url.toString(), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: bodyParams.toString()
         });
+
+        // Intentar leer para debug
+        try {
+            await response.text();
+        } catch (e) {}
 
         return true;
     } catch (error) {
         console.error("Error force inserting justified record:", error);
-        return false;
+        throw error;
     }
 };
 

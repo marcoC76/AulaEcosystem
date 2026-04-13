@@ -42,6 +42,7 @@ export interface AppConfig {
     teacher_pin: string;   // Base64 encoded
     consulta_pin: string;  // Base64 encoded
     encoder_pin: string;   // Base64 encoded
+    qr_version?: string;   // Versión del QR
     profesores: ConfigOption[];
     materias: ConfigOption[];
     parciales: ParcialConfig[];

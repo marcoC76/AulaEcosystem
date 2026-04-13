@@ -4,7 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { LiveClock } from '../../components/ui/LiveClock';
-import { fetchStudentsDB } from '../../lib/dataService';
+import { fetchStudentsDB, getConfig } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { StudentDBRecord } from '../../types';
 
@@ -14,10 +14,12 @@ export default function AulaPass() {
     const [searchQuery, setSearchQuery] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [qrVersion, setQrVersion] = useState('1');
     const credentialRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         fetchStudentsDB().then(setDb);
+        getConfig().then(c => setQrVersion(c.qr_version || '1'));
     }, []);
 
     const handleSearch = (e: React.FormEvent) => {
@@ -176,7 +178,8 @@ export default function AulaPass() {
             No: fullName,
             ID: student['No. Control'] || '',
             Gr: student.Grupo || '',
-            Es: student.Carrera || ''
+            Es: student.Carrera || '',
+            V: qrVersion
         });
         return params.toString();
     };
@@ -188,7 +191,7 @@ export default function AulaPass() {
             
             <div className="w-full max-w-md flex justify-between items-center mb-6 z-10">
                 <h1 className="text-2xl font-bold text-theme-text tracking-tight flex items-center gap-2">
-                    <span className="material-icons-round text-theme-accent2-400">task_alt</span>
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" className="w-7 h-7" />
                     AulaPass
                 </h1>
                 <Button variant="ghost" size="sm" onClick={clearIdentity} className="text-theme-muted hover:text-red-400">
@@ -204,7 +207,9 @@ export default function AulaPass() {
                 {/* Header Color Band */}
                 <div className={`h-32 bg-gradient-to-br ${getCareerColors(student.Carrera)} flex items-center justify-center relative overflow-hidden`}>
                     <div className="absolute inset-0 bg-black/20" />
-                    <span className="material-icons-round text-8xl text-theme-text/20 absolute -right-4 -bottom-4 rotate-12">school</span>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 opacity-20 rotate-12 mix-blend-overlay">
+                        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" className="w-full h-full object-contain filter grayscale invert" />
+                    </div>
                     <h2 className="text-3xl font-black text-theme-text z-10 tracking-widest drop-shadow-md uppercase opacity-90">STUDENT</h2>
                 </div>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { fetchAppConfig, sendAttendance, fetchStudentsDB, fetchParcialesConfig, type ParcialConfig } from '../../lib/dataService';
+import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import Fuse from 'fuse.js';
+import { fetchAppConfig, sendAttendance, fetchStudentsDB, fetchParcialesConfig, type ParcialConfig, getConfig } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -57,6 +58,7 @@ interface ScanHistoryEntry {
 
 export default function AulaScan() {
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
+    const [masterQrVersion, setMasterQrVersion] = useState<string>('1');
     const [parcialesLocal, setParcialesLocal] = useState<ParcialConfig[]>([]);
     const [studentsDB, setStudentsDB] = useState<StudentDBRecord[]>([]);
 
@@ -75,11 +77,13 @@ export default function AulaScan() {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [attendanceStatus, setAttendanceStatus] = useState<'Asistencia' | 'Retardo'>('Asistencia');
     const [lastScanMsg, setLastScanMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [isKioskMode, setIsKioskMode] = useState(false);
 
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
     useEffect(() => {
         fetchAppConfig().then(setConfig);
+        getConfig().then(c => setMasterQrVersion(c.qr_version || '1'));
         fetchStudentsDB().then(setStudentsDB);
         fetchParcialesConfig().then((parciales) => {
             setParcialesLocal(parciales);
@@ -176,6 +180,14 @@ export default function AulaScan() {
         const ID = params.get('ID') || manualInput; // Control Number
         const Gr = params.get('Gr') || 'N/A';
         const Es = params.get('Es') || 'N/A';
+        const V = params.get('V');
+
+        if (V !== masterQrVersion && !manualInput) {
+            setLastScanMsg({ type: 'error', text: 'Credencial expirada o ciclo inválido. Genera una nueva.' });
+            playBeep('error');
+            if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+            return;
+        }
 
         if (!ID) {
             setLastScanMsg({ type: 'error', text: 'Formato QR inválido.' });
@@ -199,7 +211,7 @@ export default function AulaScan() {
         cooldownsRef.current[ID] = now;
         playBeep('success');
         if (navigator.vibrate) navigator.vibrate([100]);
-        setLastScanMsg({ type: 'success', text: `Registrado: ${No} (${ID})` });
+        setLastScanMsg({ type: 'success', text: `Registrando: ${No} (${ID})...` });
 
         const nowObj = new Date();
         const yyyy = nowObj.getFullYear();
@@ -219,17 +231,28 @@ export default function AulaScan() {
         setHistory(prev => [newEntry, ...prev]);
 
         // Send to server
-        const success = await sendAttendance({
-            Time: new Date(),
-            No,
-            ID,
-            Gr,
-            Es,
-            Pe: selectedParcial,
-            Pro: selectedTeacher,
-            Ma: selectedSubject,
-            status: attendanceStatus
-        });
+        let success = false;
+        try {
+            success = await sendAttendance({
+                Time: new Date(),
+                No,
+                ID,
+                Gr,
+                Es,
+                Pe: selectedParcial,
+                Pro: selectedTeacher,
+                Ma: selectedSubject,
+                status: attendanceStatus
+            });
+            if (success) {
+                setLastScanMsg({ type: 'success', text: `Completado: ${No} OK` });
+                setTimeout(() => setLastScanMsg(null), 3000);
+            } else {
+                setLastScanMsg({ type: 'error', text: `Error: No se pudo registrar a ${No}` });
+            }
+        } catch (e: any) {
+            setLastScanMsg({ type: 'error', text: `Error de red: ${e.message.substring(0, 30)}` });
+        }
 
         // Update status
         setHistory(prev => prev.map(entry =>
@@ -247,35 +270,47 @@ export default function AulaScan() {
         // frequent, ignore.
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            setLastScanMsg({ type: 'success', text: 'Analizando imagen...' });
+            
+            try {
+                const html5QrCode = new Html5Qrcode("file-scanner-hidden");
+                const decodedText = await html5QrCode.scanFile(file, true);
+                processAttendance(decodedText);
+            } catch (err) {
+                setLastScanMsg({ type: 'error', text: 'No se detectó ningún código QR en la imagen.' });
+                playBeep('error');
+            }
+            e.target.value = '';
+        }
+    };
+
     const getSuggestions = () => {
         if (manualInput.length < 2) return [];
-        const query = manualInput.toLowerCase();
-        
-        let matches = studentsDB.filter(student => {
-            const sObj = student as any;
-            const nameKey = Object.keys(sObj).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
-            const patKey = Object.keys(sObj).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
-            const matKey = Object.keys(sObj).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
-            const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
-            
-            const fullName = `${sObj[nameKey]} ${sObj[patKey]} ${sObj[matKey]}`.toLowerCase();
-            const control = controlKey ? String(sObj[controlKey]).toLowerCase() : '';
-            
-            return fullName.includes(query) || control.includes(query);
-        });
 
-        // Limit visually to top 5
-        return matches.slice(0, 5).map(student => {
+        const cleanStudents = studentsDB.map(student => {
             const sObj = student as any;
             const nameKey = Object.keys(sObj).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
             const patKey = Object.keys(sObj).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
             const matKey = Object.keys(sObj).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
             const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
+
             return {
-                nombre: `${sObj[nameKey]} ${sObj[patKey]} ${sObj[matKey]}`,
+                nombre: `${sObj[nameKey]} ${sObj[patKey]} ${sObj[matKey]}`.trim(),
                 control: controlKey ? String(sObj[controlKey]) : ''
             };
         });
+
+        const fuse = new Fuse(cleanStudents, {
+            keys: ['nombre', 'control'],
+            threshold: 0.4, // Tolerancia a errores de tipeo (fuzzy)
+            ignoreLocation: true
+        });
+
+        const results = fuse.search(manualInput);
+        return results.slice(0, 5).map(r => r.item);
     };
 
     const suggestions = getSuggestions();
@@ -346,6 +381,16 @@ export default function AulaScan() {
         link.remove();
     };
 
+    const toggleKiosk = async () => {
+        if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen().catch((e) => console.log(e));
+            setIsKioskMode(true);
+        } else {
+            await document.exitFullscreen().catch((e) => console.log(e));
+            setIsKioskMode(false);
+        }
+    };
+
     const nowObj = new Date();
     const todayStr = `${nowObj.getFullYear()}-${String(nowObj.getMonth() + 1).padStart(2, '0')}-${String(nowObj.getDate()).padStart(2, '0')}`;
     const scansToday = groupedHistory[todayStr]?.length || 0;
@@ -410,32 +455,47 @@ export default function AulaScan() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Scanner view */}
                         <div className="space-y-6">
-                        <Card className="border-gray-700 overflow-hidden shadow-xl">
-                            <div className="flex items-center justify-between p-4 bg-theme-border/50 border-b border-theme-border">
+                        <Card className="border-0 overflow-hidden shadow-xl bg-slate-900 text-white rounded-2xl">
+                            <div className="flex items-center justify-between p-4 bg-slate-800/50 border-b border-slate-700/50">
                                 <div className="flex items-center gap-2">
-                                    <span className="material-icons-round text-theme-accent1-500 animate-pulse">videocam</span>
-                                    <span className="font-semibold text-theme-text">Escaneando...</span>
+                                    <span className="material-icons-round text-blue-500 animate-pulse">videocam</span>
+                                    <span className="font-semibold text-slate-100">Escaneando...</span>
                                 </div>
-                                <Button variant="ghost" size="sm" onClick={() => setIsConfigured(false)}>
-                                    Cambiar Clase
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <input type="file" id="qr-upload" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                                    <Button variant="outline" size="sm" onClick={() => document.getElementById('qr-upload')?.click()} className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
+                                        <span className="material-icons-round text-sm mr-1">upload_file</span>
+                                        <span className="hidden sm:inline">Foto</span>
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={toggleKiosk} className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
+                                        <span className="material-icons-round text-sm mr-1">{isKioskMode ? 'fullscreen_exit' : 'fullscreen'}</span>
+                                        <span className="hidden sm:inline">Kiosco</span>
+                                    </Button>
+                                    <Button variant="secondary" size="sm" onClick={() => { if(isKioskMode) toggleKiosk(); setIsConfigured(false); }} className="bg-slate-700 hover:bg-slate-600 text-white border-0 hidden sm:flex">
+                                        Clase
+                                    </Button>
+                                </div>
                             </div>
-                            <div className="bg-black/30 p-4">
+                            <div className={cn("bg-slate-950 p-4 min-h-[250px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
+                                <div id="file-scanner-hidden" className="hidden"></div>
                                 {/* HTML5 QR Scanner Target */}
                                 <div id={scannerId} className="w-full override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
+                                <div className="absolute bottom-6 text-center w-full px-4 text-sm font-medium text-white/90">
+                                    Alinea el código QR con el marco
+                                </div>
                             </div>
 
                             {/* Status Selector */}
-                            <div className="p-4 bg-gray-850 border-t border-gray-800">
-                                <label className="text-xs font-medium text-theme-muted/80 uppercase tracking-widest block mb-2">Estado de Toma</label>
-                                <div className="grid grid-cols-2 gap-2">
+                            <div className="p-4 bg-slate-900 border-t border-slate-800 rounded-b-2xl">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3">Estado de Toma</label>
+                                <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => setAttendanceStatus('Asistencia')}
                                         className={cn(
-                                            "flex items-center justify-center gap-2 p-3 rounded-xl border transition-all",
+                                            "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
                                             attendanceStatus === 'Asistencia'
-                                                ? "bg-theme-accent2-600/20 border-theme-accent2-500/50 text-theme-accent2-400 font-bold"
-                                                : "bg-theme-base/50 border-theme-border text-theme-muted hover:bg-theme-border/50"
+                                                ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                                                : "bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800"
                                         )}
                                     >
                                         <span className="material-icons-round text-lg">check_circle</span>
@@ -444,10 +504,10 @@ export default function AulaScan() {
                                     <button
                                         onClick={() => setAttendanceStatus('Retardo')}
                                         className={cn(
-                                            "flex items-center justify-center gap-2 p-3 rounded-xl border transition-all",
+                                            "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
                                             attendanceStatus === 'Retardo'
-                                                ? "bg-yellow-600/20 border-yellow-500/50 text-yellow-400 font-bold"
-                                                : "bg-theme-base/50 border-theme-border text-theme-muted hover:bg-theme-border/50"
+                                                ? "bg-orange-500/20 border-orange-500/50 text-orange-400"
+                                                : "bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800"
                                         )}
                                     >
                                         <span className="material-icons-round text-lg">schedule</span>
@@ -458,13 +518,22 @@ export default function AulaScan() {
                         </Card>
 
                         {lastScanMsg && (
-                            <div className={cn(
-                                "p-4 rounded-xl border animate-fade-in text-center font-medium",
-                                lastScanMsg.type === 'success'
-                                    ? "bg-theme-accent2-900/30 border-theme-accent2-500/50 text-theme-accent2-400"
-                                    : "bg-red-900/30 border-red-500/50 text-red-400"
-                            )}>
-                                {lastScanMsg.text}
+                            // ALERTA FLOTANTE (Fixed positioning)
+                            <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in-up">
+                                <div className={cn(
+                                    "p-4 rounded-xl border shadow-2xl text-center font-bold text-lg flex flex-col items-center gap-2",
+                                    lastScanMsg.type === 'success'
+                                        ? "bg-theme-accent2-900/95 backdrop-blur-md border-theme-accent2-500/50 text-white"
+                                        : "bg-red-900/95 backdrop-blur-md border-red-500 text-white shadow-red-900/50"
+                                )}>
+                                    {lastScanMsg.type === 'success' 
+                                        ? (lastScanMsg.text.includes('Registrando') 
+                                            ? <span className="material-icons-round animate-spin text-2xl">refresh</span>
+                                            : <span className="material-icons-round text-3xl text-theme-accent2-400">check_circle</span>)
+                                        : <span className="material-icons-round text-3xl text-red-400">error</span>
+                                    }
+                                    {lastScanMsg.text}
+                                </div>
                             </div>
                         )}
 
@@ -501,9 +570,10 @@ export default function AulaScan() {
                         </Card>
                     </div>
 
-                    {/* History view */}
-                    <Card className="border-gray-700 shadow-xl flex flex-col max-h-[600px] overflow-hidden">
-                        <div className="flex items-center justify-between p-4 bg-theme-border/50 border-b border-theme-border">
+                    {/* History view (Hidden in Kiosk) */}
+                    {!isKioskMode && (
+                        <Card className="border-gray-700 shadow-xl flex flex-col max-h-[600px] overflow-hidden animate-fade-in">
+                            <div className="flex items-center justify-between p-4 bg-theme-border/50 border-b border-theme-border">
                             <span className="font-semibold text-theme-text">Historial Reciente</span>
                             <Button variant="destructive" size="sm" onClick={() => {
                                 if(confirm('¿Seguro que deseas eliminar absolutamente todo el historial del navegador?')) setHistory([]);
@@ -572,6 +642,7 @@ export default function AulaScan() {
                             )}
                         </div>
                     </Card>
+                    )}
                     </div>
                 </div>
             )}

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+    <defs>
+        <linearGradient id="bluGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#3B82F6"/>
+            <stop offset="100%" stop-color="#1D4ED8"/>
+        </linearGradient>
+    </defs>
+    
+    <!-- Top-Left QR Marker -->
+    <rect x="25" y="25" width="45" height="45" rx="10" stroke="url(#bluGradient)" stroke-width="10"/>
+    <rect x="40" y="40" width="15" height="15" rx="4" fill="url(#bluGradient)"/>
+
+    <!-- Top-Right QR Marker -->
+    <rect x="130" y="25" width="45" height="45" rx="10" stroke="url(#bluGradient)" stroke-width="10"/>
+    <rect x="145" y="40" width="15" height="15" rx="4" fill="url(#bluGradient)"/>
+
+    <!-- Bottom-Left QR Marker -->
+    <rect x="25" y="130" width="45" height="45" rx="10" stroke="url(#bluGradient)" stroke-width="10"/>
+    <rect x="40" y="145" width="15" height="15" rx="4" fill="url(#bluGradient)"/>
+    
+    <!-- Fingerprint in the middle and bottom-right -->
+    <g stroke="url(#bluGradient)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Center arcs (Fingerprint Core) -->
+        <path d="M 85 105 A 15 15 0 0 1 115 105 V 135"/>
+        <path d="M 70 115 A 30 30 0 0 1 130 115 V 140"/>
+        
+        <!-- Bottom-Right QR + Fingerprint fusion -->
+        <path d="M 130 160 H 135"/>
+        <path d="M 155 130 V 135"/>
+        <path d="M 155 160 H 175 V 175 H 155 Z"/>
+        <path d="M 130 175 H 140 V 165"/>
+        <path d="M 175 145 V 130 H 160"/>
+        <path d="M 145 145 h 10 v 10 h -10 Z" fill="url(#bluGradient)"/>
+
+        <!-- Connecting lines between markers -->
+        <path d="M 25 90 H 50" />
+        <path d="M 25 110 H 40" />
+        <path d="M 90 25 V 50" />
+        <path d="M 110 25 V 40" />
+        
+        <path d="M 175 90 H 150" />
+        <path d="M 175 110 H 160" />
+        <path d="M 90 175 V 150" />
+        <path d="M 100 135 V 175" />
+    </g>
+</svg>

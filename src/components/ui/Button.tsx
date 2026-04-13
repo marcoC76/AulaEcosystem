@@ -14,11 +14,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 className={cn(
                     "inline-flex items-center justify-center whitespace-nowrap rounded-lg font-medium ring-offset-gray-950 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
                     {
-                        "bg-theme-accent1-600 text-theme-text hover:bg-theme-accent1-700 shadow-md": variant === "default",
-                        "bg-red-600 text-theme-text hover:bg-red-700 shadow-md": variant === "destructive",
-                        "border border-gray-600 bg-transparent hover:bg-gray-800 text-gray-200": variant === "outline",
-                        "bg-gray-700 text-gray-100 hover:bg-gray-600": variant === "secondary",
-                        "hover:bg-gray-800 hover:text-gray-100 text-gray-300": variant === "ghost",
+                        "bg-theme-accent1-600 text-white hover:bg-theme-accent1-700 shadow-md": variant === "default",
+                        "bg-red-600 text-white hover:bg-red-700 shadow-md": variant === "destructive",
+                        "border border-theme-border bg-transparent hover:bg-theme-muted/10 text-theme-text": variant === "outline",
+                        "bg-theme-base/80 border border-theme-border text-theme-text hover:bg-theme-muted/20": variant === "secondary",
+                        "hover:bg-theme-muted/10 hover:text-theme-text text-theme-muted": variant === "ghost",
                         "text-theme-accent1-500 underline-offset-4 hover:underline": variant === "link",
                         "h-10 px-4 py-2": size === "default",
                         "h-9 rounded-md px-3 text-sm": size === "sm",

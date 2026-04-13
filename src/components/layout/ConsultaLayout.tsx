@@ -46,7 +46,7 @@ export default function ConsultaLayout() {
                 {/* Desktop Top Navbar */}
                 <header className="hidden sm:flex items-center justify-between px-8 py-4 bg-theme-card/80 backdrop-blur-xl border-b border-theme-border shadow-md sticky top-0 z-40">
                     <div className="flex items-center gap-3">
-                        <span className="material-icons-round text-theme-accent3-500 text-3xl">search</span>
+                        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" className="w-8 h-8 rounded-md" />
                         <span className="font-bold tracking-tight text-xl">AulaConsulta</span>
                     </div>
                     <nav className="flex gap-2">
@@ -55,8 +55,8 @@ export default function ConsultaLayout() {
                             className={cn(
                                 "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200",
                                 location.pathname.startsWith('/consulta/report')
-                                    ? "bg-theme-accent3-600 text-theme-text shadow-md shadow-purple-900/40"
-                                    : "text-theme-muted hover:text-theme-text hover:bg-gray-800"
+                                    ? "bg-theme-accent3-600 text-white shadow-md shadow-purple-900/40"
+                                    : "text-theme-muted hover:text-theme-text hover:bg-theme-muted/10"
                             )}
                         >
                             <span className="material-icons-round text-xl">bar_chart</span>
@@ -65,7 +65,7 @@ export default function ConsultaLayout() {
                         <Link
                             to="/"
                             onClick={() => localStorage.removeItem('consulta_auth')}
-                            className="ml-4 flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-theme-muted hover:text-theme-text hover:bg-gray-800 transition-all duration-200"
+                            className="ml-4 flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-theme-muted hover:text-theme-text hover:bg-theme-muted/10 transition-all duration-200"
                         >
                             <span className="material-icons-round text-xl">logout</span>
                             Salir

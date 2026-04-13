@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-    BarChart, Bar, Cell
+    PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { fetchAppConfig, fetchReportData, fetchStudentsDB, deleteAttendanceRecord, insertJustifiedAbsence } from '../../lib/dataService';
 import { Card } from '../../components/ui/Card';
@@ -428,20 +428,27 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                     </h3>
                                     <div className="h-[250px] w-full mt-4">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={statusData} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" horizontal={false} />
-                                                <XAxis type="number" hide />
-                                                <YAxis dataKey="name" type="category" stroke="#9ca3af" axisLine={false} tickLine={false} />
-                                                <RechartsTooltip
-                                                    cursor={{ fill: '#374151', opacity: 0.4 }}
-                                                    contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
-                                                />
-                                                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                                            <PieChart>
+                                                <Pie
+                                                    data={statusData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                    stroke="none"
+                                                >
                                                     {statusData.map((entry, index) => (
                                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                                     ))}
-                                                </Bar>
-                                            </BarChart>
+                                                </Pie>
+                                                <RechartsTooltip
+                                                    contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
+                                                    itemStyle={{ color: '#fff' }}
+                                                />
+                                                <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                            </PieChart>
                                         </ResponsiveContainer>
                                     </div>
                                 </Card>

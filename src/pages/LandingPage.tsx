@@ -11,8 +11,8 @@ export default function LandingPage() {
             <div className="w-full max-w-5xl flex flex-col items-center z-10 animate-fade-in-up">
                 {/* Header */}
                 <div className="text-center mb-16">
-                    <div className="inline-flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-md rounded-2xl border border-theme-border shadow-2xl mb-8">
-                        <span className="material-icons-round text-5xl bg-gradient-to-br from-theme-accent1-400 to-theme-accent2-400 text-transparent bg-clip-text">qr_code_scanner</span>
+                    <div className="inline-flex items-center justify-center w-24 h-24 p-2 bg-theme-card/80 backdrop-blur-md rounded-3xl border border-theme-border shadow-2xl mb-8">
+                        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AulaEcosystem Logo" className="w-full h-full object-contain filter drop-shadow-md" />
                     </div>
                     <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-theme-text mb-4 drop-shadow-sm">
                         AulaEcosystem
