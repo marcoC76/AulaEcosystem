@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Fuse from 'fuse.js';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend
@@ -7,21 +8,31 @@ import { fetchAppConfig, fetchReportData, fetchStudentsDB, deleteAttendanceRecor
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
+import { Input } from '../../components/ui/Input';
 import { Stepper } from '../../components/ui/Stepper';
 import { Modal } from '../../components/ui/Modal';
 import { cn } from '../../lib/utils';
 import type { ConfigOption, AttendanceRecord } from '../../types';
 
-type ExtendedAttendanceRecord = AttendanceRecord & { faltasCalculadas?: string[] };
+type ExtendedAttendanceRecord = AttendanceRecord & { faltasCalculadas?: string[]; apellidoPaterno?: string };
 
 export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'consulta' }) {
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
+
+    // Mode State
+    const [mode, setMode] = useState<'group' | 'student'>('group');
 
     // Wizard State
     const [step, setStep] = useState(0);
     const [selectedTeacher, setSelectedTeacher] = useState('');
     const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedGroup, setSelectedGroup] = useState('');
+
+    // Student Search State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [selectedSearchStudent, setSelectedSearchStudent] = useState<any>(null);
+    const [studentModeData, setStudentModeData] = useState<ExtendedAttendanceRecord[]>([]);
 
     // Data State
     const [data, setData] = useState<ExtendedAttendanceRecord[]>([]);
@@ -79,48 +90,48 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
             const careerKey = Object.keys(sObj).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad'));
             return careerKey && String(sObj[careerKey]).trim() === specialtyFilter;
         });
-        const mergedRes: AttendanceRecord[] = [];
+        const mergedRes: ExtendedAttendanceRecord[] = [];
 
         groupStudents.forEach(gs => {
-            // Find matching student in server response
+            const nameKey = Object.keys(gs).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
+            const patKey = Object.keys(gs).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
+            const matKey = Object.keys(gs).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
+            const careerKey = Object.keys(gs).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad')) || 'Carrera';
+            const sControlKey = Object.keys(gs).find(k => k.toLowerCase().includes('control'));
+
+            const rawName = String(gs[nameKey] || '').trim();
+            const rawPat = String(gs[patKey] || '').trim();
+            const rawMat = String(gs[matKey] || '').trim();
+            const formattedName = `${rawPat} ${rawMat} ${rawName}`.trim();
+
             const serverRecord = filteredRes.find(r => {
                 const rControl = String(r['Número de Control']).trim();
-                const sControlKey = Object.keys(gs).find(k => k.toLowerCase().includes('control'));
                 const sControl = sControlKey ? String(gs[sControlKey]).trim() : '';
                 return rControl === sControl;
-            });
+            }) as ExtendedAttendanceRecord | undefined;
 
             if (serverRecord) {
+                serverRecord.apellidoPaterno = rawPat;
+                serverRecord['Nombre del Alumno'] = formattedName; // Standardize format
                 mergedRes.push(serverRecord);
             } else {
-                // Create empty dummy record
-                const nameKey = Object.keys(gs).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
-                const patKey = Object.keys(gs).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
-                const matKey = Object.keys(gs).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
-                const careerKey = Object.keys(gs).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad')) || 'Carrera';
-                const sControlKey = Object.keys(gs).find(k => k.toLowerCase().includes('control'));
-
-                const rawName = String(gs[nameKey] || '').trim();
-                const rawPat = String(gs[patKey] || '').trim();
-                const rawMat = String(gs[matKey] || '').trim();
-
                 mergedRes.push({
                     "Número de Control": sControlKey ? String(gs[sControlKey]) : '000',
-                    "Nombre del Alumno": `${rawName} ${rawPat} ${rawMat}`.trim(),
+                    "Nombre del Alumno": formattedName,
                     "Profesor": selectedTeacher,
                     "Materia": selectedSubject,
                     "Grupo": baseGroup,
                     "Periodo": 1,
                     "Asistencias": 0,
-                    "Total de Clases": maxAsistencias > 0 ? maxAsistencias : 1, // Will be overridden
+                    "Total de Clases": maxAsistencias > 0 ? maxAsistencias : 1,
                     "Porcentaje": 0,
                     "Fechas y Horas de Asistencia": '[]',
-                    "Especialidad": careerKey ? String(gs[careerKey]) : 'Desconocido'
+                    "Especialidad": careerKey ? String(gs[careerKey]) : 'Desconocido',
+                    apellidoPaterno: rawPat
                 });
             }
         });
 
-        // If we have some anomalous server records not in DB, push them too
         filteredRes.forEach(r => {
             if (!mergedRes.some(m => String(m['Número de Control']).trim() === String(r['Número de Control']).trim())) {
                 mergedRes.push(r);
@@ -174,92 +185,291 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
             };
         });
 
-        setData(processedData);
+        const sortedData = processedData.sort((a, b) => {
+            const nameA = a['Nombre del Alumno'] || '';
+            const nameB = b['Nombre del Alumno'] || '';
+            return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+        });
+
+        setData(sortedData);
+        setIsLoading(false);
+    };
+
+    const loadStudentData = async () => {
+        if (!selectedSearchStudent) return;
+        setIsLoading(true);
+
+        const cleanStr = (s: any) => String(s || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        const groupKey = Object.keys(selectedSearchStudent).find(k => k.toLowerCase().includes('grupo')) || 'Grupo';
+        const groupValue = String(selectedSearchStudent[groupKey]).trim();
+        
+        // IMPORTANT: Split group to get the base group (e.g. "1A") and ignore specialty suffix if present
+        const [baseGroupPart] = groupValue.split(' - ');
+        const rawGroup = baseGroupPart.trim();
+        
+        const careerKey = Object.keys(selectedSearchStudent).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad'));
+        const specialty = careerKey && selectedSearchStudent[careerKey] ? String(selectedSearchStudent[careerKey]).trim() : '';
+        const studSpecClean = cleanStr(specialty);
+
+        console.log(`[StudentReport] Buscando para Grupo Base: ${rawGroup}, Especialidad: ${specialty}`);
+
+        // El backend de Apps Script exige la Materia (Ma) para filtrar.
+        // Haremos las peticiones agrupadas para evitar tasa límite (429 Too Many Requests).
+        let rawRes: any[] = [];
+        const chunkSize = 4;
+        
+        for (let i = 0; i < config.materias.length; i += chunkSize) {
+            const chunk = config.materias.slice(i, i + chunkSize);
+            const promises = chunk.map(m => fetchReportData({ group: rawGroup, subject: m.text }));
+            const results = await Promise.all(promises);
+            results.forEach(resArray => {
+                if (Array.isArray(resArray)) {
+                    // Evitar que el MOCK fallback duplique datos si llega a fallar uno,
+                    // Si trae los mismos atributos que el mock, no los concatenamos 30 veces.
+                    if (resArray.length > 0 && resArray[0]['Número de Control'] === '20304050') {
+                         if (rawRes.length === 0) rawRes = rawRes.concat(resArray);
+                    } else {
+                         rawRes = rawRes.concat(resArray);
+                    }
+                }
+            });
+        }
+        
+        console.log(`[StudentReport] Recibidos ${rawRes.length} registros totales del servidor (cruzando todas las materias).`);
+
+        // FILTER: Incluir si la especialidad coincide O si el registro no tiene especialidad (materia común)
+        const groupRes = rawRes.filter(r => {
+            const rowSpecClean = cleanStr(r.Especialidad);
+            if (!studSpecClean) return true; 
+            return rowSpecClean === studSpecClean || rowSpecClean === "";
+        });
+        
+        console.log(`[StudentReport] Filtrados a ${groupRes.length} registros (después de validar especialidad/comunes).`);
+
+        const materiasMap = new Map<string, ExtendedAttendanceRecord[]>();
+        groupRes.forEach(r => {
+            const m = r.Materia || 'Desconocida';
+            if (!materiasMap.has(m)) materiasMap.set(m, []);
+            materiasMap.get(m)!.push(r);
+        });
+
+        console.log(`[StudentReport] Materias encontradas en el grupo:`, Array.from(materiasMap.keys()));
+
+        const studentResults: ExtendedAttendanceRecord[] = [];
+        const sControlKey = Object.keys(selectedSearchStudent).find(k => k.toLowerCase().includes('control'));
+        const sControl = sControlKey ? String(selectedSearchStudent[sControlKey]).trim() : '';
+
+        materiasMap.forEach((records, materiaName) => {
+            let maxAsistencias = 0;
+            let masterStudent: AttendanceRecord | null = null;
+            
+            records.forEach(d => {
+                const asis = Number(d.Asistencias);
+                if (asis > maxAsistencias) {
+                    maxAsistencias = asis;
+                    masterStudent = d;
+                }
+            });
+
+            const newTotal = maxAsistencias > 0 ? maxAsistencias : 1;
+            const serverRecord = records.find(r => String(r['Número de Control']).trim() === sControl) as ExtendedAttendanceRecord | undefined;
+
+            let finalRecord: ExtendedAttendanceRecord;
+
+            if (serverRecord) {
+                finalRecord = { ...serverRecord, 'Total de Clases': newTotal, Porcentaje: Number(serverRecord.Asistencias) / newTotal };
+            } else {
+                finalRecord = {
+                    "Número de Control": sControl || '000',
+                    "Nombre del Alumno": selectedSearchStudent.nombre,
+                    "Profesor": masterStudent ? (masterStudent as any).Profesor : "Varios",
+                    "Materia": materiaName,
+                    "Grupo": rawGroup,
+                    "Periodo": 1,
+                    "Asistencias": 0,
+                    "Total de Clases": newTotal,
+                    "Porcentaje": 0,
+                    "Fechas y Horas de Asistencia": '[]',
+                    "Especialidad": specialty,
+                    apellidoPaterno: ''
+                };
+            }
+
+            const masterDates = new Set<string>();
+            if (masterStudent && (masterStudent as any)['Fechas y Horas de Asistencia']) {
+                try {
+                    let fechasStr: any = (masterStudent as any)['Fechas y Horas de Asistencia'];
+                    if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
+                    JSON.parse(fechasStr).forEach((fStr: string) => {
+                        const dateObj = new Date(fStr);
+                        if (!isNaN(dateObj.getTime())) masterDates.add(dateObj.toISOString().split('T')[0]);
+                    });
+                } catch (e) {}
+            }
+
+            const studentDates = new Set<string>();
+            if (finalRecord['Fechas y Horas de Asistencia']) {
+                try {
+                     let fechasStr: any = finalRecord['Fechas y Horas de Asistencia'];
+                     if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
+                     JSON.parse(fechasStr).forEach((fStr: string) => {
+                        const dateObj = new Date(fStr);
+                        if (!isNaN(dateObj.getTime())) studentDates.add(dateObj.toISOString().split('T')[0]);
+                    });
+                } catch(e) {}
+            }
+
+            const faltas: string[] = [];
+            masterDates.forEach(md => {
+                if (!studentDates.has(md)) faltas.push(md);
+            });
+            
+            finalRecord.faltasCalculadas = faltas.sort();
+            studentResults.push(finalRecord);
+        });
+
+        console.log(`[StudentReport] Kárdex final generado con ${studentResults.length} materias.`);
+
+        const sortedResults = studentResults.sort((a,b) => (a.Materia || '').localeCompare(b.Materia || ''));
+        setStudentModeData(sortedResults);
         setIsLoading(false);
     };
 
     const handleNext = async () => {
-        if (step === 0 && !selectedTeacher) return;
-        if (step === 1 && !selectedSubject) return;
-        if (step === 2 && !selectedGroup) return;
+        if (mode === 'group') {
+            if (step === 0 && !selectedTeacher) return;
+            if (step === 1 && !selectedSubject) return;
+            if (step === 2 && !selectedGroup) return;
 
-        if (step === 2) {
-            // Transitioning to Results
-            setStep(3);
-            loadGroupData();
+            if (step === 2) {
+                setStep(3);
+                loadGroupData();
+            } else {
+                setStep(s => s + 1);
+            }
         } else {
-            setStep(s => s + 1);
+            if (!selectedSearchStudent) {
+                alert("Por favor selecciona un alumno primero.");
+                return;
+            }
+            setStep(3);
+            loadStudentData();
         }
     };
 
     const handleBack = () => setStep(s => Math.max(0, s - 1));
 
     const downloadReport = () => {
-        const headers = ['Control', 'Nombre', 'Clases Totales', 'Asistencias', 'Porcentaje'];
-        const rows = data.map(d => [d['Número de Control'], d['Nombre del Alumno'], d['Total de Clases'], d['Asistencias'], `${(d.Porcentaje * 100).toFixed(0)}%`]);
+        const d = mode === 'group' ? data : studentModeData;
+        const headers = mode === 'group' 
+            ? ['Control', 'Nombre', 'Clases Totales', 'Asistencias', 'Porcentaje']
+            : ['Materia', 'Profesor', 'Clases Totales', 'Asistencias', 'Porcentaje'];
+            
+        const rows = d.map(item => {
+            if (mode === 'group') {
+                return [item['Número de Control'], item['Nombre del Alumno'], item['Total de Clases'], item['Asistencias'], `${(item.Porcentaje * 100).toFixed(0)}%`];
+            } else {
+                return [item['Materia'], item['Profesor'], item['Total de Clases'], item['Asistencias'], `${(item.Porcentaje * 100).toFixed(0)}%`];
+            }
+        });
+        
         const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement('a');
         link.href = encodedUri;
-        link.download = `Reporte_${selectedGroup}_${selectedSubject.substring(0, 10)}.csv`;
+        link.download = mode === 'group' 
+            ? `Reporte_${selectedGroup}_${selectedSubject.substring(0, 10)}.csv`
+            : `Reporte_${selectedSearchStudent?.nombre}_Múltiple.csv`;
         document.body.appendChild(link);
         link.click();
         link.remove();
     };
 
-    // --- Derived Metrics ---
-    // Exportar CSV
     const downloadAbsenceReport = () => {
-        if (data.length === 0) {
-            alert("No hay datos para exportar.");
-            return;
-        }
+        const d = mode === 'group' ? data : studentModeData;
+        if (d.length === 0) return alert("No hay datos para exportar.");
 
-        // CSV Header
-        const headers = ["Control", "Alumno", "Grupo", "Clases Impartidas", "Asistencias", "Porcentaje (%)", "Total Faltas", "Fechas Ausentes"];
+        const headers = mode === 'group'
+            ? ["Control", "Alumno", "Grupo", "Clases Impartidas", "Asistencias", "Porcentaje (%)", "Total Faltas", "Fechas Ausentes"]
+            : ["Materia", "Profesor", "Grupo", "Clases Impartidas", "Asistencias", "Porcentaje (%)", "Total Faltas", "Fechas Ausentes"];
 
-        const rows = data.map(student => {
-            const control = student['Número de Control'];
-            const nombre = student['Nombre del Alumno'];
-            const grupo = student.Grupo;
-            const clases = student['Total de Clases'] || 0;
-            const asistencias = student.Asistencias || 0;
-            const porcentaje = Math.round((student.Porcentaje || 0) * 100);
-
-            const faltasArr = student.faltasCalculadas || [];
-            const totalFaltas = faltasArr.length;
+        const rows = d.map(item => {
+            const faltasArr = item.faltasCalculadas || [];
             const fechasFaltas = faltasArr.join(" | ");
+            const porcentaje = Math.round((item.Porcentaje || 0) * 100);
 
-            return [
-                control,
-                `"${nombre}"`,
-                grupo,
-                clases,
-                asistencias,
-                porcentaje,
-                totalFaltas,
-                `"${fechasFaltas}"`
-            ].join(",");
+            if (mode === 'group') {
+                return [
+                    item['Número de Control'],
+                    `"${item['Nombre del Alumno']}"`,
+                    item.Grupo,
+                    item['Total de Clases'] || 0,
+                    item.Asistencias || 0,
+                    porcentaje,
+                    faltasArr.length,
+                    `"${fechasFaltas}"`
+                ].join(",");
+            } else {
+                return [
+                    `"${item.Materia}"`,
+                    `"${item.Profesor}"`,
+                    item.Grupo,
+                    item['Total de Clases'] || 0,
+                    item.Asistencias || 0,
+                    porcentaje,
+                    faltasArr.length,
+                    `"${fechasFaltas}"`
+                ].join(",");
+            }
         });
 
         const csvContent = [headers.join(","), ...rows].join("\n");
         const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-
         const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `ReporteFaltas_${selectedSubject}_${selectedGroup}.csv`);
-        link.style.visibility = 'hidden';
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `ReporteFaltas_${mode === 'group' ? selectedGroup : selectedSearchStudent?.nombre}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    const totalStudents = data.length;
+    // --- Search Helpers ---
+    const getSuggestions = () => {
+        if (searchQuery.length < 2) return [];
+
+        const cleanStudents = studentsDB.map(student => {
+            const sObj = student as any;
+            const nameKey = Object.keys(sObj).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
+            const patKey = Object.keys(sObj).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
+            const matKey = Object.keys(sObj).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
+            const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
+
+            return {
+                ...student,
+                nombre: `${sObj[nameKey]} ${sObj[patKey]} ${sObj[matKey]}`.trim(),
+                control: controlKey ? String(sObj[controlKey]) : ''
+            };
+        });
+
+        const fuse = new Fuse(cleanStudents, {
+            keys: ['nombre', 'control'],
+            threshold: 0.4,
+            ignoreLocation: true
+        });
+
+        return fuse.search(searchQuery).slice(0, 5).map(r => r.item);
+    };
+
+    const suggestions = getSuggestions();
+
+    // --- Derived Metrics ---
+    const activeData = mode === 'group' ? data : studentModeData;
+    const totalItems = activeData.length;
     let totalAsistencias = 0;
     const dateCounts: Record<string, { date: Date, count: number }> = {};
 
-    data.forEach(d => {
+    activeData.forEach(d => {
         totalAsistencias += d.Asistencias;
         try {
             const fechas = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
@@ -267,25 +477,22 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                 const dateObj = new Date(fStr);
                 if (isNaN(dateObj.getTime())) return;
                 const dateKey = dateObj.toISOString().split('T')[0];
-                if (!dateCounts[dateKey]) {
-                    dateCounts[dateKey] = { date: dateObj, count: 0 };
-                }
+                if (!dateCounts[dateKey]) dateCounts[dateKey] = { date: dateObj, count: 0 };
                 dateCounts[dateKey].count++;
             });
         } catch (e) { }
     });
 
-    const avgAttendance = totalStudents ? data.reduce((acc, curr) => acc + curr.Porcentaje, 0) / totalStudents : 0;
-    const atRisk = data.filter(d => d.Porcentaje < 0.8).length;
-    const perfect = data.filter(d => d.Porcentaje === 1.0).length;
+    const avgAttendance = totalItems ? activeData.reduce((acc, curr) => acc + curr.Porcentaje, 0) / totalItems : 0;
+    const atRisk = activeData.filter(d => d.Porcentaje < 0.8).length;
+    const perfect = activeData.filter(d => d.Porcentaje === 1.0).length;
 
     const statusData = [
-        { name: 'Riesgo (<80%)', value: atRisk, color: '#ef4444' }, // red-500
-        { name: 'Regular', value: totalStudents - atRisk - perfect, color: '#eab308' }, // yellow-500
-        { name: 'Perfecta', value: perfect, color: '#10b981' } // emerald-500
+        { name: 'Riesgo (<80%)', value: atRisk, color: '#ef4444' },
+        { name: 'Regular', value: totalItems - atRisk - perfect, color: '#eab308' },
+        { name: 'Perfecta', value: perfect, color: '#10b981' }
     ];
 
-    // Real line chart data building
     const timelineData = Object.values(dateCounts)
         .sort((a, b) => a.date.getTime() - b.date.getTime())
         .map(item => ({
@@ -293,77 +500,195 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
             asistencias: item.count
         }));
 
-    // Rendering Helper
     const getRiskColor = (percent: number) => {
         if (percent < 0.8) return 'text-red-500 bg-red-500/10 border-red-500/20';
         if (percent < 0.9) return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
         return 'text-theme-accent2-500 bg-theme-accent2-500/10 border-theme-accent2-500/20';
     };
 
-    // Wizard Views
-    const WizardContent = () => (
-        <Card className="max-w-xl mx-auto border-theme-border shadow-2xl p-6 sm:p-8 mt-12 animate-fade-in-up">
-            <div className="mb-8">
-                <Stepper steps={['Profesor', 'Materia', 'Grupo', 'Resultados']} currentStep={step} />
-            </div>
-
-            <div className="min-h-[200px] flex flex-col justify-center">
-                {step === 0 && (
-                    <div className="space-y-4 animate-fade-in">
-                        <h3 className="text-xl font-bold text-center mb-6">Selecciona el Profesor</h3>
-                        <Select value={selectedTeacher} onChange={e => setSelectedTeacher(e.target.value)} className="h-12 text-lg">
-                            <option value="">-- Elige un profesor --</option>
-                            {config.profesores.map(p => <option key={p.value} value={p.text}>{p.text}</option>)}
-                        </Select>
-                    </div>
-                )}
-                {step === 1 && (
-                    <div className="space-y-4 animate-fade-in">
-                        <h3 className="text-xl font-bold text-center mb-6">Selecciona la Materia</h3>
-                        <Select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="h-12 text-lg">
-                            <option value="">-- Elige una materia --</option>
-                            {config.materias.map(m => <option key={m.value} value={m.text}>{m.text}</option>)}
-                        </Select>
-                    </div>
-                )}
-                {step === 2 && (
-                    <div className="space-y-4 animate-fade-in">
-                        <h3 className="text-xl font-bold text-center mb-6">Selecciona el Grupo</h3>
-                        <Select value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)} className="h-12 text-lg">
-                            <option value="">-- Elige un grupo --</option>
-                            {availableGroups.map(g => <option key={g} value={g}>{g}</option>)}
-                        </Select>
-                    </div>
-                )}
-            </div>
-
-            <div className="flex justify-between mt-8 pt-6 border-t border-theme-border">
-                <Button variant="ghost" onClick={handleBack} disabled={step === 0} className="w-24 text-theme-muted hover:text-theme-text hover:bg-theme-border/50">
-                    Atrás
-                </Button>
-                <Button onClick={handleNext} className="w-32 bg-theme-accent1-600 hover:bg-theme-accent1-700">
-                    {step === 2 ? 'Generar' : 'Siguiente'}
-                </Button>
-            </div>
-        </Card>
-    );
-
     return (
         <div className="p-4 sm:p-6 pb-24 min-h-screen bg-transparent">
             {step < 3 ? (
-                <WizardContent />
+                <div className="max-w-2xl mx-auto mt-6 animate-fade-in-up">
+                    {step === 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
+                                <div className="p-3 rounded-xl bg-white/5 border border-theme-border text-theme-accent1-400">
+                                    <span className="material-icons-round text-2xl">school</span>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Alumnos</p>
+                                    <p className="text-xl font-bold">{studentsDB.length}</p>
+                                </div>
+                            </Card>
+                            <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
+                                <div className="p-3 rounded-xl bg-white/5 border border-theme-border text-theme-accent2-400">
+                                    <span className="material-icons-round text-2xl">groups</span>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Grupos</p>
+                                    <p className="text-xl font-bold">{availableGroups.length}</p>
+                                </div>
+                            </Card>
+                            <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
+                                <div className="p-3 rounded-xl bg-white/5 border border-theme-border text-yellow-400">
+                                    <span className="material-icons-round text-2xl">auto_stories</span>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Materias</p>
+                                    <p className="text-xl font-bold">{config.materias.length}</p>
+                                </div>
+                            </Card>
+                            <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
+                                <div className="p-3 rounded-xl bg-white/5 border border-theme-border text-emerald-400">
+                                    <span className="material-icons-round text-2xl">person_4</span>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Profesores</p>
+                                    <p className="text-xl font-bold">{config.profesores.length}</p>
+                                </div>
+                            </Card>
+                        </div>
+                    )}
+                    
+                    <Card className="border-theme-border shadow-2xl p-6 sm:p-8">
+                        {step === 0 && (
+                            <div className="mb-8 flex gap-2 p-1 bg-black/20 rounded-lg">
+                                <button
+                                    className={cn("flex-1 py-2 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2", mode === 'group' ? "bg-theme-accent1-600 text-white shadow" : "text-theme-muted hover:bg-theme-border/50")}
+                                    onClick={() => { setMode('group'); setSelectedSearchStudent(null); }}
+                                >
+                                    <span className="material-icons-round text-[18px]">groups</span> Por Grupo
+                                </button>
+                                <button
+                                    className={cn("flex-1 py-2 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2", mode === 'student' ? "bg-theme-accent1-600 text-white shadow" : "text-theme-muted hover:bg-theme-border/50")}
+                                    onClick={() => { setMode('student'); setStep(0); }}
+                                >
+                                    <span className="material-icons-round text-[18px]">person_search</span> Por Alumno
+                                </button>
+                            </div>
+                        )}
+
+                        {mode === 'group' && (
+                            <div className="mb-8">
+                                <Stepper steps={['Profesor', 'Materia', 'Grupo', 'Resultados']} currentStep={step} />
+                            </div>
+                        )}
+
+                        <div className="min-h-[200px] flex flex-col justify-center">
+                            {mode === 'group' && (
+                                <>
+                                    {step === 0 && (
+                                        <div className="space-y-4 animate-fade-in">
+                                            <h3 className="text-xl font-bold text-center mb-6">Selecciona el Profesor</h3>
+                                            <Select value={selectedTeacher} onChange={e => setSelectedTeacher(e.target.value)} className="h-12 text-lg">
+                                                <option value="">-- Elige un profesor --</option>
+                                                {config.profesores.map(p => <option key={p.value} value={p.text}>{p.text}</option>)}
+                                            </Select>
+                                        </div>
+                                    )}
+                                    {step === 1 && (
+                                        <div className="space-y-4 animate-fade-in">
+                                            <h3 className="text-xl font-bold text-center mb-6">Selecciona la Materia</h3>
+                                            <Select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="h-12 text-lg">
+                                                <option value="">-- Elige una materia --</option>
+                                                {config.materias.map(m => <option key={m.value} value={m.text}>{m.text}</option>)}
+                                            </Select>
+                                        </div>
+                                    )}
+                                    {step === 2 && (
+                                        <div className="space-y-4 animate-fade-in">
+                                            <h3 className="text-xl font-bold text-center mb-6">Selecciona el Grupo</h3>
+                                            <Select value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)} className="h-12 text-lg">
+                                                <option value="">-- Elige un grupo --</option>
+                                                {availableGroups.map(g => <option key={g} value={g}>{g}</option>)}
+                                            </Select>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {mode === 'student' && step === 0 && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <h3 className="text-xl font-bold text-center mb-6">Búsqueda de Alumno</h3>
+                                    <p className="text-sm text-theme-muted text-center mb-4">Ingresa el nombre o número de control para ver su historial en todas sus materias.</p>
+                                    
+                                    <div className="relative">
+                                        <Input
+                                            placeholder="Ej. Juan Pérez o 203040..."
+                                            value={searchQuery}
+                                            onChange={e => setSearchQuery(e.target.value)}
+                                            onFocus={() => setShowSuggestions(true)}
+                                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                            className="h-14 text-lg pl-12"
+                                        />
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-theme-muted">search</span>
+                                        
+                                        {showSuggestions && searchQuery.length > 1 && (
+                                            <div className="absolute top-full mt-2 left-0 right-0 bg-theme-card border border-theme-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto">
+                                                {suggestions.length > 0 ? suggestions.map(s => (
+                                                    <button
+                                                        key={(s as any).control}
+                                                        type="button"
+                                                        className="w-full text-left p-4 hover:bg-theme-base border-b border-theme-border flex flex-col transition-colors cursor-pointer"
+                                                        onClick={() => {
+                                                            setSelectedSearchStudent(s);
+                                                            setSearchQuery((s as any).nombre);
+                                                            setShowSuggestions(false);
+                                                        }}
+                                                    >
+                                                        <span className="text-lg text-theme-text font-medium">{(s as any).nombre}</span>
+                                                        <span className="text-sm text-theme-accent1-400 font-mono mt-1">{(s as any).control}</span>
+                                                    </button>
+                                                )) : (
+                                                    <div className="p-4 text-theme-muted text-center italic">No se encontraron alumnos.</div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {selectedSearchStudent && (
+                                        <div className="mt-6 p-4 bg-theme-accent1-500/10 border border-theme-accent1-500/20 rounded-xl flex items-center gap-4 animate-fade-in">
+                                            <div className="p-3 bg-theme-accent1-500/20 rounded-full text-theme-accent1-400">
+                                                <span className="material-icons-round">account_circle</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-theme-text">{selectedSearchStudent.nombre}</p>
+                                                <p className="text-xs text-theme-muted mt-1">Control: <span className="font-mono text-theme-accent1-300">{selectedSearchStudent.control}</span></p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between mt-8 pt-6 border-t border-theme-border">
+                            <Button variant="ghost" onClick={handleBack} disabled={step === 0} className="w-24 text-theme-muted hover:text-theme-text hover:bg-theme-border/50">
+                                Atrás
+                            </Button>
+                            <Button onClick={handleNext} className="w-32 bg-theme-accent1-600 hover:bg-theme-accent1-700">
+                                {mode === 'group' && step === 2 ? 'Generar' : mode === 'student' && step === 0 ? 'Generar' : 'Siguiente'}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
             ) : (
                 <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
                     {/* Dashboard Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-theme-card/80 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-theme-border shadow-md">
                         <div>
-                            <h1 className="text-2xl font-bold text-theme-text mb-1">Reporte de Asistencia</h1>
+                            <h1 className="text-2xl font-bold text-theme-text mb-1">
+                                {mode === 'group' ? 'Reporte de Asistencia' : 'Kárdex de Asistencia (Alumno)'}
+                            </h1>
                             <p className="text-theme-muted text-sm">
-                                {selectedTeacher} &bull; {selectedSubject} &bull; {selectedGroup}
+                                {mode === 'group' 
+                                    ? `${selectedTeacher} • ${selectedSubject} • ${selectedGroup}`
+                                    : `${selectedSearchStudent?.nombre} • Control: ${selectedSearchStudent?.control}`
+                                }
                             </p>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
-                            <Button variant="outline" onClick={() => setStep(0)} className="flex-1 sm:flex-none">
+                            <Button variant="outline" onClick={() => { setStep(0); setMode('group'); }} className="flex-1 sm:flex-none">
                                 <span className="material-icons-round text-sm mr-1">tune</span> Filtros
                             </Button>
                             <Button onClick={downloadReport} className="flex-1 sm:flex-none bg-theme-accent2-600 hover:bg-theme-accent2-700">
@@ -375,16 +700,16 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                     {isLoading ? (
                         <div className="h-64 flex flex-col items-center justify-center text-theme-accent1-500">
                             <span className="animate-spin material-icons-round text-5xl mb-4">settings</span>
-                            <p className="font-medium animate-pulse">Procesando Analytics...</p>
+                            <p className="font-medium animate-pulse">Procesando Analytics desde Base de Datos...</p>
                         </div>
                     ) : (
                         <>
                             {/* KPIs */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {[
-                                    { title: "Total Alumnos", value: totalStudents, icon: "groups", color: "text-theme-accent1-400" },
+                                    { title: mode === 'group' ? "Total Alumnos" : "Total Materias", value: totalItems, icon: mode === 'group' ? "groups" : "auto_stories", color: "text-theme-accent1-400" },
                                     { title: "Total Asistencias", value: totalAsistencias, icon: "fact_check", color: "text-theme-accent2-400" },
-                                    { title: "Asistencia Promedio", value: `${(avgAttendance * 100).toFixed(1)}%`, icon: "timeline", color: "text-yellow-400" },
+                                    { title: "Promedio Alumno/Clase", value: `${(avgAttendance * 100).toFixed(1)}%`, icon: "timeline", color: "text-yellow-400" },
                                     { title: "En Riesgo (<80%)", value: atRisk, icon: "warning", color: "text-red-400" }
                                 ].map((kpi, i) => (
                                     <Card key={i} className="border-theme-border bg-theme-border/50 p-4 flex items-center gap-4">
@@ -412,11 +737,8 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
                                                 <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                                                 <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                                                <RechartsTooltip
-                                                    contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
-                                                    itemStyle={{ color: '#60a5fa' }}
-                                                />
-                                                <Line type="monotone" dataKey="asistencias" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
+                                                <RechartsTooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
+                                                <Line type="monotone" dataKey="asistencias" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     </div>
@@ -429,24 +751,10 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                     <div className="h-[250px] w-full mt-4">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>
-                                                <Pie
-                                                    data={statusData}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={60}
-                                                    outerRadius={80}
-                                                    paddingAngle={5}
-                                                    dataKey="value"
-                                                    stroke="none"
-                                                >
-                                                    {statusData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                                    ))}
+                                                <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                                                    {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                                 </Pie>
-                                                <RechartsTooltip
-                                                    contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
-                                                    itemStyle={{ color: '#fff' }}
-                                                />
+                                                <RechartsTooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
                                                 <Legend verticalAlign="bottom" height={36} iconType="circle" />
                                             </PieChart>
                                         </ResponsiveContainer>
@@ -457,60 +765,48 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                             {/* Data Table */}
                             <Card className="border-theme-border bg-theme-border/50 overflow-hidden">
                                 <div className="p-4 border-b border-theme-border flex justify-between items-center">
-                                    <h3 className="text-lg font-bold">Listado de Alumnos</h3>
-                                    <Button
-                                        onClick={downloadAbsenceReport}
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-9 gap-2 text-sm border-theme-accent1-500/50 text-theme-accent1-400 hover:bg-theme-accent1-500/10"
-                                        disabled={isLoading || data.length === 0}
-                                    >
-                                        <span className="material-icons-round text-[18px]">download</span>
-                                        Descargar Faltas (CSV)
+                                    <h3 className="text-lg font-bold">{mode === 'group' ? 'Listado de Alumnos' : 'Historial de Materias'}</h3>
+                                    <Button onClick={downloadAbsenceReport} variant="outline" size="sm" className="h-9 gap-2 text-sm text-theme-accent1-400 hover:bg-theme-accent1-500/10">
+                                        <span className="material-icons-round text-[18px]">download</span> Descargar Faltas (CSV)
                                     </Button>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="bg-black/20 text-theme-muted text-xs uppercase tracking-wider">
-                                                <th className="p-4 font-medium">Alumno</th>
-                                                <th className="p-4 font-medium">Control</th>
+                                                <th className="p-4 font-medium">{mode === 'group' ? 'Alumno' : 'Materia'}</th>
+                                                <th className="p-4 font-medium">{mode === 'group' ? 'Control' : 'Profesor'}</th>
                                                 <th className="p-4 font-medium">Clases</th>
                                                 <th className="p-4 font-medium">Progreso</th>
                                                 <th className="p-4 font-medium text-right">Estatus</th>
                                             </tr>
                                         </thead>
                                         <tbody className="text-sm divide-y divide-white/5">
-                                            {data.map((student, i) => (
-                                                <tr
-                                                    key={i}
-                                                    className="hover:bg-theme-border/50 transition-colors cursor-pointer group"
-                                                    onClick={() => setSelectedStudent(student)}
-                                                >
+                                            {activeData.map((item, i) => (
+                                                <tr key={i} className="hover:bg-theme-border/50 transition-colors cursor-pointer group" onClick={() => setSelectedStudent(item)}>
                                                     <td className="p-4 text-theme-text font-medium group-hover:text-theme-accent1-400 transition-colors">
-                                                        {student['Nombre del Alumno']}
+                                                        {mode === 'group' ? item['Nombre del Alumno'] : item.Materia}
                                                     </td>
-                                                    <td className="p-4 text-theme-muted font-mono text-xs">{student['Número de Control']}</td>
-                                                    <td className="p-4 text-gray-300">{student.Asistencias} / {student['Total de Clases']}</td>
+                                                    <td className="p-4 text-theme-muted font-mono text-xs">
+                                                        {mode === 'group' ? item['Número de Control'] : item.Profesor}
+                                                    </td>
+                                                    <td className="p-4 text-gray-300">{item.Asistencias} / {item['Total de Clases']}</td>
                                                     <td className="p-4 w-48">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-xs font-semibold w-8">{Math.round(student.Porcentaje * 100)}%</span>
+                                                            <span className="text-xs font-semibold w-8">{Math.round(item.Porcentaje * 100)}%</span>
                                                             <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden">
-                                                                <div
-                                                                    className={cn("h-full transition-all duration-500", student.Porcentaje < 0.8 ? "bg-red-500" : student.Porcentaje < 0.9 ? "bg-yellow-500" : "bg-theme-accent2-500")}
-                                                                    style={{ width: `${student.Porcentaje * 100}%` }}
-                                                                />
+                                                                <div className={cn("h-full transition-all duration-500", item.Porcentaje < 0.8 ? "bg-red-500" : item.Porcentaje < 0.9 ? "bg-yellow-500" : "bg-theme-accent2-500")} style={{ width: `${item.Porcentaje * 100}%` }} />
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="p-4 text-right">
-                                                        <span className={cn("px-2.5 py-1 rounded-full text-xs font-semibold border", getRiskColor(student.Porcentaje))}>
-                                                            {student.Porcentaje < 0.8 ? 'Riesgo' : student.Porcentaje < 0.9 ? 'Regular' : 'Excelente'}
+                                                        <span className={cn("px-2.5 py-1 rounded-full text-xs font-semibold border", getRiskColor(item.Porcentaje))}>
+                                                            {item.Porcentaje < 0.8 ? 'Riesgo' : item.Porcentaje < 0.9 ? 'Regular' : 'Excelente'}
                                                         </span>
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {data.length === 0 && (
+                                            {activeData.length === 0 && (
                                                 <tr>
                                                     <td colSpan={5} className="p-8 text-center text-theme-muted/80 italic">No hay datos disponibles para estos filtros.</td>
                                                 </tr>
@@ -522,35 +818,15 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                         </>
                     )}
 
-                    {/* Student Detailed Modal */}
-                    <Modal
-                        isOpen={!!selectedStudent}
-                        onClose={() => setSelectedStudent(null)}
-                        title={selectedStudent ? selectedStudent['Nombre del Alumno'] : 'Detalles'}
-                        fullScreenOnMobile
-                    >
+                    {/* Detailed Modal remains mostly unchanged structurally */}
+                    <Modal isOpen={!!selectedStudent} onClose={() => setSelectedStudent(null)} title={selectedStudent ? (mode === 'group' ? selectedStudent['Nombre del Alumno'] : `${selectedStudent.Materia} - Detalles`) : 'Detalles'} fullScreenOnMobile>
                         {selectedStudent && (
                             <div className="space-y-6">
                                 <div className="flex gap-2 p-1 bg-black/20 rounded-lg">
-                                    <button
-                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'list' ? "bg-theme-border/100 text-theme-text shadow backdrop-blur-sm" : "text-theme-muted hover:bg-theme-border/50")}
-                                        onClick={() => setModalView('list')}
-                                    >
-                                        Lista Histórica
-                                    </button>
-                                    <button
-                                        className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-colors", modalView === 'sheet' ? "bg-theme-border/100 text-theme-text shadow backdrop-blur-sm" : "text-theme-muted hover:bg-theme-border/50")}
-                                        onClick={() => setModalView('sheet')}
-                                    >
-                                        Vista Mes (Hoja)
-                                    </button>
+                                    <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'list' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('list')}>Lista Histórica</button>
+                                    <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'sheet' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('sheet')}>Vista Mes</button>
                                 </div>
-
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-theme-border/50 rounded-2xl border border-theme-border shadow-inner">
-                                    <div>
-                                        <span className="text-xs text-theme-muted/80 uppercase">Control</span>
-                                        <p className="font-mono text-sm">{selectedStudent['Número de Control']}</p>
-                                    </div>
                                     <div>
                                         <span className="text-xs text-theme-muted/80 uppercase">Asistencias</span>
                                         <p className="font-bold text-lg">{selectedStudent.Asistencias} <span className="text-sm font-normal text-theme-muted">/ {selectedStudent['Total de Clases']}</span></p>
@@ -559,12 +835,16 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                         <span className="text-xs text-theme-muted/80 uppercase">Promedio</span>
                                         <p className={cn("font-bold text-lg", selectedStudent.Porcentaje < 0.8 ? "text-red-400" : "text-theme-accent2-400")}>{(selectedStudent.Porcentaje * 100).toFixed(0)}%</p>
                                     </div>
+                                    {mode === 'student' && (
+                                        <div className="col-span-2">
+                                           <span className="text-xs text-theme-muted/80 uppercase">Profesor</span>
+                                           <p className="font-medium text-sm truncate">{selectedStudent.Profesor}</p>
+                                        </div>
+                                    )}
                                 </div>
-
                                 {modalView === 'list' ? (
                                     <div className="space-y-3 mt-4 max-h-[40vh] overflow-y-auto pr-2">
                                         <p className="font-medium mb-2 border-b border-theme-border pb-2">Registro Cronológico</p>
-
                                         {selectedStudent.faltasCalculadas && selectedStudent.faltasCalculadas.length > 0 && (
                                             <div className="mb-4">
                                                 <p className="text-sm text-red-500 font-semibold mb-2 flex items-center gap-1">
@@ -573,71 +853,21 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                 {selectedStudent.faltasCalculadas.map((falta, i) => {
                                                     const parts = falta.split('-');
                                                     const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-
-                                                    const handleJustifyMissing = async () => {
-                                                        if (!confirm('¿Deseas registrar esta falta como Justificada en la base de datos?')) return;
-
-                                                        const success = await insertJustifiedAbsence({
-                                                            No: selectedStudent['Nombre del Alumno'],
-                                                            ID: selectedStudent['Número de Control'],
-                                                            Gr: selectedStudent.Grupo,
-                                                            Es: selectedStudent.Especialidad || 'Desconocido',
-                                                            Pe: selectedStudent.Periodo || 1,
-                                                            Pro: selectedTeacher,
-                                                            Ma: selectedSubject,
-                                                            date: falta
-                                                        });
-
-                                                        if (success) {
-                                                            alert('Falta justificada y reportada al servidor como nuevo registro.');
-                                                            setSelectedStudent(null);
-                                                            // Trigger a full re-fetch to reflect the new justified status
-                                                            loadGroupData();
-                                                        } else {
-                                                            alert('Error al insertar el registro en el servidor.');
-                                                        }
-                                                    };
-
                                                     return (
                                                         <div key={`f-${i}`} className="flex justify-between items-center p-3 mb-2 bg-red-500/10 rounded-lg border border-red-500/20 gap-3">
                                                             <div className="flex flex-col">
                                                                 <span className="text-red-400 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
-                                                                <span className="text-xs text-red-500/70">Asistencia registrada para el grupo, pero no para este alumno.</span>
+                                                                <span className="text-xs text-red-500/70">Asistencia grupal sin registro personal.</span>
                                                             </div>
-                                                            {role !== 'consulta' && (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    className="h-8 text-xs py-0 shrink-0 border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10"
-                                                                    onClick={handleJustifyMissing}
-                                                                >
-                                                                    Justificar
-                                                                </Button>
-                                                            )}
                                                         </div>
                                                     )
                                                 })}
                                             </div>
                                         )}
-
-                                        {/* Parse JSON string array of dates as specified */}
                                         {(() => {
                                             try {
                                                 const dates = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
                                                 if (!Array.isArray(dates) || dates.length === 0) return <p className="text-theme-muted/80 text-sm">Sin registros.</p>;
-
-                                                const handleDelete = async (dateStr: string) => {
-                                                    if (!confirm('¿Estás seguro de ELIMINAR permanentemente esta asistencia?')) return;
-                                                    const success = await deleteAttendanceRecord(selectedSubject, selectedStudent['Número de Control'], dateStr);
-                                                    if (success) {
-                                                        alert('Registro eliminado.');
-                                                        // Update local view
-                                                        setSelectedStudent(null);
-                                                        // Trigger a re-fetch since stats changed
-                                                        loadGroupData();
-                                                    }
-                                                };
-
                                                 return dates.map((d: string, i: number) => {
                                                     const date = new Date(d);
                                                     return (
@@ -646,95 +876,53 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                                 <span className="text-gray-200 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
                                                                 <span className="text-xs text-theme-muted/80 font-mono">{date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
                                                             </div>
-                                                            <div className="flex gap-2 w-full sm:w-auto">
-                                                                {role !== 'consulta' && (
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        className="h-8 text-xs py-0 flex-1 sm:flex-none text-red-400 hover:bg-red-400/10"
-                                                                        onClick={() => handleDelete(d)}
-                                                                    >
-                                                                        Eliminar
-                                                                    </Button>
-                                                                )}
-                                                            </div>
                                                         </div>
                                                     )
                                                 });
-                                            } catch (e) {
-                                                return <p className="text-theme-muted/80 text-sm">Error cargando fechas.</p>
-                                            }
+                                            } catch (e) { return <p>Error cargando fechas.</p>; }
                                         })()}
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto mt-4 p-4 bg-theme-border/50 border border-theme-border rounded-2xl max-h-[40vh]">
-                                        <p className="font-medium mb-4 flex items-center gap-2">
-                                            <span className="material-icons-round text-theme-accent1-400">calendar_month</span> Vista Mensual de Periodo
-                                        </p>
-
+                                        <p className="font-medium mb-4 flex items-center gap-2"><span className="material-icons-round text-theme-accent1-400">calendar_month</span> Vista Mensual</p>
                                         {(() => {
-                                            // 1. Recolectar todas las fechas (Asistencias + Faltas)
                                             let rawAsistencias: Date[] = [];
                                             try {
                                                 const parsed = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
-                                                if (Array.isArray(parsed)) {
-                                                    rawAsistencias = parsed.map(d => new Date(d)).filter(d => !isNaN(d.getTime()));
-                                                }
+                                                if (Array.isArray(parsed)) rawAsistencias = parsed.map(d => new Date(d)).filter(d => !isNaN(d.getTime()));
                                             } catch (e) { }
 
-                                            const faltasArr = selectedStudent.faltasCalculadas || [];
-                                            const rawFaltas: Date[] = faltasArr.map(f => {
+                                            const rawFaltas: Date[] = (selectedStudent.faltasCalculadas || []).map(f => {
                                                 const parts = f.split('-');
                                                 return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
                                             });
 
-                                            // 2. Unificar y estructurar
                                             const allRecords: { date: Date, type: 'asistencia' | 'falta' }[] = [
                                                 ...rawAsistencias.map(d => ({ date: d, type: 'asistencia' as const })),
                                                 ...rawFaltas.map(d => ({ date: d, type: 'falta' as const }))
-                                            ];
+                                            ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
-                                            // Ordenar cronológicamente
-                                            allRecords.sort((a, b) => a.date.getTime() - b.date.getTime());
+                                            if (allRecords.length === 0) return <p className="text-theme-muted/80 text-sm">No hay registro en este periodo.</p>;
 
-                                            if (allRecords.length === 0) {
-                                                return <p className="text-theme-muted/80 text-sm">No hay registro en este periodo.</p>;
-                                            }
-
-                                            // 3. Agrupar por Mes
                                             const numFormat = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' });
                                             const groups: Record<string, { date: Date, type: 'asistencia' | 'falta' }[]> = {};
-
                                             allRecords.forEach(rec => {
                                                 const monthKey = numFormat.format(rec.date);
                                                 if (!groups[monthKey]) groups[monthKey] = [];
                                                 groups[monthKey].push(rec);
                                             });
 
-                                            // 4. Renderizar grupos
                                             return Object.entries(groups).map(([monthName, records], idx) => (
                                                 <div key={idx} className="mb-6 last:mb-0">
                                                     <div className="grid grid-cols-[auto_1fr] gap-4 items-center mb-3">
-                                                        <div className="font-medium text-theme-muted uppercase text-xs tracking-wider border-r border-theme-border pr-4 w-28 text-right">
-                                                            {monthName}
-                                                        </div>
+                                                        <div className="font-medium text-theme-muted uppercase text-xs tracking-wider border-r border-theme-border pr-4 w-28 text-right">{monthName}</div>
                                                         <div className="flex gap-2 flex-wrap">
                                                             {records.map((rec, rIdx) => {
                                                                 const isAsistencia = rec.type === 'asistencia';
                                                                 return (
-                                                                    <div
-                                                                        key={rIdx}
-                                                                        className={cn(
-                                                                            "w-[2.5rem] h-[3rem] rounded-lg flex flex-col items-center justify-center text-xs font-mono shadow-sm border",
-                                                                            isAsistencia ? "bg-theme-accent2-500/10 border-theme-accent2-500/20 text-theme-accent2-400" : "bg-red-500/10 border-red-500/20 text-red-400"
-                                                                        )}
-                                                                        title={`${rec.date.toLocaleDateString('es-MX')}: ${isAsistencia ? 'Asistió' : 'Faltó'}`}
-                                                                    >
+                                                                    <div key={rIdx} className={cn("w-[2.5rem] h-[3rem] rounded-lg flex flex-col items-center justify-center text-xs font-mono shadow-sm border", isAsistencia ? "bg-theme-accent2-500/10 border-theme-accent2-500/20 text-theme-accent2-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
                                                                         <span className="font-bold mb-1">{rec.date.getDate()}</span>
-                                                                        {isAsistencia
-                                                                            ? <span className="material-icons-round text-[14px]">check_circle</span>
-                                                                            : <span className="material-icons-round text-[14px]">close</span>
-                                                                        }
+                                                                        <span className="material-icons-round text-[14px]">{isAsistencia ? 'check_circle' : 'close'}</span>
                                                                     </div>
                                                                 )
                                                             })}
@@ -742,10 +930,14 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                     </div>
                                                 </div>
                                             ));
-
                                         })()}
                                     </div>
                                 )}
+                                <div className="mt-8 pt-6 border-t border-theme-border">
+                                    <Button onClick={() => setSelectedStudent(null)} className="w-full bg-theme-border/50 hover:bg-theme-border/100 text-theme-text h-11" variant="outline">
+                                        <span className="material-icons-round mr-2 text-sm">arrow_back</span> Regresar
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </Modal>

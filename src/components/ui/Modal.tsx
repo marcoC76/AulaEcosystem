@@ -14,7 +14,10 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreenO
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 sm:p-4 animate-fade-in backdrop-blur-sm">
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 sm:p-4 animate-fade-in backdrop-blur-sm"
+            onClick={onClose}
+        >
             <div
                 className={cn(
                     "w-full flex flex-col bg-gray-900 shadow-2xl overflow-hidden animate-fade-in-up",
@@ -23,6 +26,7 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreenO
                 )}
                 role="dialog"
                 aria-modal="true"
+                onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex shrink-0 items-center justify-between p-4 border-b border-gray-800 bg-gray-850">
                     <h2 className="text-xl font-semibold text-theme-text">{title}</h2>
