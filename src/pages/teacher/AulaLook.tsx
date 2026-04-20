@@ -1,22 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { cn } from '../../lib/utils';
+
 import Fuse from 'fuse.js';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { fetchAppConfig, fetchReportData, fetchStudentsDB, deleteAttendanceRecord, insertJustifiedAbsence } from '../../lib/dataService';
+import { fetchAppConfig, fetchReportData, fetchStudentsDB, insertJustifiedAbsence, deleteAttendanceRecord } from '../../lib/dataService';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Input } from '../../components/ui/Input';
 import { Stepper } from '../../components/ui/Stepper';
 import { Modal } from '../../components/ui/Modal';
-import { cn } from '../../lib/utils';
 import type { ConfigOption, AttendanceRecord } from '../../types';
 
 type ExtendedAttendanceRecord = AttendanceRecord & { faltasCalculadas?: string[]; apellidoPaterno?: string };
 
-export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'consulta' }) {
+export default function AulaLook() {
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
 
     // Mode State
@@ -39,9 +40,73 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
     const [isLoading, setIsLoading] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<ExtendedAttendanceRecord | null>(null);
     const [modalView, setModalView] = useState<'list' | 'sheet'>('list');
+    const [localSearchQuery, setLocalSearchQuery] = useState('');
 
     const [availableGroups, setAvailableGroups] = useState<string[]>([]);
     const [studentsDB, setStudentsDB] = useState<any[]>([]);
+    const modalRef = useRef<HTMLDivElement>(null);
+
+    const handleJustifyAbsence = async (dateStr: string) => {
+        if (!selectedStudent) return;
+        const confirmMsg = `¿Estás seguro de justificar la falta del ${dateStr}?`;
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            setIsLoading(true);
+            const control = selectedStudent['Número de Control'];
+            const { Grupo, Especialidad, Profesor, Materia } = selectedStudent;
+            
+            await insertJustifiedAbsence({
+                No: "0", 
+                ID: String(control),
+                Gr: String(Grupo || selectedGroup),
+                Es: String(Especialidad || ''),
+                Pe: 1,
+                Pro: String(Profesor || selectedTeacher),
+                Ma: String(Materia || selectedSubject),
+                date: dateStr
+            });
+
+            alert('Falta justificada (La vista se actualizará al recargar)');
+            setSelectedStudent({
+                ...selectedStudent,
+                faltasCalculadas: selectedStudent.faltasCalculadas?.filter(f => f !== dateStr)
+            });
+            setIsLoading(false);
+        } catch (error) {
+            console.error('Error justificando falta:', error);
+            alert('Error al justificar la falta.');
+            setIsLoading(false);
+        }
+    };
+
+    const handleDeleteAttendance = async (dateStr: string) => {
+        if (!selectedStudent) return;
+        const confirmMsg = `¿Estás seguro de borrar la asistencia del ${new Date(dateStr).toLocaleString('es-MX')}?`;
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            setIsLoading(true);
+            const materia = selectedStudent.Materia || selectedSubject;
+            await deleteAttendanceRecord(materia, String(selectedStudent['Número de Control']), dateStr);
+
+            alert('Asistencia borrada (La vista se actualizará al recargar)');
+            try {
+                let fechas = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
+                fechas = fechas.filter((fStr: string) => fStr !== dateStr);
+                setSelectedStudent({
+                    ...selectedStudent,
+                    'Fechas y Horas de Asistencia': JSON.stringify(fechas)
+                });
+            } catch(e) {}
+            
+            setIsLoading(false);
+        } catch (error) {
+            console.error('Error borrando asistencia:', error);
+            alert('Error al borrar la asistencia.');
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchAppConfig().then(setConfig);
@@ -203,11 +268,11 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
 
         const groupKey = Object.keys(selectedSearchStudent).find(k => k.toLowerCase().includes('grupo')) || 'Grupo';
         const groupValue = String(selectedSearchStudent[groupKey]).trim();
-        
+
         // IMPORTANT: Split group to get the base group (e.g. "1A") and ignore specialty suffix if present
         const [baseGroupPart] = groupValue.split(' - ');
         const rawGroup = baseGroupPart.trim();
-        
+
         const careerKey = Object.keys(selectedSearchStudent).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad'));
         const specialty = careerKey && selectedSearchStudent[careerKey] ? String(selectedSearchStudent[careerKey]).trim() : '';
         const studSpecClean = cleanStr(specialty);
@@ -218,7 +283,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
         // Haremos las peticiones agrupadas para evitar tasa límite (429 Too Many Requests).
         let rawRes: any[] = [];
         const chunkSize = 4;
-        
+
         for (let i = 0; i < config.materias.length; i += chunkSize) {
             const chunk = config.materias.slice(i, i + chunkSize);
             const promises = chunk.map(m => fetchReportData({ group: rawGroup, subject: m.text }));
@@ -228,23 +293,23 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                     // Evitar que el MOCK fallback duplique datos si llega a fallar uno,
                     // Si trae los mismos atributos que el mock, no los concatenamos 30 veces.
                     if (resArray.length > 0 && resArray[0]['Número de Control'] === '20304050') {
-                         if (rawRes.length === 0) rawRes = rawRes.concat(resArray);
+                        if (rawRes.length === 0) rawRes = rawRes.concat(resArray);
                     } else {
-                         rawRes = rawRes.concat(resArray);
+                        rawRes = rawRes.concat(resArray);
                     }
                 }
             });
         }
-        
+
         console.log(`[StudentReport] Recibidos ${rawRes.length} registros totales del servidor (cruzando todas las materias).`);
 
         // FILTER: Incluir si la especialidad coincide O si el registro no tiene especialidad (materia común)
         const groupRes = rawRes.filter(r => {
             const rowSpecClean = cleanStr(r.Especialidad);
-            if (!studSpecClean) return true; 
+            if (!studSpecClean) return true;
             return rowSpecClean === studSpecClean || rowSpecClean === "";
         });
-        
+
         console.log(`[StudentReport] Filtrados a ${groupRes.length} registros (después de validar especialidad/comunes).`);
 
         const materiasMap = new Map<string, ExtendedAttendanceRecord[]>();
@@ -263,7 +328,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
         materiasMap.forEach((records, materiaName) => {
             let maxAsistencias = 0;
             let masterStudent: AttendanceRecord | null = null;
-            
+
             records.forEach(d => {
                 const asis = Number(d.Asistencias);
                 if (asis > maxAsistencias) {
@@ -305,33 +370,33 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                         const dateObj = new Date(fStr);
                         if (!isNaN(dateObj.getTime())) masterDates.add(dateObj.toISOString().split('T')[0]);
                     });
-                } catch (e) {}
+                } catch (e) { }
             }
 
             const studentDates = new Set<string>();
             if (finalRecord['Fechas y Horas de Asistencia']) {
                 try {
-                     let fechasStr: any = finalRecord['Fechas y Horas de Asistencia'];
-                     if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
-                     JSON.parse(fechasStr).forEach((fStr: string) => {
+                    let fechasStr: any = finalRecord['Fechas y Horas de Asistencia'];
+                    if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
+                    JSON.parse(fechasStr).forEach((fStr: string) => {
                         const dateObj = new Date(fStr);
                         if (!isNaN(dateObj.getTime())) studentDates.add(dateObj.toISOString().split('T')[0]);
                     });
-                } catch(e) {}
+                } catch (e) { }
             }
 
             const faltas: string[] = [];
             masterDates.forEach(md => {
                 if (!studentDates.has(md)) faltas.push(md);
             });
-            
+
             finalRecord.faltasCalculadas = faltas.sort();
             studentResults.push(finalRecord);
         });
 
         console.log(`[StudentReport] Kárdex final generado con ${studentResults.length} materias.`);
 
-        const sortedResults = studentResults.sort((a,b) => (a.Materia || '').localeCompare(b.Materia || ''));
+        const sortedResults = studentResults.sort((a, b) => (a.Materia || '').localeCompare(b.Materia || ''));
         setStudentModeData(sortedResults);
         setIsLoading(false);
     };
@@ -344,6 +409,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
 
             if (step === 2) {
                 setStep(3);
+                setLocalSearchQuery('');
                 loadGroupData();
             } else {
                 setStep(s => s + 1);
@@ -354,6 +420,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                 return;
             }
             setStep(3);
+            setLocalSearchQuery('');
             loadStudentData();
         }
     };
@@ -362,10 +429,10 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
 
     const downloadReport = () => {
         const d = mode === 'group' ? data : studentModeData;
-        const headers = mode === 'group' 
+        const headers = mode === 'group'
             ? ['Control', 'Nombre', 'Clases Totales', 'Asistencias', 'Porcentaje']
             : ['Materia', 'Profesor', 'Clases Totales', 'Asistencias', 'Porcentaje'];
-            
+
         const rows = d.map(item => {
             if (mode === 'group') {
                 return [item['Número de Control'], item['Nombre del Alumno'], item['Total de Clases'], item['Asistencias'], `${(item.Porcentaje * 100).toFixed(0)}%`];
@@ -373,12 +440,12 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                 return [item['Materia'], item['Profesor'], item['Total de Clases'], item['Asistencias'], `${(item.Porcentaje * 100).toFixed(0)}%`];
             }
         });
-        
+
         const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement('a');
         link.href = encodedUri;
-        link.download = mode === 'group' 
+        link.download = mode === 'group'
             ? `Reporte_${selectedGroup}_${selectedSubject.substring(0, 10)}.csv`
             : `Reporte_${selectedSearchStudent?.nombre}_Múltiple.csv`;
         document.body.appendChild(link);
@@ -464,7 +531,21 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
     const suggestions = getSuggestions();
 
     // --- Derived Metrics ---
-    const activeData = mode === 'group' ? data : studentModeData;
+    const baseActiveData = mode === 'group' ? data : studentModeData;
+    const activeData = baseActiveData.filter(item => {
+        if (!localSearchQuery) return true;
+        const query = localSearchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (mode === 'group') {
+            const name = (item['Nombre del Alumno'] || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const isControl = (item['Número de Control'] || '').toLowerCase().includes(query);
+            return name.includes(query) || isControl;
+        } else {
+            const materia = (item.Materia || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const prof = (item.Profesor || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return materia.includes(query) || prof.includes(query);
+        }
+    });
+
     const totalItems = activeData.length;
     let totalAsistencias = 0;
     const dateCounts: Record<string, { date: Date, count: number }> = {};
@@ -550,7 +631,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                             </Card>
                         </div>
                     )}
-                    
+
                     <Card className="border-theme-border shadow-2xl p-6 sm:p-8">
                         {step === 0 && (
                             <div className="mb-8 flex gap-2 p-1 bg-black/20 rounded-lg">
@@ -612,7 +693,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                 <div className="space-y-4 animate-fade-in">
                                     <h3 className="text-xl font-bold text-center mb-6">Búsqueda de Alumno</h3>
                                     <p className="text-sm text-theme-muted text-center mb-4">Ingresa el nombre o número de control para ver su historial en todas sus materias.</p>
-                                    
+
                                     <div className="relative">
                                         <Input
                                             placeholder="Ej. Juan Pérez o 203040..."
@@ -623,7 +704,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                             className="h-14 text-lg pl-12"
                                         />
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-theme-muted">search</span>
-                                        
+
                                         {showSuggestions && searchQuery.length > 1 && (
                                             <div className="absolute top-full mt-2 left-0 right-0 bg-theme-card border border-theme-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto">
                                                 {suggestions.length > 0 ? suggestions.map(s => (
@@ -681,7 +762,7 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                 {mode === 'group' ? 'Reporte de Asistencia' : 'Kárdex de Asistencia (Alumno)'}
                             </h1>
                             <p className="text-theme-muted text-sm">
-                                {mode === 'group' 
+                                {mode === 'group'
                                     ? `${selectedTeacher} • ${selectedSubject} • ${selectedGroup}`
                                     : `${selectedSearchStudent?.nombre} • Control: ${selectedSearchStudent?.control}`
                                 }
@@ -764,11 +845,22 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
 
                             {/* Data Table */}
                             <Card className="border-theme-border bg-theme-border/50 overflow-hidden">
-                                <div className="p-4 border-b border-theme-border flex justify-between items-center">
+                                <div className="p-4 border-b border-theme-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                     <h3 className="text-lg font-bold">{mode === 'group' ? 'Listado de Alumnos' : 'Historial de Materias'}</h3>
-                                    <Button onClick={downloadAbsenceReport} variant="outline" size="sm" className="h-9 gap-2 text-sm text-theme-accent1-400 hover:bg-theme-accent1-500/10">
-                                        <span className="material-icons-round text-[18px]">download</span> Descargar Faltas (CSV)
-                                    </Button>
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        <div className="relative flex-1 sm:flex-none sm:w-64">
+                                            <Input
+                                                placeholder={mode === 'group' ? "Buscar alumno..." : "Buscar materia..."}
+                                                value={localSearchQuery}
+                                                onChange={e => setLocalSearchQuery(e.target.value)}
+                                                className="h-9 pl-9 text-sm"
+                                            />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-[18px] text-theme-muted">search</span>
+                                        </div>
+                                        <Button onClick={downloadAbsenceReport} variant="outline" size="sm" className="h-9 gap-2 text-sm text-theme-accent1-400 hover:bg-theme-accent1-500/10 whitespace-nowrap">
+                                            <span className="material-icons-round text-[18px]">download</span> Faltas (CSV)
+                                        </Button>
+                                    </div>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
@@ -821,8 +913,8 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                     {/* Detailed Modal remains mostly unchanged structurally */}
                     <Modal isOpen={!!selectedStudent} onClose={() => setSelectedStudent(null)} title={selectedStudent ? (mode === 'group' ? selectedStudent['Nombre del Alumno'] : `${selectedStudent.Materia} - Detalles`) : 'Detalles'} fullScreenOnMobile>
                         {selectedStudent && (
-                            <div className="space-y-6">
-                                <div className="flex gap-2 p-1 bg-black/20 rounded-lg">
+                            <div className="space-y-6" ref={modalRef}>
+                                <div className="flex gap-2 p-1 bg-black/20 rounded-lg no-print">
                                     <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'list' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('list')}>Lista Histórica</button>
                                     <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'sheet' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('sheet')}>Vista Mes</button>
                                 </div>
@@ -837,8 +929,8 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                     </div>
                                     {mode === 'student' && (
                                         <div className="col-span-2">
-                                           <span className="text-xs text-theme-muted/80 uppercase">Profesor</span>
-                                           <p className="font-medium text-sm truncate">{selectedStudent.Profesor}</p>
+                                            <span className="text-xs text-theme-muted/80 uppercase">Profesor</span>
+                                            <p className="font-medium text-sm truncate">{selectedStudent.Profesor}</p>
                                         </div>
                                     )}
                                 </div>
@@ -859,6 +951,9 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                                 <span className="text-red-400 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
                                                                 <span className="text-xs text-red-500/70">Asistencia grupal sin registro personal.</span>
                                                             </div>
+                                                            <Button onClick={() => handleJustifyAbsence(falta)} size="sm" variant="ghost" className="text-theme-accent2-400 hover:text-theme-accent2-300 hover:bg-theme-accent2-500/10 h-8 text-xs font-semibold px-3">
+                                                                Justificar
+                                                            </Button>
                                                         </div>
                                                     )
                                                 })}
@@ -876,6 +971,9 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                                                 <span className="text-gray-200 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
                                                                 <span className="text-xs text-theme-muted/80 font-mono">{date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
                                                             </div>
+                                                            <Button onClick={() => handleDeleteAttendance(d)} size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 text-xs font-semibold px-3 ml-auto">
+                                                                <span className="material-icons-round text-[16px] mr-1">delete</span> Borrar
+                                                            </Button>
                                                         </div>
                                                     )
                                                 });
@@ -933,9 +1031,12 @@ export default function AulaLook({ role = 'teacher' }: { role?: 'teacher' | 'con
                                         })()}
                                     </div>
                                 )}
-                                <div className="mt-8 pt-6 border-t border-theme-border">
-                                    <Button onClick={() => setSelectedStudent(null)} className="w-full bg-theme-border/50 hover:bg-theme-border/100 text-theme-text h-11" variant="outline">
+                                <div className="mt-8 pt-6 border-t border-theme-border flex flex-wrap items-center justify-between gap-3 no-print">
+                                    <Button onClick={() => setSelectedStudent(null)} className="flex-1 min-w-[120px] bg-theme-border/50 hover:bg-theme-border/100 text-theme-text h-11" variant="outline">
                                         <span className="material-icons-round mr-2 text-sm">arrow_back</span> Regresar
+                                    </Button>
+                                    <Button onClick={() => window.print()} className="flex-1 min-w-[120px] bg-theme-accent2-600 hover:bg-theme-accent2-700 h-11">
+                                        <span className="material-icons-round mr-2 text-sm">picture_as_pdf</span> Imprimir PDF
                                     </Button>
                                 </div>
                             </div>

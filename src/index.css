@@ -177,3 +177,25 @@ body {
   color: var(--theme-accent1-400) !important;
   text-decoration: none !important;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .no-print, .no-print * {
+    display: none !important;
+  }
+}

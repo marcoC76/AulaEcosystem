@@ -21,11 +21,11 @@ function App() {
 
         <Route path="/teacher" element={<TeacherLayout />}>
           <Route path="scan" element={<AulaScan />} />
-          <Route path="report" element={<AulaLook role="teacher" />} />
+          <Route path="report" element={<AulaLook />} />
         </Route>
 
         <Route path="/consulta" element={<ConsultaLayout />}>
-          <Route path="report" element={<AulaLook role="consulta" />} />
+          <Route path="report" element={<AulaLook />} />
         </Route>
 
         {/* Herramienta oculta para codificar PINs */}

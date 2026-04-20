@@ -163,6 +163,38 @@ export default function AulaScan() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isConfigured]);
 
+    // Translate English scanner texts to Spanish
+    useEffect(() => {
+        if (!isConfigured) return;
+        const interval = setInterval(() => {
+            const btnPerm = document.getElementById('html5-qrcode-button-camera-permission');
+            if (btnPerm && btnPerm.innerText === 'Request Camera Permissions') {
+                btnPerm.innerText = 'Solicitar Permisos de Cámara';
+            }
+            const btnStart = document.getElementById('html5-qrcode-button-camera-start');
+            if (btnStart && btnStart.innerText === 'Start Scanning') {
+                btnStart.innerText = 'Iniciar Escáner';
+            }
+            const btnStop = document.getElementById('html5-qrcode-button-camera-stop');
+            if (btnStop && btnStop.innerText === 'Stop Scanning') {
+                btnStop.innerText = 'Detener Escáner';
+            }
+            const btnChoose = document.getElementById('html5-qrcode-button-file-selection');
+            if (btnChoose && btnChoose.innerText === 'Choose Image') {
+                btnChoose.innerText = 'Elegir Imagen';
+            }
+            const aScanFile = document.getElementById('html5-qrcode-anchor-scan-type-change');
+            if (aScanFile) {
+                if (aScanFile.innerText.includes('Scan an Image File')) {
+                    aScanFile.innerText = 'Escanear una Imagen (Archivo)';
+                } else if (aScanFile.innerText.includes('Scan using camera directly')) {
+                    aScanFile.innerText = 'Escanear con Cámara Directamente';
+                }
+            }
+        }, 300);
+        return () => clearInterval(interval);
+    }, [isConfigured]);
+
     const validateConfig = () => {
         if (selectedTeacher && selectedSubject && selectedParcial) {
             setIsConfigured(true);
