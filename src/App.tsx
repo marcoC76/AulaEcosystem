@@ -25,7 +25,7 @@ function App() {
         </Route>
 
         <Route path="/consulta" element={<ConsultaLayout />}>
-          <Route path="report" element={<AulaLook />} />
+          <Route path="report" element={<AulaLook isReadOnly={true} />} />
         </Route>
 
         {/* Herramienta oculta para codificar PINs */}

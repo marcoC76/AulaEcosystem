@@ -3,8 +3,8 @@ import { cn } from '../../lib/utils';
 
 import Fuse from 'fuse.js';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, Legend
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine,
+    PieChart, Pie, Cell, Legend, BarChart, Bar
 } from 'recharts';
 import { fetchAppConfig, fetchReportData, fetchStudentsDB, insertJustifiedAbsence, deleteAttendanceRecord } from '../../lib/dataService';
 import { Card } from '../../components/ui/Card';
@@ -15,9 +15,9 @@ import { Stepper } from '../../components/ui/Stepper';
 import { Modal } from '../../components/ui/Modal';
 import type { ConfigOption, AttendanceRecord } from '../../types';
 
-type ExtendedAttendanceRecord = AttendanceRecord & { faltasCalculadas?: string[]; apellidoPaterno?: string };
+type ExtendedAttendanceRecord = AttendanceRecord & { faltasCalculadas?: string[]; apellidoPaterno?: string; rachaFaltas?: number };
 
-export default function AulaLook() {
+export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean }) {
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
 
     // Mode State
@@ -41,6 +41,7 @@ export default function AulaLook() {
     const [selectedStudent, setSelectedStudent] = useState<ExtendedAttendanceRecord | null>(null);
     const [modalView, setModalView] = useState<'list' | 'sheet'>('list');
     const [localSearchQuery, setLocalSearchQuery] = useState('');
+    const [filterRisk, setFilterRisk] = useState<'all' | 'perfect' | 'risk'>('all');
 
     const [availableGroups, setAvailableGroups] = useState<string[]>([]);
     const [studentsDB, setStudentsDB] = useState<any[]>([]);
@@ -57,7 +58,7 @@ export default function AulaLook() {
             const { Grupo, Especialidad, Profesor, Materia } = selectedStudent;
             
             await insertJustifiedAbsence({
-                No: "0", 
+                No: String(selectedStudent['Nombre del Alumno'] || ''),
                 ID: String(control),
                 Gr: String(Grupo || selectedGroup),
                 Es: String(Especialidad || ''),
@@ -67,12 +68,12 @@ export default function AulaLook() {
                 date: dateStr
             });
 
-            alert('Falta justificada (La vista se actualizará al recargar)');
-            setSelectedStudent({
-                ...selectedStudent,
-                faltasCalculadas: selectedStudent.faltasCalculadas?.filter(f => f !== dateStr)
-            });
-            setIsLoading(false);
+            setSelectedStudent(null);
+            if (mode === 'group') {
+                await loadGroupData();
+            } else {
+                await loadStudentData();
+            }
         } catch (error) {
             console.error('Error justificando falta:', error);
             alert('Error al justificar la falta.');
@@ -90,17 +91,12 @@ export default function AulaLook() {
             const materia = selectedStudent.Materia || selectedSubject;
             await deleteAttendanceRecord(materia, String(selectedStudent['Número de Control']), dateStr);
 
-            alert('Asistencia borrada (La vista se actualizará al recargar)');
-            try {
-                let fechas = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
-                fechas = fechas.filter((fStr: string) => fStr !== dateStr);
-                setSelectedStudent({
-                    ...selectedStudent,
-                    'Fechas y Horas de Asistencia': JSON.stringify(fechas)
-                });
-            } catch(e) {}
-            
-            setIsLoading(false);
+            setSelectedStudent(null);
+            if (mode === 'group') {
+                await loadGroupData();
+            } else {
+                await loadStudentData();
+            }
         } catch (error) {
             console.error('Error borrando asistencia:', error);
             alert('Error al borrar la asistencia.');
@@ -210,7 +206,8 @@ export default function AulaLook() {
                 let fechasStr: any = masterStudent['Fechas y Horas de Asistencia'];
                 if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
                 const fechas = JSON.parse(fechasStr);
-                fechas.forEach((fStr: string) => {
+                fechas.forEach((fReq: any) => {
+                    const fStr = typeof fReq === 'object' ? fReq.date : fReq;
                     const dateObj = new Date(fStr);
                     if (!isNaN(dateObj.getTime())) {
                         masterDates.add(dateObj.toISOString().split('T')[0]);
@@ -223,30 +220,53 @@ export default function AulaLook() {
         const processedData = mergedRes.map(d => {
             const newTotal = maxAsistencias > 0 ? maxAsistencias : 1;
             const studentDates = new Set<string>();
+            const historicoJustificado = new Set<string>();
             try {
                 let fechasStr: any = d['Fechas y Horas de Asistencia'];
                 if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
                 const fechas = JSON.parse(fechasStr || '[]');
-                fechas.forEach((fStr: string) => {
+                fechas.forEach((fReq: any) => {
+                    const fStr = typeof fReq === 'object' ? fReq.date : fReq;
+                    const status = typeof fReq === 'object' ? fReq.status : 'Asistencia';
+                    const notes = typeof fReq === 'object' ? fReq.notes : '';
+
                     const dateObj = new Date(fStr);
                     if (!isNaN(dateObj.getTime())) {
                         studentDates.add(dateObj.toISOString().split('T')[0]);
+                    }
+
+                    if (status === 'Justificado' && typeof notes === 'string') {
+                         const match = notes.match(/histórico \((.+?)\)/i);
+                         if (match && match[1]) {
+                             historicoJustificado.add(match[1]);
+                         }
                     }
                 });
             } catch (e) { }
 
             const faltas: string[] = [];
-            masterDates.forEach(md => {
-                if (!studentDates.has(md)) {
+            const sortedMasterDates = Array.from(masterDates).sort();
+            sortedMasterDates.forEach(md => {
+                if (!studentDates.has(md) && !historicoJustificado.has(md)) {
                     faltas.push(md);
                 }
             });
+
+            let racha = 0;
+            for (let i = sortedMasterDates.length - 1; i >= 0; i--) {
+                if (!studentDates.has(sortedMasterDates[i]) && !historicoJustificado.has(sortedMasterDates[i])) {
+                    racha++;
+                } else {
+                    break;
+                }
+            }
 
             return {
                 ...d,
                 'Total de Clases': newTotal,
                 Porcentaje: Number(d.Asistencias) / newTotal,
-                faltasCalculadas: faltas.sort()
+                faltasCalculadas: faltas,
+                rachaFaltas: racha
             };
         });
 
@@ -366,7 +386,8 @@ export default function AulaLook() {
                 try {
                     let fechasStr: any = (masterStudent as any)['Fechas y Horas de Asistencia'];
                     if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
-                    JSON.parse(fechasStr).forEach((fStr: string) => {
+                    JSON.parse(fechasStr).forEach((fReq: any) => {
+                        const fStr = typeof fReq === 'object' ? fReq.date : fReq;
                         const dateObj = new Date(fStr);
                         if (!isNaN(dateObj.getTime())) masterDates.add(dateObj.toISOString().split('T')[0]);
                     });
@@ -374,23 +395,46 @@ export default function AulaLook() {
             }
 
             const studentDates = new Set<string>();
+            const historicoJustificado = new Set<string>();
             if (finalRecord['Fechas y Horas de Asistencia']) {
                 try {
                     let fechasStr: any = finalRecord['Fechas y Horas de Asistencia'];
                     if (Array.isArray(fechasStr)) fechasStr = JSON.stringify(fechasStr);
-                    JSON.parse(fechasStr).forEach((fStr: string) => {
+                    JSON.parse(fechasStr).forEach((fReq: any) => {
+                        const fStr = typeof fReq === 'object' ? fReq.date : fReq;
+                        const status = typeof fReq === 'object' ? fReq.status : 'Asistencia';
+                        const notes = typeof fReq === 'object' ? fReq.notes : '';
+
                         const dateObj = new Date(fStr);
                         if (!isNaN(dateObj.getTime())) studentDates.add(dateObj.toISOString().split('T')[0]);
+
+                        if (status === 'Justificado' && typeof notes === 'string') {
+                             const match = notes.match(/histórico \((.+?)\)/i);
+                             if (match && match[1]) {
+                                 historicoJustificado.add(match[1]);
+                             }
+                        }
                     });
                 } catch (e) { }
             }
 
             const faltas: string[] = [];
-            masterDates.forEach(md => {
-                if (!studentDates.has(md)) faltas.push(md);
+            const sortedMasterDates = Array.from(masterDates).sort();
+            sortedMasterDates.forEach(md => {
+                if (!studentDates.has(md) && !historicoJustificado.has(md)) faltas.push(md);
             });
 
-            finalRecord.faltasCalculadas = faltas.sort();
+            let racha = 0;
+            for (let i = sortedMasterDates.length - 1; i >= 0; i--) {
+                if (!studentDates.has(sortedMasterDates[i]) && !historicoJustificado.has(sortedMasterDates[i])) {
+                    racha++;
+                } else {
+                    break;
+                }
+            }
+
+            finalRecord.faltasCalculadas = faltas;
+            finalRecord.rachaFaltas = racha;
             studentResults.push(finalRecord);
         });
 
@@ -533,28 +577,38 @@ export default function AulaLook() {
     // --- Derived Metrics ---
     const baseActiveData = mode === 'group' ? data : studentModeData;
     const activeData = baseActiveData.filter(item => {
-        if (!localSearchQuery) return true;
-        const query = localSearchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (mode === 'group') {
-            const name = (item['Nombre del Alumno'] || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            const isControl = (item['Número de Control'] || '').toLowerCase().includes(query);
-            return name.includes(query) || isControl;
-        } else {
-            const materia = (item.Materia || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            const prof = (item.Profesor || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return materia.includes(query) || prof.includes(query);
+        let matchSearch = true;
+        if (localSearchQuery) {
+           const query = localSearchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+           if (mode === 'group') {
+               const name = (item['Nombre del Alumno'] || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+               const isControl = (item['Número de Control'] || '').toLowerCase().includes(query);
+               matchSearch = name.includes(query) || isControl;
+           } else {
+               const materia = (item.Materia || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+               const prof = (item.Profesor || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+               matchSearch = materia.includes(query) || prof.includes(query);
+           }
         }
+        
+        if (!matchSearch) return false;
+        if (filterRisk === 'perfect' && item.Porcentaje < 1.0) return false;
+        if (filterRisk === 'risk' && item.Porcentaje >= 0.8) return false;
+        
+        return true;
     });
 
     const totalItems = activeData.length;
     let totalAsistencias = 0;
     const dateCounts: Record<string, { date: Date, count: number }> = {};
+    const wdCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }; // Mon-Fri
 
     activeData.forEach(d => {
         totalAsistencias += d.Asistencias;
         try {
             const fechas = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
-            fechas.forEach((fStr: string) => {
+            fechas.forEach((fReq: any) => {
+                const fStr = typeof fReq === 'object' ? fReq.date : fReq;
                 const dateObj = new Date(fStr);
                 if (isNaN(dateObj.getTime())) return;
                 const dateKey = dateObj.toISOString().split('T')[0];
@@ -562,6 +616,17 @@ export default function AulaLook() {
                 dateCounts[dateKey].count++;
             });
         } catch (e) { }
+
+        if (d.faltasCalculadas) {
+            d.faltasCalculadas.forEach(f => {
+                const parts = f.split('-');
+                const dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                const wd = dt.getDay();
+                if (wd >= 1 && wd <= 5) {
+                    wdCounts[wd as keyof typeof wdCounts]++;
+                }
+            });
+        }
     });
 
     const avgAttendance = totalItems ? activeData.reduce((acc, curr) => acc + curr.Porcentaje, 0) / totalItems : 0;
@@ -580,6 +645,15 @@ export default function AulaLook() {
             name: item.date.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }),
             asistencias: item.count
         }));
+
+    const weekdayData = [
+        { name: 'Lun', faltas: wdCounts[1] },
+        { name: 'Mar', faltas: wdCounts[2] },
+        { name: 'Mié', faltas: wdCounts[3] },
+        { name: 'Jue', faltas: wdCounts[4] },
+        { name: 'Vie', faltas: wdCounts[5] },
+    ];
+
 
     const getRiskColor = (percent: number) => {
         if (percent < 0.8) return 'text-red-500 bg-red-500/10 border-red-500/20';
@@ -785,28 +859,34 @@ export default function AulaLook() {
                         </div>
                     ) : (
                         <>
-                            {/* KPIs */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {/* KPIs - Tarjetones Elegantes */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
                                 {[
-                                    { title: mode === 'group' ? "Total Alumnos" : "Total Materias", value: totalItems, icon: mode === 'group' ? "groups" : "auto_stories", color: "text-theme-accent1-400" },
-                                    { title: "Total Asistencias", value: totalAsistencias, icon: "fact_check", color: "text-theme-accent2-400" },
-                                    { title: "Promedio Alumno/Clase", value: `${(avgAttendance * 100).toFixed(1)}%`, icon: "timeline", color: "text-yellow-400" },
-                                    { title: "En Riesgo (<80%)", value: atRisk, icon: "warning", color: "text-red-400" }
+                                    { title: mode === 'group' ? "Alumnos en Grupo" : "Materias Cursadas", value: totalItems, subtitle: mode === 'group' ? `Registrados` : 'En kárdex', icon: mode === 'group' ? "groups" : "auto_stories", color: "text-theme-accent1-400", bg: "bg-theme-accent1-400/10" },
+                                    { title: "Asistencias (Suma)", value: totalAsistencias, subtitle: "Acumulado global", icon: "fact_check", color: "text-theme-accent2-400", bg: "bg-theme-accent2-400/10" },
+                                    { title: "Índice de Asistencia", value: `${(avgAttendance * 100).toFixed(1)}%`, subtitle: "Promedio del grupo", icon: "timeline", color: "text-emerald-400", bg: "bg-emerald-400/10" },
+                                    { title: "Foco Rojo (<80%)", value: atRisk, subtitle: mode === 'group' ? "Alumnos clave" : "Materias de alerta", icon: "warning", color: "text-red-400", bg: "bg-red-400/10" }
                                 ].map((kpi, i) => (
-                                    <Card key={i} className="border-theme-border bg-theme-border/50 p-4 flex items-center gap-4">
-                                        <div className={cn("p-3 rounded-xl bg-black/20 shadow-inner border border-theme-border", kpi.color)}>
-                                            <span className="material-icons-round text-2xl">{kpi.icon}</span>
+                                    <Card key={i} className="border-none bg-gradient-to-br from-theme-card to-theme-border/20 shadow-lg p-5 flex flex-col justify-between relative overflow-hidden group">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className={cn("p-2.5 sm:p-3 rounded-2xl shadow-inner backdrop-blur-sm", kpi.bg, kpi.color)}>
+                                                <span className="material-icons-round text-2xl sm:text-3xl">{kpi.icon}</span>
+                                            </div>
+                                            <span className={cn("text-3xl sm:text-4xl font-black tracking-tight", kpi.color)}>{kpi.value}</span>
                                         </div>
-                                        <div>
-                                            <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">{kpi.title}</p>
-                                            <p className="text-xl font-bold text-theme-text">{kpi.value}</p>
+                                        <div className="z-10 mt-2">
+                                            <p className="text-xs sm:text-sm text-theme-text font-bold uppercase tracking-wider mb-1 line-clamp-1">{kpi.title}</p>
+                                            <p className="text-[10px] sm:text-xs text-theme-muted font-medium uppercase">{kpi.subtitle}</p>
+                                        </div>
+                                        <div className={cn("absolute -bottom-6 -right-6 opacity-5 transform group-hover:scale-110 transition-transform duration-500", kpi.color)}>
+                                            <span className="material-icons-round text-[100px]">{kpi.icon}</span>
                                         </div>
                                     </Card>
                                 ))}
                             </div>
 
                             {/* Charts */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                                 <Card className="lg:col-span-2 border-theme-border bg-theme-border/50 p-6">
                                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                                         <span className="material-icons-round text-theme-accent1-400">insights</span>
@@ -817,8 +897,9 @@ export default function AulaLook() {
                                             <LineChart data={timelineData}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
                                                 <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                                                <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                                                <YAxis domain={[0, Math.max(totalItems, 5)]} stroke="#9ca3af" tick={{ fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                                                 <RechartsTooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
+                                                <ReferenceLine y={totalItems * 0.85} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'top', value: 'Umbral 85%', fill: '#ef4444', fontSize: 12 }} />
                                                 <Line type="monotone" dataKey="asistencias" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                             </LineChart>
                                         </ResponsiveContainer>
@@ -827,12 +908,12 @@ export default function AulaLook() {
                                 <Card className="border-theme-border bg-theme-border/50 p-6">
                                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                                         <span className="material-icons-round text-theme-accent2-400">pie_chart</span>
-                                        Distribución de Estatus
+                                        Estatus
                                     </h3>
                                     <div className="h-[250px] w-full mt-4">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>
-                                                <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                                                <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" stroke="none">
                                                     {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                                 </Pie>
                                                 <RechartsTooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
@@ -841,12 +922,37 @@ export default function AulaLook() {
                                         </ResponsiveContainer>
                                     </div>
                                 </Card>
+                                <Card className="border-theme-border bg-theme-border/50 p-6">
+                                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                        <span className="material-icons-round text-red-400">warning</span>
+                                        Patrón
+                                    </h3>
+                                    <div className="h-[250px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={weekdayData}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                                                <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
+                                                <YAxis hide />
+                                                <RechartsTooltip cursor={{fill: '#374151', opacity: 0.4}} contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
+                                                <Bar dataKey="faltas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </Card>
                             </div>
+
 
                             {/* Data Table */}
                             <Card className="border-theme-border bg-theme-border/50 overflow-hidden">
                                 <div className="p-4 border-b border-theme-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                    <h3 className="text-lg font-bold">{mode === 'group' ? 'Listado de Alumnos' : 'Historial de Materias'}</h3>
+                                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                        <h3 className="text-lg font-bold">{mode === 'group' ? 'Listado de Alumnos' : 'Historial de Materias'}</h3>
+                                        <div className="flex gap-2 bg-black/20 p-1 rounded-lg">
+                                            <button onClick={() => setFilterRisk('all')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors", filterRisk === 'all' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted hover:text-theme-text")}>Todos</button>
+                                            <button onClick={() => setFilterRisk('perfect')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1", filterRisk === 'perfect' ? "bg-emerald-500/20 text-emerald-400 shadow border border-emerald-500/30" : "text-theme-muted hover:text-emerald-400")}><span className="material-icons-round text-[14px]">star</span> Perfecta</button>
+                                            <button onClick={() => setFilterRisk('risk')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1", filterRisk === 'risk' ? "bg-red-500/20 text-red-400 shadow border border-red-500/30" : "text-theme-muted hover:text-red-400")}><span className="material-icons-round text-[14px]">warning</span> Riesgo</button>
+                                        </div>
+                                    </div>
                                     <div className="flex gap-2 w-full sm:w-auto">
                                         <div className="relative flex-1 sm:flex-none sm:w-64">
                                             <Input
@@ -877,7 +983,15 @@ export default function AulaLook() {
                                             {activeData.map((item, i) => (
                                                 <tr key={i} className="hover:bg-theme-border/50 transition-colors cursor-pointer group" onClick={() => setSelectedStudent(item)}>
                                                     <td className="p-4 text-theme-text font-medium group-hover:text-theme-accent1-400 transition-colors">
-                                                        {mode === 'group' ? item['Nombre del Alumno'] : item.Materia}
+                                                        <div className="flex items-center gap-2">
+                                                            {mode === 'group' ? item['Nombre del Alumno'] : item.Materia}
+                                                            {item.rachaFaltas && item.rachaFaltas >= 2 ? (
+                                                                <span className={cn("text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border shadow-sm flex items-center gap-1 whitespace-nowrap", item.rachaFaltas >= 3 ? "bg-red-500/20 text-red-500 border-red-500/30" : "bg-yellow-500/20 text-yellow-500 border-yellow-500/30")}>
+                                                                    <span className="material-icons-round text-[12px]">warning</span>
+                                                                    {item.rachaFaltas} Faltas
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
                                                     </td>
                                                     <td className="p-4 text-theme-muted font-mono text-xs">
                                                         {mode === 'group' ? item['Número de Control'] : item.Profesor}
@@ -951,9 +1065,11 @@ export default function AulaLook() {
                                                                 <span className="text-red-400 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
                                                                 <span className="text-xs text-red-500/70">Asistencia grupal sin registro personal.</span>
                                                             </div>
-                                                            <Button onClick={() => handleJustifyAbsence(falta)} size="sm" variant="ghost" className="text-theme-accent2-400 hover:text-theme-accent2-300 hover:bg-theme-accent2-500/10 h-8 text-xs font-semibold px-3">
-                                                                Justificar
-                                                            </Button>
+                                                            {!isReadOnly && (
+                                                                <Button onClick={() => handleJustifyAbsence(falta)} size="sm" variant="ghost" className="text-theme-accent2-400 hover:text-theme-accent2-300 hover:bg-theme-accent2-500/10 h-8 text-xs font-semibold px-3">
+                                                                    Justificar
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     )
                                                 })}
@@ -963,17 +1079,44 @@ export default function AulaLook() {
                                             try {
                                                 const dates = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
                                                 if (!Array.isArray(dates) || dates.length === 0) return <p className="text-theme-muted/80 text-sm">Sin registros.</p>;
-                                                return dates.map((d: string, i: number) => {
-                                                    const date = new Date(d);
+                                                return dates.map((d: any, i: number) => {
+                                                    const dateStr = typeof d === 'string' ? d : d.date;
+                                                    const status = typeof d === 'object' ? d.status : 'Asistencia';
+                                                    const notes = typeof d === 'object' ? d.notes : '';
+                                                    const date = new Date(dateStr);
+                                                    
+                                                    const isJustificado = status === 'Justificado';
+                                                    let histDateStr = '';
+                                                    if (isJustificado && notes) {
+                                                        const match = notes.match(/histórico \((.+?)\)/i);
+                                                        if (match && match[1]) {
+                                                            const parts = match[1].split('-');
+                                                            if (parts.length === 3) {
+                                                                histDateStr = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+                                                            } else {
+                                                                histDateStr = match[1];
+                                                            }
+                                                        }
+                                                    }
+                                                    
                                                     return (
-                                                        <div key={i} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-theme-border/50 rounded-xl border border-theme-border gap-3">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-gray-200 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
-                                                                <span className="text-xs text-theme-muted/80 font-mono">{date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <div key={i} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-xl border gap-3", isJustificado ? "bg-[#0ea5e9]/10 border-[#0ea5e9]/20 shadow-inner" : "bg-theme-border/50 border-theme-border")}>
+                                                            <div className="flex flex-col gap-1.5">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-gray-200 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
+                                                                    {isJustificado && <span className="text-[10px] bg-[#0ea5e9] text-white px-2 py-0.5 rounded uppercase font-bold tracking-wider shadow-sm">Justificada</span>}
+                                                                </div>
+                                                                {isJustificado && histDateStr ? (
+                                                                    <span className="text-xs text-[#0ea5e9] font-medium">Registrado el: {date.toLocaleDateString('es-MX')} • Cubre falta del: {histDateStr}</span>
+                                                                ) : (
+                                                                    <span className="text-xs text-theme-muted/80 font-mono">{date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                )}
                                                             </div>
-                                                            <Button onClick={() => handleDeleteAttendance(d)} size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 text-xs font-semibold px-3 ml-auto">
-                                                                <span className="material-icons-round text-[16px] mr-1">delete</span> Borrar
-                                                            </Button>
+                                                            {!isReadOnly && (
+                                                                <Button onClick={() => handleDeleteAttendance(dateStr)} size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 text-xs font-semibold px-3 ml-auto">
+                                                                    <span className="material-icons-round text-[16px] mr-1">delete</span> Borrar
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     )
                                                 });
@@ -984,10 +1127,30 @@ export default function AulaLook() {
                                     <div className="overflow-x-auto mt-4 p-4 bg-theme-border/50 border border-theme-border rounded-2xl max-h-[40vh]">
                                         <p className="font-medium mb-4 flex items-center gap-2"><span className="material-icons-round text-theme-accent1-400">calendar_month</span> Vista Mensual</p>
                                         {(() => {
-                                            let rawAsistencias: Date[] = [];
+                                            let rawAsistencias: {date: Date, isJustificado: boolean, isHist: boolean, histDate: Date | null}[] = [];
                                             try {
                                                 const parsed = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
-                                                if (Array.isArray(parsed)) rawAsistencias = parsed.map(d => new Date(d)).filter(d => !isNaN(d.getTime()));
+                                                if (Array.isArray(parsed)) {
+                                                    rawAsistencias = parsed.map(d => {
+                                                        const dateStr = typeof d === 'string' ? d : d.date;
+                                                        const status = typeof d === 'object' ? d.status : 'Asistencia';
+                                                        const notes = typeof d === 'object' ? d.notes : '';
+                                                        let histDate: Date | null = null;
+                                                        if (status === 'Justificado' && typeof notes === 'string') {
+                                                            const match = notes.match(/histórico \((.+?)\)/i);
+                                                            if (match && match[1]) {
+                                                                const parts = match[1].split('-');
+                                                                histDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                                                            }
+                                                        }
+                                                        return {
+                                                            date: new Date(dateStr),
+                                                            isJustificado: status === 'Justificado',
+                                                            isHist: histDate !== null,
+                                                            histDate: histDate
+                                                        };
+                                                    }).filter(d => !isNaN(d.date.getTime()));
+                                                }
                                             } catch (e) { }
 
                                             const rawFaltas: Date[] = (selectedStudent.faltasCalculadas || []).map(f => {
@@ -995,15 +1158,16 @@ export default function AulaLook() {
                                                 return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
                                             });
 
-                                            const allRecords: { date: Date, type: 'asistencia' | 'falta' }[] = [
-                                                ...rawAsistencias.map(d => ({ date: d, type: 'asistencia' as const })),
+                                            // Si hay justificantes historicos, mostramos su caja azul en el dia historico en vez del dia registrado para mantener el orden cronologico real
+                                            const allRecords: { date: Date, type: 'asistencia' | 'falta' | 'justificado' }[] = [
+                                                ...rawAsistencias.map(d => ({ date: d.isHist && d.histDate ? d.histDate : d.date, type: (d.isJustificado ? 'justificado' as const : 'asistencia' as const) })),
                                                 ...rawFaltas.map(d => ({ date: d, type: 'falta' as const }))
                                             ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
                                             if (allRecords.length === 0) return <p className="text-theme-muted/80 text-sm">No hay registro en este periodo.</p>;
 
                                             const numFormat = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' });
-                                            const groups: Record<string, { date: Date, type: 'asistencia' | 'falta' }[]> = {};
+                                            const groups: Record<string, { date: Date, type: 'asistencia' | 'falta' | 'justificado' }[]> = {};
                                             allRecords.forEach(rec => {
                                                 const monthKey = numFormat.format(rec.date);
                                                 if (!groups[monthKey]) groups[monthKey] = [];
@@ -1017,10 +1181,11 @@ export default function AulaLook() {
                                                         <div className="flex gap-2 flex-wrap">
                                                             {records.map((rec, rIdx) => {
                                                                 const isAsistencia = rec.type === 'asistencia';
+                                                                const isJustificado = rec.type === 'justificado';
                                                                 return (
-                                                                    <div key={rIdx} className={cn("w-[2.5rem] h-[3rem] rounded-lg flex flex-col items-center justify-center text-xs font-mono shadow-sm border", isAsistencia ? "bg-theme-accent2-500/10 border-theme-accent2-500/20 text-theme-accent2-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
+                                                                    <div key={rIdx} className={cn("w-[2.5rem] h-[3rem] rounded-lg flex flex-col items-center justify-center text-xs font-mono shadow-sm border transition-shadow", isJustificado ? "bg-[#0ea5e9]/10 border-[#0ea5e9]/30 text-[#0ea5e9]" : isAsistencia ? "bg-theme-accent2-500/10 border-theme-accent2-500/20 text-theme-accent2-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
                                                                         <span className="font-bold mb-1">{rec.date.getDate()}</span>
-                                                                        <span className="material-icons-round text-[14px]">{isAsistencia ? 'check_circle' : 'close'}</span>
+                                                                        <span className="material-icons-round text-[14px]">{isJustificado ? 'info' : isAsistencia ? 'check_circle' : 'close'}</span>
                                                                     </div>
                                                                 )
                                                             })}

@@ -54,6 +54,8 @@ interface ScanHistoryEntry {
     date?: string; // e.g. '2023-10-25', optional for legacy fallback
     status: 'sent' | 'pending' | 'error';
     attendanceMode?: 'Asistencia' | 'Retardo';
+    group?: string;
+    specialty?: string;
 }
 
 export default function AulaScan() {
@@ -140,7 +142,7 @@ export default function AulaScan() {
                         scannerId,
                         { 
                             fps: 10, 
-                            qrbox: { width: 250, height: 250 }, 
+                            qrbox: { width: 180, height: 180 }, 
                             rememberLastUsedCamera: false,
                             videoConstraints: {
                                 facingMode: "environment" // Force back camera for iOS compatibility
@@ -256,7 +258,9 @@ export default function AulaScan() {
             time: nowObj.toLocaleTimeString(),
             date: `${yyyy}-${mm}-${dd}`,
             status: 'pending',
-            attendanceMode: attendanceStatus
+            attendanceMode: attendanceStatus,
+            group: Gr,
+            specialty: Es
         };
 
         // Optimistic history update
@@ -378,7 +382,8 @@ export default function AulaScan() {
 
             processAttendance(`ID=${input}&No=${encodedName}&Gr=${encodedGroup}&Es=${encodedSpecialty}`);
         } else {
-            processAttendance(`ID=${input}&No=${input}&Gr=No Registrado&Es=No Registrado`);
+            setLastScanMsg({ type: 'error', text: 'Alumno no encontrado. Selecciona uno de la lista.' });
+            playBeep('error');
         }
         setManualInput('');
         setShowSuggestions(false);
@@ -387,6 +392,84 @@ export default function AulaScan() {
     const handleManualSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         executeManualAttendance(manualInput.trim());
+    };
+
+    const retryFailedScans = async () => {
+        const todayStr = `${nowObj.getFullYear()}-${String(nowObj.getMonth() + 1).padStart(2, '0')}-${String(nowObj.getDate()).padStart(2, '0')}`;
+        const todayItems = history.filter(h => h.date === todayStr && h.status === 'error');
+        
+        if (todayItems.length === 0) return;
+
+        setLastScanMsg({ type: 'success', text: `Reintentando ${todayItems.length} escaneos...` });
+        
+        // Marcar como pendientes visualmente
+        setHistory(prev => prev.map(entry => 
+            entry.date === todayStr && entry.status === 'error' 
+                ? { ...entry, status: 'pending' } 
+                : entry
+        ));
+
+        let successCount = 0;
+
+        for (const item of todayItems) {
+            try {
+                let gr = item.group || 'N/A';
+                let es = item.specialty || 'N/A';
+                if (!item.group || !item.specialty) {
+                    const student = studentsDB.find(s => {
+                        const sObj = s as any;
+                        const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
+                        return controlKey && String(sObj[controlKey]).trim() === item.id;
+                    });
+                    if (student) {
+                        const sObj = student as any;
+                        const groupKey = Object.keys(sObj).find(k => k.toLowerCase().includes('grupo')) || 'Grupo';
+                        const careerKey = Object.keys(sObj).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad')) || 'Carrera';
+                        gr = String(sObj[groupKey] || 'Desconocido').trim();
+                        es = String(sObj[careerKey] || 'Desconocido').trim();
+                    }
+                }
+
+                const success = await sendAttendance({
+                    Time: new Date(), 
+                    No: item.name,
+                    ID: item.id,
+                    Gr: gr,
+                    Es: es,
+                    Pe: selectedParcial,
+                    Pro: selectedTeacher,
+                    Ma: selectedSubject,
+                    status: item.attendanceMode || 'Asistencia'
+                });
+
+                if (success) {
+                    successCount++;
+                    setHistory(prev => prev.map(entry =>
+                        entry.id === item.id && entry.time === item.time && entry.date === item.date
+                            ? { ...entry, status: 'sent', group: gr, specialty: es }
+                            : entry
+                    ));
+                } else {
+                    setHistory(prev => prev.map(entry =>
+                        entry.id === item.id && entry.time === item.time && entry.date === item.date
+                            ? { ...entry, status: 'error' }
+                            : entry
+                    ));
+                }
+            } catch (e) {
+                 setHistory(prev => prev.map(entry =>
+                    entry.id === item.id && entry.time === item.time && entry.date === item.date
+                        ? { ...entry, status: 'error' }
+                        : entry
+                ));
+            }
+        }
+
+        setLastScanMsg({ 
+            type: successCount === todayItems.length ? 'success' : 'error', 
+            text: `Reintento: ${successCount}/${todayItems.length} enviados.` 
+        });
+        setTimeout(() => setLastScanMsg(null), 4000);
     };
 
     // Group history
@@ -508,10 +591,10 @@ export default function AulaScan() {
                                     </Button>
                                 </div>
                             </div>
-                            <div className={cn("bg-slate-950 p-4 min-h-[250px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
+                            <div className={cn("bg-slate-950 p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
                                 <div id="file-scanner-hidden" className="hidden"></div>
                                 {/* HTML5 QR Scanner Target */}
-                                <div id={scannerId} className="w-full override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
+                                <div id={scannerId} className="w-full max-w-[260px] mx-auto override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
                                 <div className="absolute bottom-6 text-center w-full px-4 text-sm font-medium text-white/90">
                                     Alinea el código QR con el marco
                                 </div>
@@ -569,7 +652,7 @@ export default function AulaScan() {
                             </div>
                         )}
 
-                        <Card className="border-gray-700 shadow-xl overflow-visible">
+                        <Card className="border-gray-700 shadow-xl overflow-visible relative z-50">
                             <form onSubmit={handleManualSubmit} className="p-4 flex gap-2 relative">
                                 <div className="relative flex-1">
                                     <Input
@@ -607,11 +690,18 @@ export default function AulaScan() {
                         <Card className="border-gray-700 shadow-xl flex flex-col max-h-[600px] overflow-hidden animate-fade-in">
                             <div className="flex items-center justify-between p-4 bg-theme-border/50 border-b border-theme-border">
                             <span className="font-semibold text-theme-text">Historial Reciente</span>
-                            <Button variant="destructive" size="sm" onClick={() => {
-                                if(confirm('¿Seguro que deseas eliminar absolutamente todo el historial del navegador?')) setHistory([]);
-                            }}>
-                                Limpiar Todo
-                            </Button>
+                            <div className="flex gap-2">
+                                {history.some(h => h.date === todayStr && h.status === 'error') && (
+                                    <Button variant="outline" size="sm" className="bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20" onClick={retryFailedScans}>
+                                        <span className="material-icons-round text-sm mr-1">sync_problem</span> Reintentar
+                                    </Button>
+                                )}
+                                <Button variant="destructive" size="sm" onClick={() => {
+                                    if(confirm('¿Seguro que deseas eliminar absolutamente todo el historial del navegador?')) setHistory([]);
+                                }}>
+                                    Limpiar Todo
+                                </Button>
+                            </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">

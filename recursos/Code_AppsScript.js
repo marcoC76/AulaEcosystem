@@ -179,7 +179,11 @@ function handleGet(e) {
       studentMap[id].Asistencias++;
     }
     
-    studentMap[id]["Fechas y Horas de Asistencia"].push(row[0]);
+    studentMap[id]["Fechas y Horas de Asistencia"].push({
+      date: row[0],
+      status: estado,
+      notes: row[8] || ''
+    });
   });
 
   // 4. Formatear para el frontend
