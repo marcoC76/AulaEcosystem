@@ -56,7 +56,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             setIsLoading(true);
             const control = selectedStudent['Número de Control'];
             const { Grupo, Especialidad, Profesor, Materia } = selectedStudent;
-            
+
             await insertJustifiedAbsence({
                 No: String(selectedStudent['Nombre del Alumno'] || ''),
                 ID: String(control),
@@ -236,10 +236,10 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                     }
 
                     if (status === 'Justificado' && typeof notes === 'string') {
-                         const match = notes.match(/histórico \((.+?)\)/i);
-                         if (match && match[1]) {
-                             historicoJustificado.add(match[1]);
-                         }
+                        const match = notes.match(/histórico \((.+?)\)/i);
+                        if (match && match[1]) {
+                            historicoJustificado.add(match[1]);
+                        }
                     }
                 });
             } catch (e) { }
@@ -409,10 +409,10 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                         if (!isNaN(dateObj.getTime())) studentDates.add(dateObj.toISOString().split('T')[0]);
 
                         if (status === 'Justificado' && typeof notes === 'string') {
-                             const match = notes.match(/histórico \((.+?)\)/i);
-                             if (match && match[1]) {
-                                 historicoJustificado.add(match[1]);
-                             }
+                            const match = notes.match(/histórico \((.+?)\)/i);
+                            if (match && match[1]) {
+                                historicoJustificado.add(match[1]);
+                            }
                         }
                     });
                 } catch (e) { }
@@ -579,22 +579,22 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
     const activeData = baseActiveData.filter(item => {
         let matchSearch = true;
         if (localSearchQuery) {
-           const query = localSearchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-           if (mode === 'group') {
-               const name = (item['Nombre del Alumno'] || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-               const isControl = (item['Número de Control'] || '').toLowerCase().includes(query);
-               matchSearch = name.includes(query) || isControl;
-           } else {
-               const materia = (item.Materia || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-               const prof = (item.Profesor || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-               matchSearch = materia.includes(query) || prof.includes(query);
-           }
+            const query = localSearchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (mode === 'group') {
+                const name = (item['Nombre del Alumno'] || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const isControl = (item['Número de Control'] || '').toLowerCase().includes(query);
+                matchSearch = name.includes(query) || isControl;
+            } else {
+                const materia = (item.Materia || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const prof = (item.Profesor || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                matchSearch = materia.includes(query) || prof.includes(query);
+            }
         }
-        
+
         if (!matchSearch) return false;
         if (filterRisk === 'perfect' && item.Porcentaje < 1.0) return false;
         if (filterRisk === 'risk' && item.Porcentaje >= 0.8) return false;
-        
+
         return true;
     });
 
@@ -933,7 +933,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
                                                 <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
                                                 <YAxis hide />
-                                                <RechartsTooltip cursor={{fill: '#374151', opacity: 0.4}} contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
+                                                <RechartsTooltip cursor={{ fill: '#374151', opacity: 0.4 }} contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
                                                 <Bar dataKey="faltas" fill="#ef4444" radius={[4, 4, 0, 0]} />
                                             </BarChart>
                                         </ResponsiveContainer>
@@ -1084,7 +1084,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                     const status = typeof d === 'object' ? d.status : 'Asistencia';
                                                     const notes = typeof d === 'object' ? d.notes : '';
                                                     const date = new Date(dateStr);
-                                                    
+
                                                     const isJustificado = status === 'Justificado';
                                                     let histDateStr = '';
                                                     if (isJustificado && notes) {
@@ -1098,7 +1098,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                             }
                                                         }
                                                     }
-                                                    
+
                                                     return (
                                                         <div key={i} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-xl border gap-3", isJustificado ? "bg-[#0ea5e9]/10 border-[#0ea5e9]/20 shadow-inner" : "bg-theme-border/50 border-theme-border")}>
                                                             <div className="flex flex-col gap-1.5">
@@ -1127,7 +1127,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     <div className="overflow-x-auto mt-4 p-4 bg-theme-border/50 border border-theme-border rounded-2xl max-h-[40vh]">
                                         <p className="font-medium mb-4 flex items-center gap-2"><span className="material-icons-round text-theme-accent1-400">calendar_month</span> Vista Mensual</p>
                                         {(() => {
-                                            let rawAsistencias: {date: Date, isJustificado: boolean, isHist: boolean, histDate: Date | null}[] = [];
+                                            let rawAsistencias: { date: Date, isJustificado: boolean, isHist: boolean, histDate: Date | null }[] = [];
                                             try {
                                                 const parsed = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
                                                 if (Array.isArray(parsed)) {
