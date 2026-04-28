@@ -14,10 +14,10 @@ import type { ConfigOption, StudentDBRecord } from '../../types';
 const playBeep = (type: 'success' | 'error') => {
     try {
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-
+        
         // iOS Safari AudioContext resume fix
         if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => { });
+            ctx.resume().catch(() => {});
         }
 
         const osc = ctx.createOscillator();
@@ -128,8 +128,8 @@ export default function AulaScan() {
                     setHistory(purged); // triggers useLocalStorage write
                 }
             }
-        } catch (e) { }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        } catch(e) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Initialize Scanner when configured
@@ -140,9 +140,9 @@ export default function AulaScan() {
                 if (!scannerRef.current) {
                     scannerRef.current = new Html5QrcodeScanner(
                         scannerId,
-                        {
-                            fps: 10,
-                            qrbox: { width: 180, height: 180 },
+                        { 
+                            fps: 10, 
+                            qrbox: { width: 180, height: 180 }, 
                             rememberLastUsedCamera: false,
                             videoConstraints: {
                                 facingMode: "environment" // Force back camera for iOS compatibility
@@ -310,7 +310,7 @@ export default function AulaScan() {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
             setLastScanMsg({ type: 'success', text: 'Analizando imagen...' });
-
+            
             try {
                 const html5QrCode = new Html5Qrcode("file-scanner-hidden");
                 const decodedText = await html5QrCode.scanFile(file, true);
@@ -397,15 +397,15 @@ export default function AulaScan() {
     const retryFailedScans = async () => {
         const todayStr = `${nowObj.getFullYear()}-${String(nowObj.getMonth() + 1).padStart(2, '0')}-${String(nowObj.getDate()).padStart(2, '0')}`;
         const todayItems = history.filter(h => h.date === todayStr && h.status === 'error');
-
+        
         if (todayItems.length === 0) return;
 
         setLastScanMsg({ type: 'success', text: `Reintentando ${todayItems.length} escaneos...` });
-
+        
         // Marcar como pendientes visualmente
-        setHistory(prev => prev.map(entry =>
-            entry.date === todayStr && entry.status === 'error'
-                ? { ...entry, status: 'pending' }
+        setHistory(prev => prev.map(entry => 
+            entry.date === todayStr && entry.status === 'error' 
+                ? { ...entry, status: 'pending' } 
                 : entry
         ));
 
@@ -431,7 +431,7 @@ export default function AulaScan() {
                 }
 
                 const success = await sendAttendance({
-                    Time: new Date(),
+                    Time: new Date(), 
                     No: item.name,
                     ID: item.id,
                     Gr: gr,
@@ -457,7 +457,7 @@ export default function AulaScan() {
                     ));
                 }
             } catch (e) {
-                setHistory(prev => prev.map(entry =>
+                 setHistory(prev => prev.map(entry =>
                     entry.id === item.id && entry.time === item.time && entry.date === item.date
                         ? { ...entry, status: 'error' }
                         : entry
@@ -465,9 +465,9 @@ export default function AulaScan() {
             }
         }
 
-        setLastScanMsg({
-            type: successCount === todayItems.length ? 'success' : 'error',
-            text: `Reintento: ${successCount}/${todayItems.length} enviados.`
+        setLastScanMsg({ 
+            type: successCount === todayItems.length ? 'success' : 'error', 
+            text: `Reintento: ${successCount}/${todayItems.length} enviados.` 
         });
         setTimeout(() => setLastScanMsg(null), 4000);
     };
@@ -479,8 +479,8 @@ export default function AulaScan() {
         acc[d].push(curr);
         return acc;
     }, {} as Record<string, ScanHistoryEntry[]>);
-
-    const sortedDates = Object.keys(groupedHistory).sort((a, b) => b.localeCompare(a));
+    
+    const sortedDates = Object.keys(groupedHistory).sort((a,b) => b.localeCompare(a));
 
     const downloadCSVForDay = (dateKey: string) => {
         const items = groupedHistory[dateKey] || [];
@@ -570,201 +570,201 @@ export default function AulaScan() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Scanner view */}
                         <div className="space-y-6">
-                            <Card className="border-0 overflow-hidden shadow-xl bg-slate-900 text-white rounded-2xl">
-                                <div className="flex items-center justify-between p-4 bg-slate-800/50 border-b border-slate-700/50">
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-icons-round text-blue-500 animate-pulse">videocam</span>
-                                        <span className="font-semibold text-slate-100">Escaneando...</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <input type="file" id="qr-upload" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                                        <Button variant="outline" size="sm" onClick={() => document.getElementById('qr-upload')?.click()} className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
-                                            <span className="material-icons-round text-sm mr-1">upload_file</span>
-                                            <span className="hidden sm:inline">Foto</span>
-                                        </Button>
-                                        <Button variant="outline" size="sm" onClick={toggleKiosk} className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
-                                            <span className="material-icons-round text-sm mr-1">{isKioskMode ? 'fullscreen_exit' : 'fullscreen'}</span>
-                                            <span className="hidden sm:inline">Kiosco</span>
-                                        </Button>
-                                        <Button variant="secondary" size="sm" onClick={() => { if (isKioskMode) toggleKiosk(); setIsConfigured(false); }} className="bg-slate-700 hover:bg-slate-600 text-white border-0 hidden sm:flex">
-                                            Clase
-                                        </Button>
-                                    </div>
+                        <Card className="border-0 overflow-hidden shadow-xl bg-slate-900 text-white rounded-2xl">
+                            <div className="flex items-center justify-between p-4 bg-slate-800/50 border-b border-slate-700/50">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-icons-round text-blue-500 animate-pulse">videocam</span>
+                                    <span className="font-semibold text-slate-100">Escaneando...</span>
                                 </div>
-                                <div className={cn("bg-slate-950 p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
-                                    <div id="file-scanner-hidden" className="hidden"></div>
-                                    {/* HTML5 QR Scanner Target */}
-                                    <div id={scannerId} className="w-full max-w-[260px] mx-auto override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
-                                    <div className="absolute bottom-6 text-center w-full px-4 text-sm font-medium text-white/90">
-                                        Alinea el código QR con el marco
-                                    </div>
+                                <div className="flex items-center gap-2">
+                                    <input type="file" id="qr-upload" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                                    <Button variant="outline" size="sm" onClick={() => document.getElementById('qr-upload')?.click()} className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
+                                        <span className="material-icons-round text-sm mr-1">upload_file</span>
+                                        <span className="hidden sm:inline">Foto</span>
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={toggleKiosk} className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
+                                        <span className="material-icons-round text-sm mr-1">{isKioskMode ? 'fullscreen_exit' : 'fullscreen'}</span>
+                                        <span className="hidden sm:inline">Kiosco</span>
+                                    </Button>
+                                    <Button variant="secondary" size="sm" onClick={() => { if(isKioskMode) toggleKiosk(); setIsConfigured(false); }} className="bg-slate-700 hover:bg-slate-600 text-white border-0 hidden sm:flex">
+                                        Clase
+                                    </Button>
                                 </div>
+                            </div>
+                            <div className={cn("bg-slate-950 p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
+                                <div id="file-scanner-hidden" className="hidden"></div>
+                                {/* HTML5 QR Scanner Target */}
+                                <div id={scannerId} className="w-full max-w-[260px] mx-auto override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
+                                <div className="absolute bottom-6 text-center w-full px-4 text-sm font-medium text-white/90">
+                                    Alinea el código QR con el marco
+                                </div>
+                            </div>
 
-                                {/* Status Selector */}
-                                <div className="p-4 bg-slate-900 border-t border-slate-800 rounded-b-2xl">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3">Estado de Toma</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            onClick={() => setAttendanceStatus('Asistencia')}
-                                            className={cn(
-                                                "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
-                                                attendanceStatus === 'Asistencia'
-                                                    ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
-                                                    : "bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800"
-                                            )}
-                                        >
-                                            <span className="material-icons-round text-lg">check_circle</span>
-                                            Asistencia
-                                        </button>
-                                        <button
-                                            onClick={() => setAttendanceStatus('Retardo')}
-                                            className={cn(
-                                                "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
-                                                attendanceStatus === 'Retardo'
-                                                    ? "bg-orange-500/20 border-orange-500/50 text-orange-400"
-                                                    : "bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800"
-                                            )}
-                                        >
-                                            <span className="material-icons-round text-lg">schedule</span>
-                                            Retardo
-                                        </button>
-                                    </div>
-                                </div>
-                            </Card>
-
-                            {lastScanMsg && (
-                                // ALERTA FLOTANTE (Fixed positioning)
-                                <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in-up">
-                                    <div className={cn(
-                                        "p-4 rounded-xl border shadow-2xl text-center font-bold text-lg flex flex-col items-center gap-2",
-                                        lastScanMsg.type === 'success'
-                                            ? "bg-theme-accent2-900/95 backdrop-blur-md border-theme-accent2-500/50 text-white"
-                                            : "bg-red-900/95 backdrop-blur-md border-red-500 text-white shadow-red-900/50"
-                                    )}>
-                                        {lastScanMsg.type === 'success'
-                                            ? (lastScanMsg.text.includes('Registrando')
-                                                ? <span className="material-icons-round animate-spin text-2xl">refresh</span>
-                                                : <span className="material-icons-round text-3xl text-theme-accent2-400">check_circle</span>)
-                                            : <span className="material-icons-round text-3xl text-red-400">error</span>
-                                        }
-                                        {lastScanMsg.text}
-                                    </div>
-                                </div>
-                            )}
-
-                            <Card className="border-gray-700 shadow-xl overflow-visible relative z-50">
-                                <form onSubmit={handleManualSubmit} className="p-4 flex gap-2 relative">
-                                    <div className="relative flex-1">
-                                        <Input
-                                            placeholder="Buscar nombre o ID..."
-                                            value={manualInput}
-                                            onChange={e => setManualInput(e.target.value)}
-                                            onFocus={() => setShowSuggestions(true)}
-                                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                                        />
-                                        {showSuggestions && manualInput.length > 1 && (
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-theme-card border border-theme-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto">
-                                                {suggestions.length > 0 ? suggestions.map(s => (
-                                                    <button
-                                                        key={s.control}
-                                                        type="button"
-                                                        className="w-full text-left p-3 hover:bg-theme-base border-b border-theme-border flex flex-col transition-colors"
-                                                        onClick={() => executeManualAttendance(s.control)}
-                                                    >
-                                                        <span className="text-sm text-theme-text font-medium truncate">{s.nombre}</span>
-                                                        <span className="text-xs text-theme-accent1-400 font-mono">{s.control}</span>
-                                                    </button>
-                                                )) : (
-                                                    <div className="p-3 text-sm text-theme-muted text-center">Sin resultados locales</div>
-                                                )}
-                                            </div>
+                            {/* Status Selector */}
+                            <div className="p-4 bg-slate-900 border-t border-slate-800 rounded-b-2xl">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3">Estado de Toma</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => setAttendanceStatus('Asistencia')}
+                                        className={cn(
+                                            "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
+                                            attendanceStatus === 'Asistencia'
+                                                ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                                                : "bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800"
                                         )}
-                                    </div>
-                                    <Button type="submit">Agregar</Button>
-                                </form>
-                            </Card>
-                        </div>
-
-                        {/* History view (Hidden in Kiosk) */}
-                        {!isKioskMode && (
-                            <Card className="border-gray-700 shadow-xl flex flex-col max-h-[600px] overflow-hidden animate-fade-in">
-                                <div className="flex items-center justify-between p-4 bg-theme-border/50 border-b border-theme-border">
-                                    <span className="font-semibold text-theme-text">Historial Reciente</span>
-                                    <div className="flex gap-2">
-                                        {history.some(h => h.date === todayStr && h.status === 'error') && (
-                                            <Button variant="outline" size="sm" className="bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20" onClick={retryFailedScans}>
-                                                <span className="material-icons-round text-sm mr-1">sync_problem</span> Reintentar
-                                            </Button>
+                                    >
+                                        <span className="material-icons-round text-lg">check_circle</span>
+                                        Asistencia
+                                    </button>
+                                    <button
+                                        onClick={() => setAttendanceStatus('Retardo')}
+                                        className={cn(
+                                            "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
+                                            attendanceStatus === 'Retardo'
+                                                ? "bg-orange-500/20 border-orange-500/50 text-orange-400"
+                                                : "bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800"
                                         )}
-                                        <Button variant="destructive" size="sm" onClick={() => {
-                                            if (confirm('¿Seguro que deseas eliminar absolutamente todo el historial del navegador?')) setHistory([]);
-                                        }}>
-                                            Limpiar Todo
-                                        </Button>
-                                    </div>
+                                    >
+                                        <span className="material-icons-round text-lg">schedule</span>
+                                        Retardo
+                                    </button>
                                 </div>
+                            </div>
+                        </Card>
 
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                    {history.length === 0 ? (
-                                        <div className="p-8 text-center text-theme-muted/80">
-                                            <span className="material-icons-round text-4xl mb-2 opacity-50">history</span>
-                                            <p>No hay alumnos registrados aún.</p>
+                        {lastScanMsg && (
+                            // ALERTA FLOTANTE (Fixed positioning)
+                            <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in-up">
+                                <div className={cn(
+                                    "p-4 rounded-xl border shadow-2xl text-center font-bold text-lg flex flex-col items-center gap-2",
+                                    lastScanMsg.type === 'success'
+                                        ? "bg-theme-accent2-900/95 backdrop-blur-md border-theme-accent2-500/50 text-white"
+                                        : "bg-red-900/95 backdrop-blur-md border-red-500 text-white shadow-red-900/50"
+                                )}>
+                                    {lastScanMsg.type === 'success' 
+                                        ? (lastScanMsg.text.includes('Registrando') 
+                                            ? <span className="material-icons-round animate-spin text-2xl">refresh</span>
+                                            : <span className="material-icons-round text-3xl text-theme-accent2-400">check_circle</span>)
+                                        : <span className="material-icons-round text-3xl text-red-400">error</span>
+                                    }
+                                    {lastScanMsg.text}
+                                </div>
+                            </div>
+                        )}
+
+                        <Card className="border-gray-700 shadow-xl overflow-visible relative z-50">
+                            <form onSubmit={handleManualSubmit} className="p-4 flex gap-2 relative">
+                                <div className="relative flex-1">
+                                    <Input
+                                        placeholder="Buscar nombre o ID..."
+                                        value={manualInput}
+                                        onChange={e => setManualInput(e.target.value)}
+                                        onFocus={() => setShowSuggestions(true)}
+                                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                    />
+                                    {showSuggestions && manualInput.length > 1 && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-theme-card border border-theme-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto">
+                                            {suggestions.length > 0 ? suggestions.map(s => (
+                                                <button
+                                                    key={s.control}
+                                                    type="button"
+                                                    className="w-full text-left p-3 hover:bg-theme-base border-b border-theme-border flex flex-col transition-colors"
+                                                    onClick={() => executeManualAttendance(s.control)}
+                                                >
+                                                    <span className="text-sm text-theme-text font-medium truncate">{s.nombre}</span>
+                                                    <span className="text-xs text-theme-accent1-400 font-mono">{s.control}</span>
+                                                </button>
+                                            )) : (
+                                                <div className="p-3 text-sm text-theme-muted text-center">Sin resultados locales</div>
+                                            )}
                                         </div>
-                                    ) : (
-                                        sortedDates.map(dateKey => {
-                                            const dayItems = groupedHistory[dateKey];
-                                            const isExpanded = expandedDays[dateKey];
-                                            const displayItems = isExpanded ? dayItems : dayItems.slice(0, 5);
-                                            const hasMore = dayItems.length > 5;
-
-                                            return (
-                                                <div key={dateKey} className="bg-theme-card rounded-xl border border-theme-border overflow-hidden shadow-sm">
-                                                    <div className="flex items-center justify-between p-3 bg-theme-border/50 border-b border-theme-border">
-                                                        <span className="font-medium text-theme-accent2-400 text-sm flex items-center gap-2">
-                                                            <span className="material-icons-round text-sm opacity-80">event</span>
-                                                            {dateKey} <span className="text-theme-muted/80 text-xs font-normal">({dayItems.length})</span>
-                                                        </span>
-                                                        <Button variant="outline" size="sm" className="h-7 text-xs bg-theme-base/80 hover:bg-theme-border/100" onClick={() => downloadCSVForDay(dateKey)}>
-                                                            <span className="material-icons-round text-xs mr-1 opacity-70">download</span> CSV
-                                                        </Button>
-                                                    </div>
-                                                    <div className="p-2 space-y-2">
-                                                        {displayItems.map((entry, i) => (
-                                                            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-theme-base/50 border border-theme-border">
-                                                                <div className="truncate pr-2">
-                                                                    <p className="font-medium text-theme-text truncate text-sm flex items-center gap-2">
-                                                                        {entry.name}
-                                                                        {entry.attendanceMode === 'Retardo' && (
-                                                                            <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 rounded border border-yellow-500/30">RETARDO</span>
-                                                                        )}
-                                                                    </p>
-                                                                    <p className="text-xs text-theme-accent1-400 font-mono">{entry.id}</p>
-                                                                </div>
-                                                                <div className="flex flex-col items-end shrink-0">
-                                                                    <span className="text-[10px] text-theme-muted mb-1">{entry.time}</span>
-                                                                    {entry.status === 'sent' && <span className="text-theme-accent2-400 text-xs bg-theme-accent2-400/10 px-2 py-0.5 rounded-full border border-theme-accent2-400/20">Registrado</span>}
-                                                                    {entry.status === 'pending' && <span className="text-yellow-400 text-xs flex items-center gap-1"><span className="animate-spin material-icons-round text-[10px]">refresh</span> Enviando</span>}
-                                                                    {entry.status === 'error' && <span className="text-red-400 text-xs bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20">Error Red</span>}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                        {hasMore && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                className="w-full text-xs text-theme-muted hover:text-theme-text mt-2 h-8"
-                                                                onClick={() => setExpandedDays(prev => ({ ...prev, [dateKey]: !isExpanded }))}
-                                                            >
-                                                                {isExpanded ? 'Ocultar recientes' : `Visualizar los ${dayItems.length} escaneos`}
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
                                     )}
                                 </div>
-                            </Card>
-                        )}
+                                <Button type="submit">Agregar</Button>
+                            </form>
+                        </Card>
+                    </div>
+
+                    {/* History view (Hidden in Kiosk) */}
+                    {!isKioskMode && (
+                        <Card className="border-gray-700 shadow-xl flex flex-col max-h-[600px] overflow-hidden animate-fade-in">
+                            <div className="flex items-center justify-between p-4 bg-theme-border/50 border-b border-theme-border">
+                            <span className="font-semibold text-theme-text">Historial Reciente</span>
+                            <div className="flex gap-2">
+                                {history.some(h => h.date === todayStr && h.status === 'error') && (
+                                    <Button variant="outline" size="sm" className="bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20" onClick={retryFailedScans}>
+                                        <span className="material-icons-round text-sm mr-1">sync_problem</span> Reintentar
+                                    </Button>
+                                )}
+                                <Button variant="destructive" size="sm" onClick={() => {
+                                    if(confirm('¿Seguro que deseas eliminar absolutamente todo el historial del navegador?')) setHistory([]);
+                                }}>
+                                    Limpiar Todo
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {history.length === 0 ? (
+                                <div className="p-8 text-center text-theme-muted/80">
+                                    <span className="material-icons-round text-4xl mb-2 opacity-50">history</span>
+                                    <p>No hay alumnos registrados aún.</p>
+                                </div>
+                            ) : (
+                                sortedDates.map(dateKey => {
+                                    const dayItems = groupedHistory[dateKey];
+                                    const isExpanded = expandedDays[dateKey];
+                                    const displayItems = isExpanded ? dayItems : dayItems.slice(0, 5);
+                                    const hasMore = dayItems.length > 5;
+                                    
+                                    return (
+                                        <div key={dateKey} className="bg-theme-card rounded-xl border border-theme-border overflow-hidden shadow-sm">
+                                            <div className="flex items-center justify-between p-3 bg-theme-border/50 border-b border-theme-border">
+                                                <span className="font-medium text-theme-accent2-400 text-sm flex items-center gap-2">
+                                                    <span className="material-icons-round text-sm opacity-80">event</span>
+                                                    {dateKey} <span className="text-theme-muted/80 text-xs font-normal">({dayItems.length})</span>
+                                                </span>
+                                                <Button variant="outline" size="sm" className="h-7 text-xs bg-theme-base/80 hover:bg-theme-border/100" onClick={() => downloadCSVForDay(dateKey)}>
+                                                    <span className="material-icons-round text-xs mr-1 opacity-70">download</span> CSV
+                                                </Button>
+                                            </div>
+                                            <div className="p-2 space-y-2">
+                                                {displayItems.map((entry, i) => (
+                                                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-theme-base/50 border border-theme-border">
+                                                        <div className="truncate pr-2">
+                                                            <p className="font-medium text-theme-text truncate text-sm flex items-center gap-2">
+                                                                {entry.name}
+                                                                {entry.attendanceMode === 'Retardo' && (
+                                                                    <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 rounded border border-yellow-500/30">RETARDO</span>
+                                                                )}
+                                                            </p>
+                                                            <p className="text-xs text-theme-accent1-400 font-mono">{entry.id}</p>
+                                                        </div>
+                                                        <div className="flex flex-col items-end shrink-0">
+                                                            <span className="text-[10px] text-theme-muted mb-1">{entry.time}</span>
+                                                            {entry.status === 'sent' && <span className="text-theme-accent2-400 text-xs bg-theme-accent2-400/10 px-2 py-0.5 rounded-full border border-theme-accent2-400/20">Registrado</span>}
+                                                            {entry.status === 'pending' && <span className="text-yellow-400 text-xs flex items-center gap-1"><span className="animate-spin material-icons-round text-[10px]">refresh</span> Enviando</span>}
+                                                            {entry.status === 'error' && <span className="text-red-400 text-xs bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20">Error Red</span>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {hasMore && (
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        className="w-full text-xs text-theme-muted hover:text-theme-text mt-2 h-8"
+                                                        onClick={() => setExpandedDays(prev => ({...prev, [dateKey]: !isExpanded}))}
+                                                    >
+                                                        {isExpanded ? 'Ocultar recientes' : `Visualizar los ${dayItems.length} escaneos`}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </Card>
+                    )}
                     </div>
                 </div>
             )}
