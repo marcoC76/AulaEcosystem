@@ -389,10 +389,6 @@ export default function AulaScan() {
         setShowSuggestions(false);
     };
 
-    const handleManualSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        executeManualAttendance(manualInput.trim());
-    };
 
     const retryFailedScans = async () => {
         const todayStr = `${nowObj.getFullYear()}-${String(nowObj.getMonth() + 1).padStart(2, '0')}-${String(nowObj.getDate()).padStart(2, '0')}`;
@@ -653,7 +649,7 @@ export default function AulaScan() {
                         )}
 
                         <Card className="border-gray-700 shadow-xl overflow-visible relative z-50">
-                            <form onSubmit={handleManualSubmit} className="p-4 flex gap-2 relative">
+                            <div className="p-4 flex gap-2 relative">
                                 <div className="relative flex-1">
                                     <Input
                                         placeholder="Buscar nombre o ID..."
@@ -680,8 +676,7 @@ export default function AulaScan() {
                                         </div>
                                     )}
                                 </div>
-                                <Button type="submit">Agregar</Button>
-                            </form>
+                            </div>
                         </Card>
                     </div>
 
