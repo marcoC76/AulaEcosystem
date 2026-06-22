@@ -128,14 +128,33 @@ export const fetchParcialesConfig = async (): Promise<ParcialConfig[]> => {
 };
 
 export const fetchStudentsDB = async (): Promise<StudentDBRecord[]> => {
+    const cached = getCachedStudents();
     const config = await getConfig();
     const studentsUrl = config.students_url;
 
     if (!studentsUrl) {
         console.warn("No students_url in config");
-        return getCachedStudents();
+        return cached;
     }
 
+    // Si tenemos datos en caché, los retornamos de inmediato y actualizamos en segundo plano
+    if (cached.length > 0) {
+        fetch(studentsUrl)
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error("Background students fetch failed");
+            })
+            .then(data => {
+                localStorage.setItem('cached_students_db', JSON.stringify(data));
+                console.log("Background cache of students DB updated successfully.");
+            })
+            .catch(err => {
+                console.warn("Background update of students DB failed:", err);
+            });
+        return cached;
+    }
+
+    // Si no hay datos en caché, esperamos a que termine la descarga
     try {
         const res = await fetch(studentsUrl);
         if (!res.ok) throw new Error("Remote students failed");
@@ -144,7 +163,7 @@ export const fetchStudentsDB = async (): Promise<StudentDBRecord[]> => {
         return data;
     } catch (error) {
         console.warn("Using localStorage fallback for students:", error);
-        return getCachedStudents();
+        return cached;
     }
 };
 

@@ -468,6 +468,16 @@ export default function AulaScan() {
         setTimeout(() => setLastScanMsg(null), 4000);
     };
 
+    // Auto-sincronizar cuando el dispositivo vuelva a estar en línea
+    useEffect(() => {
+        const handleOnline = () => {
+            console.log("Internet connection restored. Autosyncing failed scans...");
+            retryFailedScans();
+        };
+        window.addEventListener('online', handleOnline);
+        return () => window.removeEventListener('online', handleOnline);
+    }, [history, selectedParcial, selectedTeacher, selectedSubject, studentsDB]);
+
     // Group history
     const groupedHistory = history.reduce((acc, curr) => {
         const d = curr.date || 'Desconocido';
@@ -629,23 +639,65 @@ export default function AulaScan() {
                         </Card>
 
                         {lastScanMsg && (
-                            // ALERTA FLOTANTE (Fixed positioning)
-                            <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in-up">
-                                <div className={cn(
-                                    "p-4 rounded-xl border shadow-2xl text-center font-bold text-lg flex flex-col items-center gap-2",
-                                    lastScanMsg.type === 'success'
-                                        ? "bg-theme-accent2-900/95 backdrop-blur-md border-theme-accent2-500/50 text-white"
-                                        : "bg-red-900/95 backdrop-blur-md border-red-500 text-white shadow-red-900/50"
-                                )}>
-                                    {lastScanMsg.type === 'success' 
-                                        ? (lastScanMsg.text.includes('Registrando') 
-                                            ? <span className="material-icons-round animate-spin text-2xl">refresh</span>
-                                            : <span className="material-icons-round text-3xl text-theme-accent2-400">check_circle</span>)
-                                        : <span className="material-icons-round text-3xl text-red-400">error</span>
-                                    }
-                                    {lastScanMsg.text}
+                            isKioskMode ? (
+                                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in">
+                                    <div className={cn(
+                                        "absolute inset-0 backdrop-blur-2xl transition-all duration-300",
+                                        lastScanMsg.type === 'success' ? "bg-emerald-950/90" : "bg-red-950/90"
+                                    )} />
+                                    <div className={cn(
+                                        "relative z-10 w-full max-w-2xl p-8 sm:p-12 rounded-3xl border-2 shadow-2xl flex flex-col items-center text-center gap-6 animate-scale-up",
+                                        lastScanMsg.type === 'success'
+                                            ? "bg-emerald-900/40 border-emerald-500/30 text-white"
+                                            : "bg-red-900/40 border-red-500/30 text-white"
+                                    )}>
+                                        {lastScanMsg.type === 'success' ? (
+                                            lastScanMsg.text.includes('Registrando') ? (
+                                                <div className="w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center animate-spin">
+                                                    <span className="material-icons-round text-5xl text-emerald-400">refresh</span>
+                                                </div>
+                                            ) : (
+                                                <div className="w-28 h-28 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-950/50 animate-bounce">
+                                                    <span className="material-icons-round text-6xl text-emerald-400">check_circle</span>
+                                                </div>
+                                            )
+                                        ) : (
+                                            <div className="w-28 h-28 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center shadow-lg shadow-red-950/50 animate-shake">
+                                                <span className="material-icons-round text-6xl text-red-400">error</span>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="space-y-3">
+                                            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight uppercase">
+                                                {lastScanMsg.type === 'success' 
+                                                    ? (lastScanMsg.text.includes('Registrando') ? 'Procesando' : '¡Registro Exitoso!') 
+                                                    : 'Error de Escaneo'
+                                                }
+                                            </h2>
+                                            <p className="text-xl sm:text-2xl font-semibold opacity-90 leading-snug max-w-xl mx-auto">
+                                                {lastScanMsg.text}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in-up">
+                                    <div className={cn(
+                                        "p-4 rounded-xl border shadow-2xl text-center font-bold text-lg flex flex-col items-center gap-2",
+                                        lastScanMsg.type === 'success'
+                                            ? "bg-theme-accent2-900/95 backdrop-blur-md border-theme-accent2-500/50 text-white"
+                                            : "bg-red-900/95 backdrop-blur-md border-red-500 text-white shadow-red-900/50"
+                                    )}>
+                                        {lastScanMsg.type === 'success' 
+                                            ? (lastScanMsg.text.includes('Registrando') 
+                                                ? <span className="material-icons-round animate-spin text-2xl">refresh</span>
+                                                : <span className="material-icons-round text-3xl text-theme-accent2-400">check_circle</span>)
+                                            : <span className="material-icons-round text-3xl text-red-400">error</span>
+                                        }
+                                        {lastScanMsg.text}
+                                    </div>
+                                </div>
+                            )
                         )}
 
                         <Card className="border-gray-700 shadow-xl overflow-visible relative z-50">

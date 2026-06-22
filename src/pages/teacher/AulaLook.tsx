@@ -712,6 +712,255 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         }
     };
 
+    // Generar reporte en formato sábana oficial de la SEP
+    const exportSabanaPDF = async () => {
+        if (data.length === 0) {
+            alert("No hay datos para exportar.");
+            return;
+        }
+        setIsLoading(true);
+
+        try {
+            // Obtener fechas únicas ordenadas cronológicamente
+            const classDates = Object.keys(dateCounts).sort();
+            const periodName = parciales.find(p => p.id === selectedPeriod)?.nombre || `Parcial ${selectedPeriod}`;
+            const studentInfo = data[0] || {};
+            const planEstudios = studentInfo.Especialidad || 'RADIOLOGÍA E IMAGEN';
+            
+            let groupTurn = 'VESPERTINO';
+            if (selectedGroups.length > 0) {
+                const baseGroup = selectedGroups[0].split(' - ')[0].trim();
+                const matchingStudent = studentsDB.find(s => String(s.Grupo).trim() === baseGroup);
+                if (matchingStudent && matchingStudent.Turno) {
+                    groupTurn = matchingStudent.Turno.toUpperCase();
+                }
+            }
+
+            // Crear un contenedor temporal visible pero detrás del fondo de la aplicación
+            const container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.zIndex = '-9999';
+            container.style.pointerEvents = 'none';
+            document.body.appendChild(container);
+
+            // Ajustar alumnos por página para que quepa en un A4 horizontal sin desbordamiento
+            const STUDENTS_PER_PAGE = 18; 
+            const totalPages = Math.ceil(data.length / STUDENTS_PER_PAGE);
+            const weekdays = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+
+            for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+                const pageEl = document.createElement('div');
+                pageEl.className = 'sabana-pdf-page';
+                pageEl.style.width = '1123px';
+                pageEl.style.height = '794px';
+                pageEl.style.padding = '30px 40px';
+                pageEl.style.boxSizing = 'border-box';
+                pageEl.style.backgroundColor = '#ffffff';
+                pageEl.style.color = '#000000';
+                pageEl.style.fontFamily = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+                pageEl.style.display = 'flex';
+                pageEl.style.flexDirection = 'column';
+                pageEl.style.justifyContent = 'space-between';
+
+                const startIndex = pageIdx * STUDENTS_PER_PAGE;
+                const endIndex = Math.min(startIndex + STUDENTS_PER_PAGE, data.length);
+                const pageStudents = data.slice(startIndex, endIndex);
+
+                // HTML con logos SVG y diseño oficial
+                pageEl.innerHTML = `
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 80" width="350" height="60">
+                                <g transform="translate(10, 5)">
+                                    <circle cx="30" cy="30" r="28" fill="none" stroke="#7a1c31" stroke-width="2"/>
+                                    <circle cx="30" cy="30" r="24" fill="none" stroke="#d4c19c" stroke-width="1.5"/>
+                                    <path d="M 30,12 C 22,20 20,32 30,48 C 40,32 38,20 30,12 Z" fill="#d4c19c"/>
+                                    <path d="M 24,25 Q 30,18 36,25 Q 30,35 24,25 Z" fill="#7a1c31"/>
+                                </g>
+                                <text x="85" y="38" font-family="'Lora', 'Times New Roman', serif" font-size="34" font-weight="bold" fill="#7a1c31" letter-spacing="1">SEP</text>
+                                <text x="85" y="54" font-family="'Montserrat', 'Arial', sans-serif" font-size="8.5" font-weight="600" fill="#6f7276" letter-spacing="0.5">SECRETARÍA DE</text>
+                                <text x="85" y="65" font-family="'Montserrat', 'Arial', sans-serif" font-size="8.5" font-weight="600" fill="#6f7276" letter-spacing="0.5">EDUCACIÓN PÚBLICA</text>
+                            </svg>
+                            <div style="text-align: right; font-size: 10px; color: #6f7276; font-weight: bold;">
+                                <div style="font-size: 12px; color: #7a1c31;">CETIS No. 76</div>
+                                <div>Control de Asistencias</div>
+                            </div>
+                        </div>
+
+                        <div style="background-color: #545454; color: #ffffff; text-align: center; padding: 6px 0; font-size: 12px; font-weight: bold; letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;">
+                            REPORTE DE ASISTENCIAS
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; font-size: 9px; margin-bottom: 12px; line-height: 1.4;">
+                            <div style="display: grid; grid-template-columns: auto 1fr; gap: 2px 8px;">
+                                <span style="font-weight: bold; color: #333;">SUBSISTEMA:</span>
+                                <span>DIRECCIÓN GENERAL DE EDUCACIÓN TECNOLÓGICA INDUSTRIAL Y DE SERVICIOS</span>
+                                
+                                <span style="font-weight: bold; color: #333;">PLANTEL:</span>
+                                <span>CENTRO DE ESTUDIOS TECNOLÓGICOS INDUSTRIAL Y DE SERVICIOS NO. 76</span>
+                                
+                                <span style="font-weight: bold; color: #333;">PLAN DE ESTUDIOS:</span>
+                                <span style="text-transform: uppercase;">${planEstudios}</span>
+                                
+                                <span style="font-weight: bold; color: #333;">CLAVE DEL CENTRO DE TRABAJO:</span>
+                                <span>09DET0076M</span>
+                                
+                                <span style="font-weight: bold; color: #333;">ASIGNATURA O SUBMODULO:</span>
+                                <span style="text-transform: uppercase; font-weight: bold; color: #7a1c31;">${selectedSubject}</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-content: start;">
+                                <span style="font-weight: bold; color: #333;">GRUPO:</span>
+                                <span style="font-weight: bold;">${selectedGroups.join(', ')}</span>
+                                
+                                <span style="font-weight: bold; color: #333;">DOCENTE:</span>
+                                <span style="text-transform: uppercase;">${selectedTeacher}</span>
+                                
+                                <span style="font-weight: bold; color: #333;">TURNO:</span>
+                                <span>${groupTurn}</span>
+                                
+                                <span style="font-weight: bold; color: #333;">PERIODO:</span>
+                                <span>${periodName.toUpperCase()}</span>
+                            </div>
+                        </div>
+
+                        <table style="width: 100%; border-collapse: collapse; font-size: 9px; color: #000000; border: 1.5px solid #000000;">
+                            <thead>
+                                <tr style="background-color: #f3f4f6; font-weight: bold; text-align: center;">
+                                    <th style="border: 1px solid #000000; padding: 4px; width: 30px;" rowspan="2">NUM</th>
+                                    <th style="border: 1px solid #000000; padding: 4px; width: 90px;" rowspan="2">NO. CONTROL</th>
+                                    <th style="border: 1px solid #000000; padding: 4px; text-align: left;" rowspan="2">NOMBRE DEL ALUMNO</th>
+                                    <th style="border: 1px solid #000000; padding: 2px;" colspan="${classDates.length}">ASISTENCIAS</th>
+                                    <th style="border: 1px solid #000000; padding: 4px; width: 30px;" rowspan="2">T.A</th>
+                                    <th style="border: 1px solid #000000; padding: 4px; width: 30px;" rowspan="2">T.F</th>
+                                </tr>
+                                <tr style="background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px;">
+                                    ${classDates.map(dateKey => {
+                                        const dt = new Date(dateKey + 'T00:00:00');
+                                        const dayNum = dt.getDate();
+                                        const dayOfWeek = weekdays[dt.getDay()];
+                                        return `
+                                            <th style="border: 1px solid #000000; padding: 2px; width: 22px; line-height: 1.1;">
+                                                <div style="font-size: 7px; color: #666;">${dayNum}</div>
+                                                <div style="font-weight: bold;">${dayOfWeek}</div>
+                                            </th>
+                                        `;
+                                    }).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${pageStudents.map((student, idx) => {
+                                    const num = startIndex + idx + 1;
+                                    const control = student['Número de Control'] || '';
+                                    const name = student['Nombre del Alumno'] || '';
+                                    
+                                    const studentDates = new Set<string>();
+                                    const justifiedDates = new Set<string>();
+                                    const historicoJustificado = new Set<string>();
+                                    
+                                    try {
+                                        const fechas = JSON.parse(student['Fechas y Horas de Asistencia'] || '[]');
+                                        fechas.forEach((fReq: any) => {
+                                            const fStr = typeof fReq === 'object' ? fReq.date : fReq;
+                                            const status = typeof fReq === 'object' ? fReq.status : 'Asistencia';
+                                            const notes = typeof fReq === 'object' ? fReq.notes : '';
+                                            const dateObj = new Date(fStr);
+                                            if (!isNaN(dateObj.getTime())) {
+                                                const dateKey = dateObj.toISOString().split('T')[0];
+                                                studentDates.add(dateKey);
+                                                if (status === 'Justificado') {
+                                                    justifiedDates.add(dateKey);
+                                                }
+                                                
+                                                if (status === 'Justificado' && typeof notes === 'string') {
+                                                    const match = notes.match(/histórico \((.+?)\)/i);
+                                                    if (match && match[1]) {
+                                                        historicoJustificado.add(match[1]);
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    } catch (e) {}
+
+                                    let ta = 0;
+                                    let tf = 0;
+
+                                    const colsHtml = classDates.map(dateKey => {
+                                        let mark = '';
+                                        let cellStyle = '';
+                                        
+                                        if (studentDates.has(dateKey) && !justifiedDates.has(dateKey)) {
+                                            mark = '/';
+                                            ta++;
+                                        } else if (justifiedDates.has(dateKey) || historicoJustificado.has(dateKey)) {
+                                            mark = 'J';
+                                            cellStyle = 'color: #0ea5e9; font-weight: bold; background-color: #f0f9ff;';
+                                        } else {
+                                            mark = 'F';
+                                            tf++;
+                                            cellStyle = 'color: #ef4444; font-weight: bold; background-color: #fef2f2;';
+                                        }
+
+                                        return `<td style="border: 1px solid #000000; text-align: center; padding: 2px; ${cellStyle}">${mark}</td>`;
+                                    }).join('');
+
+                                    return `
+                                        <tr>
+                                            <td style="border: 1px solid #000000; text-align: center; padding: 4px;">${num}</td>
+                                            <td style="border: 1px solid #000000; text-align: center; padding: 4px; font-family: monospace;">${control}</td>
+                                            <td style="border: 1px solid #000000; padding: 4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;">${name}</td>
+                                            ${colsHtml}
+                                            <td style="border: 1px solid #000000; text-align: center; padding: 4px; font-weight: bold; background-color: #f3f4f6;">${ta}</td>
+                                            <td style="border: 1px solid #000000; text-align: center; padding: 4px; font-weight: bold; background-color: #fef2f2; color: #ef4444;">${tf}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #6f7276; border-top: 1px solid #e5e7eb; padding-top: 6px; margin-top: 10px;">
+                        <div>Generado por Sistema AulaEcosystem • ${new Date().toLocaleString('es-MX')}</div>
+                        <div style="font-weight: bold;">Página ${pageIdx + 1} de ${totalPages}</div>
+                    </div>
+                `;
+
+                container.appendChild(pageEl);
+            }
+
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pageElements = container.querySelectorAll('.sabana-pdf-page');
+            for (let i = 0; i < pageElements.length; i++) {
+                if (i > 0) {
+                    pdf.addPage();
+                }
+                const canvas = await html2canvas(pageElements[i] as HTMLElement, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff'
+                });
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+            }
+
+            pdf.save(`Sabana_Asistencias_${selectedGroups.join('_')}_${selectedSubject.substring(0, 15)}.pdf`);
+            document.body.removeChild(container);
+
+        } catch (error) {
+            console.error('Error al generar PDF Sábana:', error);
+            alert('Hubo un error al generar el PDF Sábana.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // --- Search Helpers ---
     const suggestions = useMemo(() => {
         if (searchQuery.length < 2) return [];
@@ -1167,6 +1416,11 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                             <Button onClick={exportPDF} className="flex-1 sm:flex-none bg-theme-accent1-600 hover:bg-theme-accent1-700 h-10">
                                 <span className="material-icons-round text-sm mr-1">picture_as_pdf</span> PDF
                             </Button>
+                            {mode === 'group' && (
+                                <Button onClick={exportSabanaPDF} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 h-10 text-white font-medium">
+                                    <span className="material-icons-round text-sm mr-1">grid_on</span> Sábana PDF
+                                </Button>
+                            )}
                         </div>
                     </div>
 
