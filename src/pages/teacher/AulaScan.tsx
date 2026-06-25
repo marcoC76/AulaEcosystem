@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
-import Fuse from 'fuse.js';
 import { fetchAppConfig, sendAttendance, fetchStudentsDB, fetchParcialesConfig, type ParcialConfig, getConfig } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { Card } from '../../components/ui/Card';
@@ -8,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { cn } from '../../lib/utils';
+import { searchStudents, findStudentByControl, getStudentName, getStudentGrupo, getStudentEspecialidad } from '../../lib/search';
 import type { ConfigOption, StudentDBRecord } from '../../types';
 
 // Audio Context for Beeps
@@ -84,9 +84,11 @@ export default function AulaScan() {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
     useEffect(() => {
-        fetchAppConfig().then(setConfig);
-        getConfig().then(c => setMasterQrVersion(c.qr_version || '1'));
-        fetchStudentsDB().then(setStudentsDB);
+        fetchAppConfig().then(setConfig).catch(() => {});
+        getConfig().then(c => setMasterQrVersion(c.qr_version || '1')).catch(() => {});
+        fetchStudentsDB().then(setStudentsDB).catch(() => {
+            setLastScanMsg({ type: 'error', text: 'Error al cargar base de datos de alumnos.' });
+        });
         fetchParcialesConfig().then((parciales) => {
             setParcialesLocal(parciales);
 
@@ -323,58 +325,20 @@ export default function AulaScan() {
         }
     };
 
-    const getSuggestions = () => {
-        if (manualInput.length < 2) return [];
-
-        const cleanStudents = studentsDB.map(student => {
-            const sObj = student as any;
-            const nameKey = Object.keys(sObj).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
-            const patKey = Object.keys(sObj).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
-            const matKey = Object.keys(sObj).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
-            const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
-
-            return {
-                nombre: `${sObj[nameKey]} ${sObj[patKey]} ${sObj[matKey]}`.trim(),
-                control: controlKey ? String(sObj[controlKey]) : ''
-            };
-        });
-
-        const fuse = new Fuse(cleanStudents, {
-            keys: ['nombre', 'control'],
-            threshold: 0.4, // Tolerancia a errores de tipeo (fuzzy)
-            ignoreLocation: true
-        });
-
-        const results = fuse.search(manualInput);
-        return results.slice(0, 5).map(r => r.item);
-    };
-
-    const suggestions = getSuggestions();
+    const suggestions = useMemo(
+        () => searchStudents(studentsDB, manualInput, 5),
+        [studentsDB, manualInput]
+    );
 
     const executeManualAttendance = (input: string) => {
         if (!input) return;
-        const student = studentsDB.find(s => {
-            const sObj = s as any;
-            const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
-            const sId = controlKey ? sObj[controlKey] : undefined;
-            return sId && String(sId).trim().toLowerCase() === String(input).trim().toLowerCase();
-        });
+        const student = findStudentByControl(studentsDB, input);
 
         if (student) {
             const sObj = student as any;
-            const nameKey = Object.keys(sObj).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
-            const patKey = Object.keys(sObj).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
-            const matKey = Object.keys(sObj).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
-            const groupKey = Object.keys(sObj).find(k => k.toLowerCase().includes('grupo')) || 'Grupo';
-            const careerKey = Object.keys(sObj).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad')) || 'Carrera';
-
-            const rawName = String(sObj[nameKey] || '').trim();
-            const rawPat = String(sObj[patKey] || '').trim();
-            const rawMat = String(sObj[matKey] || '').trim();
-            const fullName = `${rawName} ${rawPat} ${rawMat}`.trim();
-
-            const dGroup = String(sObj[groupKey] || 'Desconocido').trim();
-            const dSpecialty = String(sObj[careerKey] || 'Desconocido').trim();
+            const fullName = getStudentName(sObj);
+            const dGroup = getStudentGrupo(sObj) || 'Desconocido';
+            const dSpecialty = getStudentEspecialidad(sObj) || 'Desconocido';
 
             const encodedName = encodeURIComponent(fullName);
             const encodedGroup = encodeURIComponent(dGroup);
@@ -391,7 +355,8 @@ export default function AulaScan() {
 
 
     const retryFailedScans = async () => {
-        const todayStr = `${nowObj.getFullYear()}-${String(nowObj.getMonth() + 1).padStart(2, '0')}-${String(nowObj.getDate()).padStart(2, '0')}`;
+        const n = new Date();
+        const todayStr = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
         const todayItems = history.filter(h => h.date === todayStr && h.status === 'error');
         
         if (todayItems.length === 0) return;
@@ -469,14 +434,17 @@ export default function AulaScan() {
     };
 
     // Auto-sincronizar cuando el dispositivo vuelva a estar en línea
+    const retryRef = useRef(retryFailedScans)
+    retryRef.current = retryFailedScans
+
     useEffect(() => {
         const handleOnline = () => {
-            console.log("Internet connection restored. Autosyncing failed scans...");
-            retryFailedScans();
+            if (import.meta.env.DEV) console.log("Internet connection restored. Autosyncing failed scans...")
+            retryRef.current()
         };
         window.addEventListener('online', handleOnline);
         return () => window.removeEventListener('online', handleOnline);
-    }, [history, selectedParcial, selectedTeacher, selectedSubject, studentsDB]);
+    }, []);
 
     // Group history
     const groupedHistory = history.reduce((acc, curr) => {
@@ -504,17 +472,19 @@ export default function AulaScan() {
 
     const toggleKiosk = async () => {
         if (!document.fullscreenElement) {
-            await document.documentElement.requestFullscreen().catch((e) => console.log(e));
+            await document.documentElement.requestFullscreen().catch(() => {});
             setIsKioskMode(true);
         } else {
-            await document.exitFullscreen().catch((e) => console.log(e));
+            await document.exitFullscreen().catch(() => {});
             setIsKioskMode(false);
         }
     };
 
-    const nowObj = new Date();
-    const todayStr = `${nowObj.getFullYear()}-${String(nowObj.getMonth() + 1).padStart(2, '0')}-${String(nowObj.getDate()).padStart(2, '0')}`;
-    const scansToday = groupedHistory[todayStr]?.length || 0;
+    const scansToday = useMemo(() => {
+        const n = new Date();
+        const ts = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+        return groupedHistory[ts]?.length || 0;
+    }, [groupedHistory]);
     const totalScans = history.length;
 
     return (
@@ -753,9 +723,14 @@ export default function AulaScan() {
 
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {history.length === 0 ? (
-                                <div className="p-8 text-center text-theme-muted/80">
-                                    <span className="material-icons-round text-4xl mb-2 opacity-50">history</span>
-                                    <p>No hay alumnos registrados aún.</p>
+                                <div className="p-12 text-center flex flex-col items-center justify-center">
+                                    <div className="p-4 rounded-full bg-theme-border/30 text-theme-muted mb-4">
+                                        <span className="material-icons-round text-5xl">qr_code_scanner</span>
+                                    </div>
+                                    <h3 className="text-lg font-bold text-theme-text mb-2">Sin Registros</h3>
+                                    <p className="text-sm text-theme-muted max-w-xs">
+                                        Escanea códigos QR o busca alumnos manualmente para registrar asistencia. Los registros aparecerán aquí.
+                                    </p>
                                 </div>
                             ) : (
                                 sortedDates.map(dateKey => {
@@ -771,7 +746,7 @@ export default function AulaScan() {
                                                     <span className="material-icons-round text-sm opacity-80">event</span>
                                                     {dateKey} <span className="text-theme-muted/80 text-xs font-normal">({dayItems.length})</span>
                                                 </span>
-                                                <Button variant="outline" size="sm" className="h-7 text-xs bg-theme-base/80 hover:bg-theme-border/100" onClick={() => downloadCSVForDay(dateKey)}>
+                                                <Button variant="outline" size="sm" className="min-h-[44px] h-7 text-xs bg-theme-base/80 hover:bg-theme-border/100" onClick={() => downloadCSVForDay(dateKey)}>
                                                     <span className="material-icons-round text-xs mr-1 opacity-70">download</span> CSV
                                                 </Button>
                                             </div>

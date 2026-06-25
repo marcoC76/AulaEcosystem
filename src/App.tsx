@@ -6,6 +6,7 @@ import AulaScan from './pages/teacher/AulaScan';
 import AulaLook from './pages/teacher/AulaLook';
 import ConsultaLayout from './components/layout/ConsultaLayout';
 import PinEncoder from './pages/tools/PinEncoder';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 import { InstallPWA } from './components/ui/InstallPWA';
 import { ThemeSelector } from './components/ui/ThemeSelector';
 import { ReloadPrompt } from './components/ui/ReloadPrompt';
@@ -15,7 +16,8 @@ function App() {
     <>
       <ThemeSelector />
       <ReloadPrompt />
-      <Routes>
+      <ErrorBoundary>
+        <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/student" element={<AulaPass />} />
 
@@ -31,6 +33,7 @@ function App() {
         {/* Herramienta oculta para codificar PINs */}
         <Route path="/tools/encoder" element={<PinEncoder />} />
       </Routes>
+      </ErrorBoundary>
       <InstallPWA />
     </>
   );

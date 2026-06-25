@@ -14,7 +14,6 @@ export function InstallPWA() {
 
         const handler = (e: Event) => {
             e.preventDefault();
-            console.log("Install prompt activado");
             setSupportsPWA(true);
             setPromptInstall(e);
         };
@@ -31,10 +30,7 @@ export function InstallPWA() {
         const { outcome } = await promptInstall.userChoice;
         
         if (outcome === 'accepted') {
-            console.log('El usuario aceptó instalar la PWA');
             setSupportsPWA(false); // Ocultar después de instalar
-        } else {
-            console.log('El usuario rechazó la instalación');
         }
     };
 

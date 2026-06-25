@@ -12,53 +12,95 @@ const themes: { id: Theme; label: string; icon: string; color: string }[] = [
 export function ThemeSelector() {
     const [theme, setTheme] = useState<Theme>('dark');
     const [isOpen, setIsOpen] = useState(false);
+    const [shouldRender, setShouldRender] = useState(false);
     const popupRef = useRef<HTMLDivElement>(null);
+    const toggleRef = useRef<HTMLButtonElement>(null);
+    const listRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const savedTheme = (localStorage.getItem('app_theme') as Theme) || 'dark';
         setTheme(savedTheme);
         document.documentElement.setAttribute('data-theme', savedTheme);
-        
-        const handleClickOutside = (event: MouseEvent) => {
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
             if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setShouldRender(true);
+            requestAnimationFrame(() => {
+                listRef.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus()
+            })
+        } else {
+            const timer = setTimeout(() => setShouldRender(false), 200);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            setIsOpen(false)
+            toggleRef.current?.focus()
+        }
+    }
 
     const handleThemeChange = (newTheme: Theme) => {
         setTheme(newTheme);
         localStorage.setItem('app_theme', newTheme);
         document.documentElement.setAttribute('data-theme', newTheme);
         setIsOpen(false);
+        toggleRef.current?.focus()
     };
 
     return (
         <div ref={popupRef} className="fixed top-4 right-4 z-50">
             <button
+                ref={toggleRef}
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-10 h-10 rounded-full bg-theme-card border border-theme-border flex items-center justify-center shadow-lg hover:scale-110 transition-transform focus:outline-none"
+                className="w-11 h-11 rounded-full bg-theme-card border border-theme-border flex items-center justify-center shadow-lg hover:scale-110 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-accent1-500"
                 aria-label="Seleccionar tema"
+                aria-expanded={isOpen}
+                aria-haspopup="menu"
             >
                 <span className="material-icons-round text-theme-text opacity-80">palette</span>
             </button>
 
-            {isOpen && (
-                <div className="absolute top-12 right-0 mt-2 w-48 bg-theme-card/95 backdrop-blur-xl border border-theme-border rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up">
+            {shouldRender && (
+                <div
+                    ref={listRef}
+                    role="menu"
+                    aria-label="Temas visuales"
+                    onKeyDown={handleKeyDown}
+                    className={`absolute top-12 right-0 mt-2 w-48 bg-theme-card/95 backdrop-blur-xl border border-theme-border rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
+                >
                     <div className="p-3 space-y-1">
                         <p className="text-[10px] uppercase tracking-widest text-theme-muted font-bold mb-2 ml-2">Temas Visuales</p>
                         {themes.map(t => (
                             <button
                                 key={t.id}
+                                role="menuitemradio"
+                                aria-checked={theme === t.id}
                                 onClick={() => handleThemeChange(t.id)}
-                                className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl transition-colors ${theme === t.id ? 'bg-theme-accent1/20 text-theme-accent1-500 font-semibold' : 'text-theme-text hover:bg-theme-border/50'}`}
+                                className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl transition-colors min-h-[44px] ${theme === t.id ? 'bg-theme-accent1/20 text-theme-accent1-500 font-semibold' : 'text-theme-text hover:bg-theme-border/50'}`}
                             >
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: t.color, border: '1px solid rgba(255,255,255,0.2)' }}>
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: t.color, border: '1px solid rgba(255,255,255,0.2)' }}>
                                     {theme === t.id && <span className="material-icons-round text-[12px] text-white mix-blend-difference">check</span>}
                                 </div>
-                                <span className="material-icons-round text-lg opacity-80">{t.icon}</span>
+                                <span className="material-icons-round text-lg opacity-80 shrink-0">{t.icon}</span>
                                 {t.label}
                             </button>
                         ))}

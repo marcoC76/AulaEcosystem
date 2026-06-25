@@ -31,7 +31,7 @@ export default function PinEncoder() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-theme-base overflow-hidden relative">
+        <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-theme-base overflow-hidden relative">
             {/* Background glow */}
             <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />

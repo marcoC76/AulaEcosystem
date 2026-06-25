@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { cn } from '../../lib/utils';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-import Fuse from 'fuse.js';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine,
     PieChart, Pie, Cell, Legend, BarChart, Bar
@@ -15,6 +14,7 @@ import { Select } from '../../components/ui/Select';
 import { Input } from '../../components/ui/Input';
 import { Stepper } from '../../components/ui/Stepper';
 import { Modal } from '../../components/ui/Modal';
+import { searchStudents, getUniqueGroups } from '../../lib/search';
 import type { ConfigOption, AttendanceRecord, ParcialConfig } from '../../types';
 
 type ExtendedAttendanceRecord = AttendanceRecord & { faltasCalculadas?: string[]; apellidoPaterno?: string; rachaFaltas?: number };
@@ -99,17 +99,15 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }, []);
 
-    const toggleFullscreen = () => {
+    const toggleFullscreen = useCallback(() => {
         if (!document.fullscreenElement) {
-            chartsContainerRef.current?.requestFullscreen().catch(err => {
-                console.error("Error al entrar a pantalla completa:", err);
-            });
+            chartsContainerRef.current?.requestFullscreen().catch(() => {});
         } else {
             document.exitFullscreen();
         }
-    };
+    }, []);
 
-    const handleJustifyAbsence = async (dateStr: string) => {
+    const handleJustifyAbsence = useCallback(async (dateStr: string) => {
         if (!selectedStudent) return;
         const confirmMsg = `¿Estás seguro de justificar la falta del ${dateStr}?`;
         if (!window.confirm(confirmMsg)) return;
@@ -141,9 +139,9 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             alert('Error al justificar la falta.');
             setIsLoading(false);
         }
-    };
+    }, [selectedStudent, selectedGroups, selectedTeacher, selectedSubject, mode, loadGroupData, loadStudentData]);
 
-    const handleDeleteAttendance = async (dateStr: string) => {
+    const handleDeleteAttendance = useCallback(async (dateStr: string) => {
         if (!selectedStudent) return;
         const confirmMsg = `¿Estás seguro de borrar la asistencia del ${new Date(dateStr).toLocaleString('es-MX')}?`;
         if (!window.confirm(confirmMsg)) return;
@@ -164,26 +162,20 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             alert('Error al borrar la asistencia.');
             setIsLoading(false);
         }
-    };
+    }, [selectedStudent, selectedSubject, mode, loadGroupData, loadStudentData]);
 
     useEffect(() => {
-        fetchAppConfig().then(setConfig);
+        fetchAppConfig().then(setConfig).catch(() => {});
         fetchParcialesConfig().then(parts => {
             setParciales(parts);
             if (parts.length > 0 && !localStorage.getItem('aulalook_selectedPeriod')) {
                 setSelectedPeriod(parts[0].id);
             }
-        });
+        }).catch(() => {});
         fetchStudentsDB().then(students => {
             setStudentsDB(students);
-            const uniqueGroups = Array.from(new Set(students.map(s => {
-                const sObj = s as any;
-                const careerKey = Object.keys(sObj).find(k => k.toLowerCase().includes('carrera') || k.toLowerCase().includes('especialidad'));
-                const specialty = careerKey && sObj[careerKey] ? String(sObj[careerKey]).trim() : '';
-                return specialty ? `${s.Grupo} - ${specialty}` : String(s.Grupo);
-            }))).filter(Boolean).sort();
-            setAvailableGroups(uniqueGroups);
-        });
+            setAvailableGroups(getUniqueGroups(students));
+        }).catch(() => {});
     }, []);
 
     // Reset pagination to page 1 on filter/sort changes
@@ -191,7 +183,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         setCurrentPage(1);
     }, [localSearchQuery, filterRisk, sortField, sortDir]);
 
-    const loadGroupData = async (periodId = selectedPeriod, groupsToFetch = selectedGroups) => {
+    async function loadGroupData(periodId = selectedPeriod, groupsToFetch = selectedGroups) {
         setIsLoading(true);
         try {
             if (groupsToFetch.length === 0) {
@@ -390,7 +382,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         }
     };
 
-    const loadStudentData = async (periodId = selectedPeriod) => {
+    async function loadStudentData(periodId = selectedPeriod) {
         if (!selectedSearchStudent) return;
         setIsLoading(true);
         try {
@@ -595,7 +587,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
 
     const handleBack = () => setStep(s => Math.max(0, s - 1));
 
-    const downloadReport = () => {
+    const downloadReport = useCallback(() => {
         const d = mode === 'group' ? data : studentModeData;
         const headers = mode === 'group'
             ? ['Control', 'Nombre', 'Grupo', 'Clases Totales', 'Asistencias', 'Porcentaje']
@@ -619,9 +611,9 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         document.body.appendChild(link);
         link.click();
         link.remove();
-    };
+    }, [mode, data, studentModeData, selectedGroups, selectedSubject, selectedSearchStudent]);
 
-    const downloadAbsenceReport = () => {
+    const downloadAbsenceReport = useCallback(() => {
         const d = mode === 'group' ? data : studentModeData;
         if (d.length === 0) return alert("No hay datos para exportar.");
 
@@ -667,10 +659,10 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    };
+    }, [mode, data, studentModeData, selectedGroups, selectedSearchStudent]);
 
     // Native PDF exporting function
-    const exportPDF = async () => {
+    const exportPDF = useCallback(async () => {
         const element = document.getElementById('dashboard-report-content');
         if (!element) return;
         setIsLoading(true);
@@ -682,7 +674,8 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             const canvas = await html2canvas(element, {
                 scale: 2,
                 useCORS: true,
-                backgroundColor: '#0b0f19' // maintain dark mode bg
+                backgroundColor: '#0b0f19',
+                foreignObjectRendering: true
             });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
@@ -710,9 +703,177 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             const noPrintElements = document.querySelectorAll('.no-print');
             noPrintElements.forEach(el => el.removeAttribute('data-html2canvas-ignore'));
         }
-    };
+    }, [mode, selectedGroups, selectedSearchStudent]);
 
-    // Generar reporte en formato sábana oficial de la SEP
+    // --- Search Helpers ---
+    const suggestions = useMemo(() => {
+        if (searchQuery.length < 2) return [];
+
+        const cleanStudents = studentsDB.map(student => {
+            const sObj = student as any;
+            const nameKey = Object.keys(sObj).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
+            const patKey = Object.keys(sObj).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
+            const matKey = Object.keys(sObj).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
+            const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
+
+            return {
+                ...student,
+                nombre: `${sObj[nameKey]} ${sObj[patKey]} ${sObj[matKey]}`.trim(),
+                control: controlKey ? String(sObj[controlKey]) : ''
+            };
+        });
+
+        const fuse = new Fuse(cleanStudents, {
+            keys: ['nombre', 'control'],
+            threshold: 0.4,
+            ignoreLocation: true
+        });
+
+        return fuse.search(searchQuery).slice(0, 5).map(r => r.item);
+    }, [studentsDB, searchQuery]);
+
+    // --- Derived Metrics ---
+    const activeData = useMemo(() => {
+        const base = mode === 'group' ? data : studentModeData;
+        return base.filter(item => {
+            let matchSearch = true;
+            if (localSearchQuery) {
+                const query = localSearchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                if (mode === 'group') {
+                    const name = (item['Nombre del Alumno'] || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const isControl = (item['Número de Control'] || '').toLowerCase().includes(query);
+                    matchSearch = name.includes(query) || isControl;
+                } else {
+                    const materia = (item.Materia || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const prof = (item.Profesor || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    matchSearch = materia.includes(query) || prof.includes(query);
+                }
+            }
+            if (!matchSearch) return false;
+            if (filterRisk === 'perfect' && item.Porcentaje < 1.0) return false;
+            if (filterRisk === 'risk' && item.Porcentaje >= 0.8) return false;
+            return true;
+        }).sort((a, b) => {
+            let fieldA: string | number = '';
+            let fieldB: string | number = '';
+            if (sortField === 'name') {
+                fieldA = mode === 'group' ? (a['Nombre del Alumno'] || '') : (a.Materia || '');
+                fieldB = mode === 'group' ? (b['Nombre del Alumno'] || '') : (b.Materia || '');
+            } else if (sortField === 'control') {
+                fieldA = mode === 'group' ? (a['Número de Control'] || '') : (a.Profesor || '');
+                fieldB = mode === 'group' ? (b['Número de Control'] || '') : (b.Profesor || '');
+            } else if (sortField === 'classes') {
+                fieldA = a.Asistencias;
+                fieldB = b.Asistencias;
+            } else if (sortField === 'percentage') {
+                fieldA = a.Porcentaje;
+                fieldB = b.Porcentaje;
+            }
+            if (typeof fieldA === 'string' && typeof fieldB === 'string') {
+                return sortDir === 'asc'
+                    ? fieldA.localeCompare(fieldB, 'es', { sensitivity: 'base' })
+                    : fieldB.localeCompare(fieldA, 'es', { sensitivity: 'base' });
+            }
+            return sortDir === 'asc' ? (fieldA as number) - (fieldB as number) : (fieldB as number) - (fieldA as number);
+        });
+    }, [mode, data, studentModeData, localSearchQuery, filterRisk, sortField, sortDir]);
+
+    const paginatedData = useMemo(() => {
+        return activeData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    }, [activeData, currentPage]);
+
+    const totalPages = Math.ceil(activeData.length / ITEMS_PER_PAGE);
+
+    const stats = useMemo(() => {
+        let totalAsistencias = 0;
+        const dateCounts: Record<string, { date: Date; count: number }> = {};
+        const wdCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+        activeData.forEach(d => {
+            totalAsistencias += d.Asistencias;
+            try {
+                const fechas = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
+                fechas.forEach((fReq: any) => {
+                    const fStr = typeof fReq === 'object' ? fReq.date : fReq;
+                    const dateObj = new Date(fStr);
+                    if (isNaN(dateObj.getTime())) return;
+                    const dateKey = dateObj.toISOString().split('T')[0];
+                    if (!dateCounts[dateKey]) dateCounts[dateKey] = { date: dateObj, count: 0 };
+                    dateCounts[dateKey].count++;
+                });
+            } catch (e) {}
+
+            if (d.faltasCalculadas) {
+                d.faltasCalculadas.forEach(f => {
+                    const parts = f.split('-');
+                    const dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    const wd = dt.getDay();
+                    if (wd >= 1 && wd <= 5) {
+                        wdCounts[wd as keyof typeof wdCounts]++;
+                    }
+                });
+            }
+        });
+
+        const totalItems = activeData.length;
+        const avgAttendance = totalItems ? activeData.reduce((acc, curr) => acc + curr.Porcentaje, 0) / totalItems : 0;
+        const atRisk = activeData.filter(d => d.Porcentaje < 0.8).length;
+        const perfect = activeData.filter(d => d.Porcentaje === 1.0).length;
+
+        const statusData = [
+            { name: 'Riesgo (<80%)', value: atRisk, color: '#ef4444' },
+            { name: 'Regular', value: totalItems - atRisk - perfect, color: '#eab308' },
+            { name: 'Perfecta', value: perfect, color: '#10b981' },
+        ];
+
+        const currentTimeline = Object.values(dateCounts).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        const weekdayData = [
+            { name: 'Lun', faltas: wdCounts[1] },
+            { name: 'Mar', faltas: wdCounts[2] },
+            { name: 'Mié', faltas: wdCounts[3] },
+            { name: 'Jue', faltas: wdCounts[4] },
+            { name: 'Vie', faltas: wdCounts[5] },
+        ];
+
+        return { totalItems, totalAsistencias, avgAttendance, atRisk, perfect, statusData, currentTimeline, weekdayData, dateCounts };
+    }, [activeData]);
+
+    const prevTimelineData = useMemo(() => {
+        const prevDateCounts: Record<string, { date: Date; count: number }> = {};
+        prevPeriodData.forEach(d => {
+            try {
+                const fechas = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
+                fechas.forEach((fReq: any) => {
+                    const fStr = typeof fReq === 'object' ? fReq.date : fReq;
+                    const dateObj = new Date(fStr);
+                    if (isNaN(dateObj.getTime())) return;
+                    const dateKey = dateObj.toISOString().split('T')[0];
+                    if (!prevDateCounts[dateKey]) prevDateCounts[dateKey] = { date: dateObj, count: 0 };
+                    prevDateCounts[dateKey].count++;
+                });
+            } catch (e) {}
+        });
+        return Object.values(prevDateCounts).sort((a, b) => a.date.getTime() - b.date.getTime());
+    }, [prevPeriodData]);
+
+    const timelineData = useMemo(() => {
+        const maxLen = Math.max(stats.currentTimeline.length, prevTimelineData.length);
+        const combined = [];
+        for (let i = 0; i < maxLen; i++) {
+            const currItem = stats.currentTimeline[i];
+            const prevItem = prevTimelineData[i];
+            combined.push({
+                name: currItem ? currItem.date.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }) : `Clase ${i + 1}`,
+                asistencias: currItem ? currItem.count : undefined,
+                asistenciasPrev: prevItem ? prevItem.count : undefined,
+            });
+        }
+        return combined;
+    }, [stats.currentTimeline, prevTimelineData]);
+
+    const { totalItems, totalAsistencias, avgAttendance, atRisk, perfect, statusData, weekdayData, dateCounts } = stats;
+
     const exportSabanaPDF = async () => {
         if (data.length === 0) {
             alert("No hay datos para exportar.");
@@ -721,12 +882,11 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         setIsLoading(true);
 
         try {
-            // Obtener fechas únicas ordenadas cronológicamente
             const classDates = Object.keys(dateCounts).sort();
             const periodName = parciales.find(p => p.id === selectedPeriod)?.nombre || `Parcial ${selectedPeriod}`;
             const studentInfo = data[0] || {};
             const planEstudios = studentInfo.Especialidad || 'RADIOLOGÍA E IMAGEN';
-            
+
             let groupTurn = 'VESPERTINO';
             if (selectedGroups.length > 0) {
                 const baseGroup = selectedGroups[0].split(' - ')[0].trim();
@@ -736,7 +896,6 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                 }
             }
 
-            // Crear un contenedor temporal visible pero detrás del fondo de la aplicación
             const container = document.createElement('div');
             container.style.position = 'fixed';
             container.style.top = '0';
@@ -745,8 +904,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             container.style.pointerEvents = 'none';
             document.body.appendChild(container);
 
-            // Ajustar alumnos por página para que quepa en un A4 horizontal sin desbordamiento
-            const STUDENTS_PER_PAGE = 18; 
+            const STUDENTS_PER_PAGE = 18;
             const totalPages = Math.ceil(data.length / STUDENTS_PER_PAGE);
             const weekdays = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 
@@ -768,7 +926,6 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                 const endIndex = Math.min(startIndex + STUDENTS_PER_PAGE, data.length);
                 const pageStudents = data.slice(startIndex, endIndex);
 
-                // HTML con logos SVG y diseño oficial
                 pageEl.innerHTML = `
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -797,29 +954,29 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                             <div style="display: grid; grid-template-columns: auto 1fr; gap: 2px 8px;">
                                 <span style="font-weight: bold; color: #333;">SUBSISTEMA:</span>
                                 <span>DIRECCIÓN GENERAL DE EDUCACIÓN TECNOLÓGICA INDUSTRIAL Y DE SERVICIOS</span>
-                                
+
                                 <span style="font-weight: bold; color: #333;">PLANTEL:</span>
                                 <span>CENTRO DE ESTUDIOS TECNOLÓGICOS INDUSTRIAL Y DE SERVICIOS NO. 76</span>
-                                
+
                                 <span style="font-weight: bold; color: #333;">PLAN DE ESTUDIOS:</span>
                                 <span style="text-transform: uppercase;">${planEstudios}</span>
-                                
+
                                 <span style="font-weight: bold; color: #333;">CLAVE DEL CENTRO DE TRABAJO:</span>
                                 <span>09DET0076M</span>
-                                
+
                                 <span style="font-weight: bold; color: #333;">ASIGNATURA O SUBMODULO:</span>
                                 <span style="text-transform: uppercase; font-weight: bold; color: #7a1c31;">${selectedSubject}</span>
                             </div>
                             <div style="display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-content: start;">
                                 <span style="font-weight: bold; color: #333;">GRUPO:</span>
                                 <span style="font-weight: bold;">${selectedGroups.join(', ')}</span>
-                                
+
                                 <span style="font-weight: bold; color: #333;">DOCENTE:</span>
                                 <span style="text-transform: uppercase;">${selectedTeacher}</span>
-                                
+
                                 <span style="font-weight: bold; color: #333;">TURNO:</span>
                                 <span>${groupTurn}</span>
-                                
+
                                 <span style="font-weight: bold; color: #333;">PERIODO:</span>
                                 <span>${periodName.toUpperCase()}</span>
                             </div>
@@ -854,11 +1011,11 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     const num = startIndex + idx + 1;
                                     const control = student['Número de Control'] || '';
                                     const name = student['Nombre del Alumno'] || '';
-                                    
+
                                     const studentDates = new Set<string>();
                                     const justifiedDates = new Set<string>();
                                     const historicoJustificado = new Set<string>();
-                                    
+
                                     try {
                                         const fechas = JSON.parse(student['Fechas y Horas de Asistencia'] || '[]');
                                         fechas.forEach((fReq: any) => {
@@ -872,7 +1029,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                 if (status === 'Justificado') {
                                                     justifiedDates.add(dateKey);
                                                 }
-                                                
+
                                                 if (status === 'Justificado' && typeof notes === 'string') {
                                                     const match = notes.match(/histórico \((.+?)\)/i);
                                                     if (match && match[1]) {
@@ -889,7 +1046,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     const colsHtml = classDates.map(dateKey => {
                                         let mark = '';
                                         let cellStyle = '';
-                                        
+
                                         if (studentDates.has(dateKey) && !justifiedDates.has(dateKey)) {
                                             mark = '/';
                                             ta++;
@@ -961,175 +1118,6 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         }
     };
 
-    // --- Search Helpers ---
-    const suggestions = useMemo(() => {
-        if (searchQuery.length < 2) return [];
-
-        const cleanStudents = studentsDB.map(student => {
-            const sObj = student as any;
-            const nameKey = Object.keys(sObj).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
-            const patKey = Object.keys(sObj).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
-            const matKey = Object.keys(sObj).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
-            const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
-
-            return {
-                ...student,
-                nombre: `${sObj[nameKey]} ${sObj[patKey]} ${sObj[matKey]}`.trim(),
-                control: controlKey ? String(sObj[controlKey]) : ''
-            };
-        });
-
-        const fuse = new Fuse(cleanStudents, {
-            keys: ['nombre', 'control'],
-            threshold: 0.4,
-            ignoreLocation: true
-        });
-
-        return fuse.search(searchQuery).slice(0, 5).map(r => r.item);
-    }, [studentsDB, searchQuery]);
-
-    // --- Derived Metrics ---
-    const baseActiveData = mode === 'group' ? data : studentModeData;
-    const activeData = baseActiveData.filter(item => {
-        let matchSearch = true;
-        if (localSearchQuery) {
-            const query = localSearchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            if (mode === 'group') {
-                const name = (item['Nombre del Alumno'] || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const isControl = (item['Número de Control'] || '').toLowerCase().includes(query);
-                matchSearch = name.includes(query) || isControl;
-            } else {
-                const materia = (item.Materia || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const prof = (item.Profesor || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                matchSearch = materia.includes(query) || prof.includes(query);
-            }
-        }
-
-        if (!matchSearch) return false;
-        if (filterRisk === 'perfect' && item.Porcentaje < 1.0) return false;
-        if (filterRisk === 'risk' && item.Porcentaje >= 0.8) return false;
-
-        return true;
-    }).sort((a, b) => {
-        let fieldA: any = '';
-        let fieldB: any = '';
-
-        if (sortField === 'name') {
-            fieldA = mode === 'group' ? (a['Nombre del Alumno'] || '') : (a.Materia || '');
-            fieldB = mode === 'group' ? (b['Nombre del Alumno'] || '') : (b.Materia || '');
-        } else if (sortField === 'control') {
-            fieldA = mode === 'group' ? (a['Número de Control'] || '') : (a.Profesor || '');
-            fieldB = mode === 'group' ? (b['Número de Control'] || '') : (b.Profesor || '');
-        } else if (sortField === 'classes') {
-            fieldA = a.Asistencias;
-            fieldB = b.Asistencias;
-        } else if (sortField === 'percentage') {
-            fieldA = a.Porcentaje;
-            fieldB = b.Porcentaje;
-        }
-
-        if (typeof fieldA === 'string' && typeof fieldB === 'string') {
-            return sortDir === 'asc'
-                ? fieldA.localeCompare(fieldB, 'es', { sensitivity: 'base' })
-                : fieldB.localeCompare(fieldA, 'es', { sensitivity: 'base' });
-        } else {
-            return sortDir === 'asc' ? fieldA - fieldB : fieldB - fieldA;
-        }
-    });
-
-    const paginatedData = useMemo(() => {
-        return activeData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-    }, [activeData, currentPage]);
-
-    const totalPages = Math.ceil(activeData.length / ITEMS_PER_PAGE);
-
-    const totalItems = activeData.length;
-    let totalAsistencias = 0;
-    const dateCounts: Record<string, { date: Date, count: number }> = {};
-    const wdCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }; // Mon-Fri
-
-    activeData.forEach(d => {
-        totalAsistencias += d.Asistencias;
-        try {
-            const fechas = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
-            fechas.forEach((fReq: any) => {
-                const fStr = typeof fReq === 'object' ? fReq.date : fReq;
-                const dateObj = new Date(fStr);
-                if (isNaN(dateObj.getTime())) return;
-                const dateKey = dateObj.toISOString().split('T')[0];
-                if (!dateCounts[dateKey]) dateCounts[dateKey] = { date: dateObj, count: 0 };
-                dateCounts[dateKey].count++;
-            });
-        } catch (e) { }
-
-        if (d.faltasCalculadas) {
-            d.faltasCalculadas.forEach(f => {
-                const parts = f.split('-');
-                const dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                const wd = dt.getDay();
-                if (wd >= 1 && wd <= 5) {
-                    wdCounts[wd as keyof typeof wdCounts]++;
-                }
-            });
-        }
-    });
-
-    const avgAttendance = totalItems ? activeData.reduce((acc, curr) => acc + curr.Porcentaje, 0) / totalItems : 0;
-    const atRisk = activeData.filter(d => d.Porcentaje < 0.8).length;
-    const perfect = activeData.filter(d => d.Porcentaje === 1.0).length;
-
-    const statusData = [
-        { name: 'Riesgo (<80%)', value: atRisk, color: '#ef4444' },
-        { name: 'Regular', value: totalItems - atRisk - perfect, color: '#eab308' },
-        { name: 'Perfecta', value: perfect, color: '#10b981' }
-    ];
-
-    const currentTimeline = Object.values(dateCounts)
-        .sort((a, b) => a.date.getTime() - b.date.getTime());
-
-    // Calculate previous period dates count
-    const prevDateCounts: Record<string, { date: Date, count: number }> = {};
-    prevPeriodData.forEach(d => {
-        try {
-            const fechas = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
-            fechas.forEach((fReq: any) => {
-                const fStr = typeof fReq === 'object' ? fReq.date : fReq;
-                const dateObj = new Date(fStr);
-                if (isNaN(dateObj.getTime())) return;
-                const dateKey = dateObj.toISOString().split('T')[0];
-                if (!prevDateCounts[dateKey]) prevDateCounts[dateKey] = { date: dateObj, count: 0 };
-                prevDateCounts[dateKey].count++;
-            });
-        } catch (e) {}
-    });
-
-    const prevTimeline = Object.values(prevDateCounts)
-        .sort((a, b) => a.date.getTime() - b.date.getTime());
-
-    // Merge current and previous timeline by index
-    const timelineData = useMemo(() => {
-        const maxLen = Math.max(currentTimeline.length, prevTimeline.length);
-        const combined = [];
-        for (let i = 0; i < maxLen; i++) {
-            const currItem = currentTimeline[i];
-            const prevItem = prevTimeline[i];
-            combined.push({
-                name: currItem ? currItem.date.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }) : `Clase ${i + 1}`,
-                asistencias: currItem ? currItem.count : undefined,
-                asistenciasPrev: prevItem ? prevItem.count : undefined
-            });
-        }
-        return combined;
-    }, [currentTimeline, prevTimeline]);
-
-    const weekdayData = [
-        { name: 'Lun', faltas: wdCounts[1] },
-        { name: 'Mar', faltas: wdCounts[2] },
-        { name: 'Mié', faltas: wdCounts[3] },
-        { name: 'Jue', faltas: wdCounts[4] },
-        { name: 'Vie', faltas: wdCounts[5] },
-    ];
-
     const getRiskColor = (percent: number) => {
         if (percent < 0.8) return 'text-red-500 bg-red-500/10 border-red-500/20';
         if (percent < 0.9) return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
@@ -1142,7 +1130,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
     }, [activeData]);
 
     return (
-        <div className="p-4 sm:p-6 pb-24 min-h-screen bg-transparent transition-all duration-300">
+        <div className="p-4 sm:p-6 pb-24 min-h-[100dvh] bg-transparent transition-all duration-300">
             {step < 3 ? (
                 <div className="max-w-2xl mx-auto mt-6 animate-fade-in-up transition-all duration-500">
                     {step === 0 && (
@@ -1272,7 +1260,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                                         );
                                                                     }}
                                                                     className={cn(
-                                                                        "px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer select-none transition-all duration-200 flex items-center gap-1",
+                                                                        "px-3 min-h-[44px] rounded-full border text-xs font-semibold cursor-pointer select-none transition-all duration-200 flex items-center gap-1",
                                                                         isSelected
                                                                             ? cn("shadow-md scale-[1.02]", colorScheme.active)
                                                                             : cn("bg-theme-border/20 border-theme-border text-theme-muted hover:bg-theme-border/40 hover:text-theme-text", colorScheme.hover)
@@ -1407,17 +1395,17 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     {parciales.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                                 </Select>
                             )}
-                            <Button variant="outline" onClick={() => { setStep(0); }} className="flex-1 sm:flex-none h-10">
+                            <Button variant="outline" onClick={() => { setStep(0); }} className="flex-1 sm:flex-none min-h-[44px]">
                                 <span className="material-icons-round text-sm mr-1">tune</span> Filtros
                             </Button>
-                            <Button onClick={downloadReport} className="flex-1 sm:flex-none bg-theme-accent2-600 hover:bg-theme-accent2-700 h-10">
+                            <Button onClick={downloadReport} className="flex-1 sm:flex-none bg-theme-accent2-600 hover:bg-theme-accent2-700 min-h-[44px]">
                                 <span className="material-icons-round text-sm mr-1">download</span> CSV
                             </Button>
-                            <Button onClick={exportPDF} className="flex-1 sm:flex-none bg-theme-accent1-600 hover:bg-theme-accent1-700 h-10">
+                            <Button onClick={exportPDF} className="flex-1 sm:flex-none bg-theme-accent1-600 hover:bg-theme-accent1-700 min-h-[44px]">
                                 <span className="material-icons-round text-sm mr-1">picture_as_pdf</span> PDF
                             </Button>
                             {mode === 'group' && (
-                                <Button onClick={exportSabanaPDF} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 h-10 text-white font-medium">
+                                <Button onClick={exportSabanaPDF} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 min-h-[44px] text-white font-medium">
                                     <span className="material-icons-round text-sm mr-1">grid_on</span> Sábana PDF
                                 </Button>
                             )}
@@ -1511,7 +1499,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                         <RechartsTooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
                                                         <ReferenceLine y={totalItems * 0.85} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'top', value: 'Umbral 85%', fill: '#ef4444', fontSize: 12 }} />
                                                         <Line type="monotone" name="Período Actual" dataKey="asistencias" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                                        {prevTimeline.length > 0 && (
+                                                        {prevTimelineData.length > 0 && (
                                                             <Line type="monotone" name="Período Anterior" dataKey="asistenciasPrev" stroke="#a855f7" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} />
                                                         )}
                                                     </LineChart>
@@ -1577,7 +1565,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             />
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-[18px] text-theme-muted">search</span>
                                         </div>
-                                        <Button onClick={downloadAbsenceReport} variant="outline" size="sm" className="h-9 gap-2 text-sm text-theme-accent1-400 hover:bg-theme-accent1-500/10 whitespace-nowrap">
+                                        <Button onClick={downloadAbsenceReport} variant="outline" size="sm" className="min-h-[44px] h-9 gap-2 text-sm text-theme-accent1-400 hover:bg-theme-accent1-500/10 whitespace-nowrap">
                                             <span className="material-icons-round text-[18px]">download</span> Faltas (CSV)
                                         </Button>
                                     </div>

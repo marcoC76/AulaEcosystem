@@ -14,11 +14,15 @@ export default function AulaPass() {
     const [searchQuery, setSearchQuery] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isDbLoading, setIsDbLoading] = useState(true);
     const [qrVersion, setQrVersion] = useState('1');
     const credentialRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        fetchStudentsDB().then(setDb);
+        fetchStudentsDB().then(result => {
+            setDb(result);
+            setIsDbLoading(false);
+        });
         getConfig().then(c => setQrVersion(c.qr_version || '1'));
     }, []);
 
@@ -135,7 +139,7 @@ export default function AulaPass() {
 
     if (!student) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-theme-base relative overflow-hidden animate-fade-in">
+            <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-theme-base relative overflow-hidden animate-fade-in">
                 {/* Ambient Glows */}
                 <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-theme-accent2-600/10 rounded-full blur-[120px] pointer-events-none" />
                 <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-theme-accent2-600/10 rounded-full blur-[120px] pointer-events-none" />
@@ -146,26 +150,36 @@ export default function AulaPass() {
                             <span className="material-icons-round text-5xl text-theme-accent2-400">badge</span>
                         </div>
                         <h1 className="text-3xl font-bold text-theme-text mb-2">Generar Credencial</h1>
-                        <p className="text-theme-muted">Ingresa tu Número de Control para continuar</p>
+                        <p className="text-theme-muted">{isDbLoading ? 'Cargando base de datos de alumnos...' : 'Ingresa tu Número de Control para continuar'}</p>
                     </div>
 
                     <Card className="border-theme-border bg-theme-card/80 backdrop-blur-xl shadow-2xl">
-                        <form onSubmit={handleSearch} className="p-6 space-y-4">
-                            <div className="space-y-2">
-                                <Input
-                                    type="text"
-                                    placeholder="Ej. 24309060760447"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="text-lg text-center font-mono tracking-widest"
-                                    autoFocus
-                                />
-                                {error && <p className="text-red-400 text-sm text-center animate-pulse">{error}</p>}
+                        {isDbLoading ? (
+                            <div className="p-6 space-y-5 animate-pulse">
+                                <div className="space-y-3">
+                                    <div className="h-12 w-full bg-theme-border rounded-xl" />
+                                    <div className="h-3 w-3/4 mx-auto bg-theme-border rounded-full" />
+                                </div>
+                                <div className="h-12 w-full bg-theme-border rounded-xl" />
                             </div>
-                            <Button type="submit" className="w-full bg-theme-accent2-600 hover:bg-theme-accent2-700 text-theme-text shadow-emerald-900/50">
-                                Buscar Alumno
-                            </Button>
-                        </form>
+                        ) : (
+                            <form onSubmit={handleSearch} className="p-6 space-y-4">
+                                <div className="space-y-2">
+                                    <Input
+                                        type="text"
+                                        placeholder="Ej. 24309060760447"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="text-lg text-center font-mono tracking-widest"
+                                        autoFocus
+                                    />
+                                    {error && <p className="text-red-400 text-sm text-center animate-pulse">{error}</p>}
+                                </div>
+                                <Button type="submit" className="w-full bg-theme-accent2-600 hover:bg-theme-accent2-700 text-theme-text shadow-emerald-900/50">
+                                    Buscar Alumno
+                                </Button>
+                            </form>
+                        )}
                     </Card>
                 </div>
             </div>
@@ -185,7 +199,7 @@ export default function AulaPass() {
     };
 
     return (
-        <div className="min-h-screen bg-theme-base p-4 pb-24 sm:py-12 flex flex-col items-center animate-fade-in relative overflow-hidden">
+        <div className="min-h-[100dvh] bg-theme-base p-4 pb-24 sm:py-12 flex flex-col items-center animate-fade-in relative overflow-hidden">
             {/* Ambient glows behind the credential */}
             <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[30rem] h-[30rem] bg-theme-accent2-600/10 rounded-full blur-[100px] pointer-events-none" />
             
@@ -215,7 +229,7 @@ export default function AulaPass() {
 
                 {/* Student Info */}
                 <div className="px-6 pt-6 pb-2 text-center relative">
-                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-gray-800 rounded-full border-4 border-gray-850 flex items-center justify-center shadow-lg">
+                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-theme-card rounded-full border-4 border-theme-border flex items-center justify-center shadow-lg">
                         <span className="material-icons-round text-5xl text-theme-muted">person</span>
                     </div>
 
@@ -227,13 +241,13 @@ export default function AulaPass() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-left">
-                        <div className="bg-gray-900/50 p-3 rounded-xl border border-gray-800">
+                        <div className="bg-theme-card/50 p-3 rounded-xl border border-theme-border">
                             <span className="block text-theme-muted/80 text-xs uppercase mb-1">Carrera</span>
-                            <span className="text-gray-200 font-medium capitalize block truncate">{student.Carrera}</span>
+                            <span className="text-theme-text font-medium capitalize block truncate">{student.Carrera}</span>
                         </div>
-                        <div className="bg-gray-900/50 p-3 rounded-xl border border-gray-800">
+                        <div className="bg-theme-card/50 p-3 rounded-xl border border-theme-border">
                             <span className="block text-theme-muted/80 text-xs uppercase mb-1">Grupo</span>
-                            <span className="text-gray-200 font-medium block truncate">{student.Grupo}</span>
+                            <span className="text-theme-text font-medium block truncate">{student.Grupo}</span>
                         </div>
                     </div>
                     <div className="mb-4">

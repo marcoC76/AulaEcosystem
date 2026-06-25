@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function LandingPage() {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 py-12 bg-theme-base overflow-x-hidden relative">
+        <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 py-12 bg-theme-base overflow-x-hidden relative">
             {/* Background ambient lighting */}
             <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-theme-accent1-600/10 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-theme-accent2-600/10 rounded-full blur-[120px] pointer-events-none" />
@@ -27,7 +27,7 @@ export default function LandingPage() {
                     {/* Alumno Card */}
                     <Link
                         to="/student"
-                        className="group relative flex flex-col items-center justify-center p-10 bg-theme-card/80 backdrop-blur-xl border border-theme-border hover:border-theme-accent2-500/30 rounded-[2.5rem] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-2 overflow-hidden"
+                        className="group relative flex flex-col items-center justify-center p-10 bg-theme-card/80 backdrop-blur-xl border border-theme-border hover:border-theme-accent2-500/30 rounded-[2.5rem] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
                     >
                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-theme-accent2-500/0 via-theme-accent2-500 to-theme-accent2-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-theme-accent2-500/10 to-theme-accent2-500/5 border border-theme-accent2-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
@@ -42,7 +42,7 @@ export default function LandingPage() {
                     {/* Docente Card */}
                     <Link
                         to="/teacher/scan"
-                        className="group relative flex flex-col items-center justify-center p-10 bg-theme-card/80 backdrop-blur-xl border border-theme-border hover:border-theme-accent1-500/30 rounded-[2.5rem] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 overflow-hidden"
+                        className="group relative flex flex-col items-center justify-center p-10 bg-theme-card/80 backdrop-blur-xl border border-theme-border hover:border-theme-accent1-500/30 rounded-[2.5rem] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
                     >
                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-theme-accent1-500/0 via-theme-accent1-500 to-theme-accent1-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-theme-accent1-500/10 to-theme-accent1-500/5 border border-theme-accent1-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
@@ -57,7 +57,7 @@ export default function LandingPage() {
                     {/* Consulta Card */}
                     <Link
                         to="/consulta/report"
-                        className="group relative flex flex-col items-center justify-center p-10 bg-theme-card/80 backdrop-blur-xl border border-theme-border hover:border-theme-accent3-500/30 rounded-[2.5rem] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-2 overflow-hidden"
+                        className="group relative flex flex-col items-center justify-center p-10 bg-theme-card/80 backdrop-blur-xl border border-theme-border hover:border-theme-accent3-500/30 rounded-[2.5rem] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
                     >
                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-theme-accent3-500/0 via-theme-accent3-500 to-theme-accent3-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-theme-accent3-500/10 to-theme-accent3-500/5 border border-theme-accent3-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">

@@ -20,7 +20,7 @@ export default function ConsultaLayout() {
     // Mostrar loading mientras se carga el PIN del config remoto
     if (pin === null) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-theme-base">
+            <div className="flex items-center justify-center min-h-[100dvh] bg-theme-base">
                 <div className="flex flex-col items-center gap-4 animate-pulse">
                     <span className="material-icons-round text-theme-accent3-500 text-5xl">sync</span>
                     <span className="text-theme-muted text-sm">Cargando configuración...</span>
@@ -38,7 +38,7 @@ export default function ConsultaLayout() {
             themeColor="purple"
             description="Ingresa el PIN de acceso para ver los reportes."
         >
-            <div className="flex flex-col min-h-screen bg-theme-base text-theme-text relative overflow-hidden">
+            <div className="flex flex-col min-h-[100dvh] bg-theme-base text-theme-text relative overflow-hidden">
                 {/* Ambient Background Glows */}
                 <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-theme-accent3-600/10 rounded-full blur-[120px] pointer-events-none" />
                 <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-theme-accent3-600/10 rounded-full blur-[120px] pointer-events-none" />
@@ -53,7 +53,7 @@ export default function ConsultaLayout() {
                         <Link
                             to="/consulta/report"
                             className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200",
+                                "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 active:scale-95",
                                 location.pathname.startsWith('/consulta/report')
                                     ? "bg-theme-accent3-600 text-white shadow-md shadow-purple-900/40"
                                     : "text-theme-muted hover:text-theme-text hover:bg-theme-muted/10"
@@ -65,7 +65,7 @@ export default function ConsultaLayout() {
                         <Link
                             to="/"
                             onClick={() => localStorage.removeItem('consulta_auth')}
-                            className="ml-4 flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-theme-muted hover:text-theme-text hover:bg-theme-muted/10 transition-all duration-200"
+                            className="ml-4 flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-theme-muted hover:text-theme-text hover:bg-theme-muted/10 transition-all duration-200 active:scale-95"
                         >
                             <span className="material-icons-round text-xl">logout</span>
                             Salir
@@ -75,7 +75,9 @@ export default function ConsultaLayout() {
 
                 {/* Main Content Area */}
                 <main className="flex-1 overflow-x-hidden pb-16 sm:pb-0">
-                    <Outlet />
+                    <div key={location.pathname} className="animate-fade-in">
+                        <Outlet />
+                    </div>
                 </main>
 
                 {/* Mobile Bottom Navbar */}
@@ -84,7 +86,7 @@ export default function ConsultaLayout() {
                         <Link
                             to="/consulta/report"
                             className={cn(
-                                "flex flex-col items-center justify-center w-full h-full gap-1 transition-colors duration-200",
+                                "flex flex-col items-center justify-center w-full h-full gap-1 transition-colors duration-200 active:scale-95",
                                 location.pathname.startsWith('/consulta/report') ? "text-theme-accent3-500" : "text-theme-muted/80 hover:text-gray-300"
                             )}
                         >
@@ -99,7 +101,7 @@ export default function ConsultaLayout() {
                         <Link
                             to="/"
                             onClick={() => localStorage.removeItem('consulta_auth')}
-                            className="flex flex-col items-center justify-center w-full h-full gap-1 text-theme-muted/80 hover:text-gray-300 transition-colors duration-200"
+                            className="flex flex-col items-center justify-center w-full h-full gap-1 text-theme-muted/80 hover:text-gray-300 transition-colors duration-200 active:scale-95"
                         >
                             <span className="material-icons-round text-xl">logout</span>
                             <span className="text-[10px] font-medium">Salir</span>

@@ -146,7 +146,7 @@ export const fetchStudentsDB = async (): Promise<StudentDBRecord[]> => {
             })
             .then(data => {
                 localStorage.setItem('cached_students_db', JSON.stringify(data));
-                console.log("Background cache of students DB updated successfully.");
+                if (import.meta.env.DEV) console.log("Background cache of students DB updated successfully.");
             })
             .catch(err => {
                 console.warn("Background update of students DB failed:", err);
@@ -199,7 +199,7 @@ export const sendAttendance = async (data: ScanPayload): Promise<boolean> => {
         const bodyParams = new URLSearchParams();
         bodyParams.append('payload', JSON.stringify(finalData));
 
-        console.log('Sending attendance POST:', url.toString());
+        if (import.meta.env.DEV) console.log('Sending attendance POST:', url.toString());
         const response = await fetch(url.toString(), {
             method: "POST",
             headers: {
@@ -211,7 +211,7 @@ export const sendAttendance = async (data: ScanPayload): Promise<boolean> => {
         // Autodebug
         try {
             const respText = await response.text();
-            console.log('Server response:', respText);
+            if (import.meta.env.DEV) console.log('Server response:', respText);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status} - ${respText.substring(0, 50)}`);
             }

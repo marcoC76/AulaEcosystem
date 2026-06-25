@@ -11,33 +11,80 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, className, fullScreenOnMobile = false }: ModalProps) {
+    const overlayRef = React.useRef<HTMLDivElement>(null)
+    const contentRef = React.useRef<HTMLDivElement>(null)
+    const closeBtnRef = React.useRef<HTMLButtonElement>(null)
+
+    React.useEffect(() => {
+        if (!isOpen) return
+
+        const previous = document.activeElement as HTMLElement | null
+
+        requestAnimationFrame(() => {
+            closeBtnRef.current?.focus()
+        })
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose()
+                return
+            }
+            if (e.key === 'Tab' && contentRef.current) {
+                const focusable = contentRef.current.querySelectorAll<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                )
+                if (focusable.length === 0) return
+                const first = focusable[0]
+                const last = focusable[focusable.length - 1]
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault()
+                    last.focus()
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault()
+                    first.focus()
+                }
+            }
+        }
+
+        document.addEventListener('keydown', handleKeyDown)
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown)
+            previous?.focus()
+        }
+    }, [isOpen, onClose])
+
     if (!isOpen) return null;
 
     return (
-        <div 
+        <div
+            ref={overlayRef}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 sm:p-4 animate-fade-in backdrop-blur-sm"
             onClick={onClose}
         >
             <div
+                ref={contentRef}
                 className={cn(
-                    "w-full flex flex-col bg-gray-900 shadow-2xl overflow-hidden animate-fade-in-up print-area",
+                    "w-full flex flex-col bg-theme-card shadow-2xl overflow-hidden animate-fade-in-up print-area",
                     fullScreenOnMobile ? "h-full rounded-none sm:h-auto sm:max-h-[85vh] sm:rounded-2xl sm:max-w-xl" : "max-h-[85vh] rounded-t-2xl sm:rounded-2xl max-w-xl self-end sm:self-auto",
                     className
                 )}
                 role="dialog"
                 aria-modal="true"
+                aria-label={title || 'Diálogo'}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex shrink-0 items-center justify-between p-4 border-b border-gray-800 bg-gray-850">
+                <div className="flex shrink-0 items-center justify-between p-4 border-b border-theme-border bg-theme-base/50">
                     <h2 className="text-xl font-semibold text-theme-text">{title}</h2>
                     <button
+                        ref={closeBtnRef}
                         onClick={onClose}
-                        className="rounded-full p-2 text-theme-muted hover:bg-gray-800 hover:text-theme-text transition-colors flex shrink-0 no-print"
+                        aria-label="Cerrar"
+                        className="rounded-full p-2.5 text-theme-muted hover:bg-theme-muted/10 hover:text-theme-text transition-colors flex shrink-0 no-print"
                     >
                         <span className="material-icons-round">close</span>
                     </button>
                 </div>
-                <div className="p-4 overflow-y-auto flex-1 bg-gray-900">
+                <div className="p-4 overflow-y-auto flex-1 bg-theme-card">
                     {children}
                 </div>
             </div>

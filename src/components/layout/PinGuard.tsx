@@ -61,7 +61,7 @@ export default function PinGuard({
     const glowColor = isBlue ? "rgba(59,130,246,0.5)" : "rgba(168,85,247,0.5)";
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-theme-base overflow-hidden animate-fade-in relative">
+        <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-theme-base overflow-hidden animate-fade-in relative">
             <div className={`absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] ${bgBlur} rounded-full blur-[120px] pointer-events-none`} />
             <div className={`absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] ${bgBlur} rounded-full blur-[120px] pointer-events-none`} />
 
@@ -83,19 +83,23 @@ export default function PinGuard({
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-2 text-left">
-                                <label className="text-xs font-semibold text-theme-muted/80 uppercase tracking-widest ml-1">PIN DE ACCESO</label>
+                                <label htmlFor="pin-input" className="text-xs font-semibold text-theme-muted/80 uppercase tracking-widest ml-1">PIN DE ACCESO</label>
                                 <input
+                                    id="pin-input"
                                     type="password"
+                                    autoComplete="one-time-code"
                                     placeholder="••••••"
                                     value={pin}
                                     onChange={(e) => {
                                         setPin(e.target.value);
                                         setError('');
                                     }}
+                                    aria-invalid={!!error}
+                                    aria-describedby={error ? 'pin-error' : undefined}
                                     className={`w-full px-5 py-4 bg-theme-base/50 border border-theme-border rounded-2xl focus:outline-none focus:ring-0 ${focusRing} transition-all duration-300 text-center text-2xl tracking-[0.5em] placeholder:text-theme-muted/50`}
                                     autoFocus
                                 />
-                                {error && <p className="text-sm font-medium text-red-500 text-center animate-pulse mt-2">{error}</p>}
+                                {error && <p id="pin-error" className="text-sm font-medium text-red-500 text-center animate-pulse mt-2" role="alert">{error}</p>}
                             </div>
 
                             <Button
