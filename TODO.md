@@ -9,7 +9,7 @@
 ### C-1. Reemplazar colores hardcodeados con variables de tema
 
 **Skills:** `tailwind-v4-patterns`
-
+    
 - [ ] **C-1a** — `AulaScan.tsx`: reemplazar `bg-slate-900`, `bg-slate-800`, `bg-slate-950` en el scanner card con `bg-gray-900` (oscuro fijo, no de tema) + variables `theme-*` para textos y bordes
 - [ ] **C-1b** — `AulaScan.tsx`: reemplazar colores fijos del status selector (emerald, orange, amber) con `text-theme-accent2-*`, `text-theme-warning-*`
 - [ ] **C-1c** — `AulaScan.tsx`: reemplazar colores del history y cards métricas (amber, red, blue) con `text-theme-warning-*`, `text-theme-accent1-*`, `bg-theme-*`
@@ -28,10 +28,10 @@ Carga la skill tailwind-v4-patterns. En AulaScan.tsx y AulaLook.tsx, cada subtar
 
 **Skills:** `frontend-developer`, `google-apps-script-bridge`
 
-- [ ] **C-2a** — `src/lib/search.ts`: eliminar dinámicas de keys `Object.keys(...).find(...)` creando interfaz `StudentDBRecordAccessors` con métodos tipados; reemplazar `as any`
-- [ ] **C-2b** — `src/pages/student/AulaPass.tsx`: reemplazar `as Record<string, any>` con acceso a `StudentDBRecord` directamente
-- [ ] **C-2c** — `src/pages/teacher/AulaScan.tsx`: reemplazar `as any` en `retryFailedScans` con acceso tipado a `StudentDBRecord`
-- [ ] **C-2d** — `src/pages/teacher/AulaLook.tsx`: reemplazar casteos `as any` en `loadGroupData` y `loadStudentData` usando helpers de `search.ts`
+- [x] **C-2a** — `src/lib/search.ts`: eliminar dinámicas de keys `Object.keys(...).find(...)` creando interfaz `StudentDBRecordAccessors` con métodos tipados; reemplazar `as any`
+- [x] **C-2b** — `src/pages/student/AulaPass.tsx`: reemplazar `as Record<string, any>` con acceso a `StudentDBRecord` directamente
+- [x] **C-2c** — `src/pages/teacher/AulaScan.tsx`: reemplazar `as any` en `retryFailedScans` con acceso tipado a `StudentDBRecord`
+- [x] **C-2d** — `src/pages/teacher/AulaLook.tsx`: reemplazar casteos `as any` en `loadGroupData` y `loadStudentData` usando helpers de `search.ts`
 
 **Prompt C-2:**
 ```
@@ -62,9 +62,9 @@ Carga la skill frontend-developer. Extrae de AulaLook.tsx (2271 líneas) los 5 c
 
 **Skills:** `frontend-developer`
 
-- [ ] **C-4a** — `src/lib/dataService.ts`: agregar `console.error` contextual en cada `.catch()` silencioso sin cambiar la lógica de fallback
-- [ ] **C-4b** — `src/pages/teacher/AulaScan.tsx`: agregar toasts de error en los `.catch()` de `fetchAppConfig`, `getConfig`, `fetchStudentsDB`
-- [ ] **C-4c** — `src/pages/teacher/AulaLook.tsx`: agregar toasts de error en los `.catch()` de `fetchAppConfig`, `fetchParcialesConfig`, `fetchStudentsDB`
+- [x] **C-4a** — `src/lib/dataService.ts`: agregar `console.error` contextual en cada `.catch()` silencioso sin cambiar la lógica de fallback
+- [x] **C-4b** — `src/pages/teacher/AulaScan.tsx`: agregar toasts de error en los `.catch()` de `fetchAppConfig`, `getConfig`, `fetchStudentsDB`
+- [x] **C-4c** — `src/pages/teacher/AulaLook.tsx`: agregar toasts de error en los `.catch()` de `fetchAppConfig`, `fetchParcialesConfig`, `fetchStudentsDB`
 
 **Prompt C-4:**
 ```
@@ -92,8 +92,8 @@ Carga la skill react-qr-scanner. En AulaPass.tsx línea 263 cambia level="L" a l
 
 **Skills:** `frontend-developer`
 
-- [ ] **H-2a** — `AulaLook.tsx:598` (`downloadReport`): agregar `"\uFEFF"` al inicio del CSV + convertir a Blob/URL
-- [ ] **H-2b** — `AulaScan.tsx:479` (`downloadCSVForDay`): agregar `"\uFEFF"` al inicio + convertir a Blob/URL
+- [x] **H-2a** — `AulaLook.tsx:598` (`downloadReport`): agregar `"\uFEFF"` al inicio del CSV + convertir a Blob/URL
+- [x] **H-2b** — `AulaScan.tsx:479` (`downloadCSVForDay`): agregar `"\uFEFF"` al inicio + convertir a Blob/URL
 
 **Prompt H-2:**
 ```
@@ -106,7 +106,7 @@ En AulaLook.tsx función downloadReport() y AulaScan.tsx función downloadCSVFor
 
 **Skills:** `pwa-offline-first`
 
-- [ ] **H-3** — `AulaScan.tsx`: modificar purga de historial (líneas 126-145) para limpiar también items `sent` con más de 7 días
+- [x] **H-3** — `AulaScan.tsx`: modificar purga de historial (líneas 126-145) para limpiar también items `sent` con más de 7 días
 
 **Prompt H-3:**
 ```
@@ -119,9 +119,9 @@ Carga la skill pwa-offline-first. En AulaScan.tsx, modifica la purga de historia
 
 **Skills:** `frontend-developer`
 
-- [ ] **H-4a** — Leer `useAnimatedMount.ts` y evaluar si es reusable
-- [ ] **H-4b** — Si aplica, integrarlo en `PinGuard.tsx` o `AulaScan.tsx` para reemplazar lógica manual de staggerEntrance
-- [ ] **H-4c** — Si no aplica, eliminar el archivo
+- [x] **H-4a** — Leer `useAnimatedMount.ts` y evaluar si es reusable
+- [x] **H-4b** — Si aplica, integrarlo en `PinGuard.tsx` o `AulaScan.tsx` para reemplazar lógica manual de staggerEntrance
+- [x] **H-4c** — Si no aplica, eliminar el archivo
 
 **Prompt H-4:**
 ```
@@ -132,26 +132,13 @@ Lee src/hooks/useAnimatedMount.ts para entender su API. Busca componentes que ha
 
 ## 🟢 Medium
 
-### M-1. AulaPass: búsqueda difusa por nombre
 
-**Skills:** `frontend-developer`
-
-- [ ] **M-1a** — `AulaPass.tsx`: integrar `searchStudents()` de `search.ts` para sugerencias cuando el input contenga letras o <10 dígitos
-- [ ] **M-1b** — `AulaPass.tsx`: agregar dropdown de sugerencias (mismo patrón que `AulaScan.tsx:698-714`)
-- [ ] **M-1c** — `AulaPass.tsx`: al seleccionar sugerencia, ejecutar `setStudent()` con el registro completo de `db`
-
-**Prompt M-1:**
-```
-En AulaPass.tsx, modifica el formulario de búsqueda para que cuando el input tenga letras o menos de 10 dígitos, use searchStudents() de ../../lib/search para mostrar sugerencias en un dropdown (como AulaScan.tsx líneas 698-714). Al seleccionar una sugerencia, busca el StudentDBRecord completo en db y llama a setStudent(). Verifica con npm run build.
-```
-
----
 
 ### M-2. Toast: botón de cerrar
 
 **Skills:** `frontend-developer`, `fixing-accessibility`
 
-- [ ] **M-2** — `Toast.tsx`: agregar botón "×" con `aria-label="Descartar notificación"` dentro de cada toast, que llame a `startExit(t.id)`
+- [x] **M-2** — `Toast.tsx`: agregar botón "×" con `aria-label="Descartar notificación"` dentro de cada toast, que llame a `startExit(t.id)`
 
 **Prompt M-2:**
 ```
@@ -164,7 +151,7 @@ Carga la skill fixing-accessibility. En Toast.tsx, dentro del div de cada toast 
 
 **Skills:** `frontend-developer`
 
-- [ ] **M-3** — `App.tsx`: mover `<ThemeSelector />` y `<ReloadPrompt />` a `TeacherLayout.tsx` y `ConsultaLayout.tsx`
+- [x] **M-3** — `App.tsx`: mover `<ThemeSelector />` y `<ReloadPrompt />` a `TeacherLayout.tsx` y `ConsultaLayout.tsx`
 
 **Prompt M-3:**
 ```
@@ -192,7 +179,7 @@ Crea src/components/layout/AppLayout.tsx con props: authKey, correctPin, encoder
 
 **Skills:** `design-taste-frontend`, `tailwind-v4-patterns`
 
-- [ ] **M-5** — `App.tsx`: agregar overlay fijo con SVG noise filter que herede `--grain-opacity` del tema
+- [x] **M-5** — `App.tsx`: agregar overlay fijo con SVG noise filter que herede `--grain-opacity` del tema
 
 **Prompt M-5:**
 ```
@@ -205,8 +192,8 @@ Carga la skill tailwind-v4-patterns. En App.tsx, agrega un div fijo con pointer-
 
 **Skills:** `frontend-developer`
 
-- [ ] **M-6a** — Crear `src/pages/NotFound.tsx` con diseño centrado: logo + mensaje + botón a `/`
-- [ ] **M-6b** — `App.tsx`: agregar `<Route path="*" element={<NotFound />} />` al final de Routes
+- [x] **M-6a** — Crear `src/pages/NotFound.tsx` con diseño centrado: logo + mensaje + botón a `/`
+- [x] **M-6b** — `App.tsx`: agregar `<Route path="*" element={<NotFound />} />` al final de Routes
 
 **Prompt M-6:**
 ```
@@ -221,8 +208,8 @@ Crea src/pages/NotFound.tsx con diseño centrado usando bg-theme-base, animate-f
 
 **Skill:** `pwa-offline-first`
 
-- [ ] **L-1a** — Crear `public/offline.html`: HTML estático con logo, "Sin conexión", botón reintentar
-- [ ] **L-1b** — `vite.config.ts`: agregar `offline.html` como offline page en VitePWA + configurar Workbox `navigateFallback`
+- [x] **L-1a** — Crear `public/offline.html`: HTML estático con logo, "Sin conexión", botón reintentar
+- [x] **L-1b** — `vite.config.ts`: agregar `offline.html` como offline page en VitePWA + configurar Workbox `navigateFallback`
 
 **Prompt L-1:**
 ```
@@ -235,8 +222,8 @@ Carga la skill pwa-offline-first. Crea public/offline.html con HTML estático, l
 
 **Skills:** `frontend-developer`
 
-- [ ] **L-2a** — Crear `src/components/ui/CookieConsent.tsx` con banner y localStorage
-- [ ] **L-2b** — `App.tsx`: renderizar `<CookieConsent />`
+- [x] **L-2a** — Crear `src/components/ui/CookieConsent.tsx` con banner y localStorage
+- [x] **L-2b** — `App.tsx`: renderizar `<CookieConsent />`
 
 **Prompt L-2:**
 ```
@@ -260,10 +247,10 @@ En package.json cambia "version": "0.0.0" a "version": "2.0.0".
 
 **Skills:** `frontend-developer`
 
-- [ ] **L-4a** — Instalar `vitest` + configurar en `vite.config.ts`
-- [ ] **L-4b** — Crear `src/lib/__tests__/utils.test.ts` para `cn()`
-- [ ] **L-4c** — Crear `src/lib/__tests__/search.test.ts` para `getStudentName` y `searchStudents`
-- [ ] **L-4d** — Agregar script `"test": "vitest run"` en `package.json`
+- [x] **L-4a** — Instalar `vitest` + configurar en `vite.config.ts`
+- [x] **L-4b** — Crear `src/lib/__tests__/utils.test.ts` para `cn()`
+- [x] **L-4c** — Crear `src/lib/__tests__/search.test.ts` para `getStudentName` y `searchStudents`
+- [x] **L-4d** — Agregar script `"test": "vitest run"` en `package.json`
 
 **Prompt L-4:**
 ```

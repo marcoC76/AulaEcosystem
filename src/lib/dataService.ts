@@ -150,7 +150,7 @@ export const fetchStudentsDB = async (): Promise<StudentDBRecord[]> => {
                 if (import.meta.env.DEV) console.log("Background cache of students DB updated successfully.");
             })
             .catch(err => {
-                console.warn("Background update of students DB failed:", err);
+                console.error("dataService: background update of students DB failed:", err);
             });
         return cached;
     }

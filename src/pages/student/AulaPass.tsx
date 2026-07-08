@@ -37,8 +37,7 @@ export default function AulaPass() {
         if (!term) return;
 
         const found = db.find(s => {
-            const extraS = s as Record<string, any>;
-            const studentId = extraS['No. Control'] || extraS['No. Control '] || '';
+            const studentId = s['No. Control'] || '';
             return String(studentId).trim().toLowerCase() === term;
         });
         if (found) {
@@ -164,7 +163,7 @@ export default function AulaPass() {
                         ) : (
                             <form onSubmit={handleSearch} className="p-6 space-y-4">
                                 <div className="space-y-2">
-                                    <label htmlFor="student-search" className="sr-only">Buscar alumno por ID</label>
+                                    <label htmlFor="student-search" className="sr-only">Buscar alumno por número de control</label>
                                     <Input
                                         id="student-search"
                                         type="text"

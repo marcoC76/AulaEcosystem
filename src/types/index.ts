@@ -35,6 +35,12 @@ export interface ParcialConfig {
     fin?: string;
 }
 
+export type ExtendedAttendanceRecord = AttendanceRecord & {
+    faltasCalculadas?: string[];
+    apellidoPaterno?: string;
+    rachaFaltas?: number;
+};
+
 export interface AppConfig {
     api_url: string;
     report_api_url: string;

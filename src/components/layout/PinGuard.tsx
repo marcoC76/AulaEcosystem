@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Button } from '../ui/Button';
-import { staggerEntrance, shakeElement } from '../../lib/animations';
+import { useAnimatedMount } from '../../hooks/useAnimatedMount';
+import { shakeElement } from '../../lib/animations';
 
 interface PinGuardProps {
     children: ReactNode;
@@ -24,10 +25,16 @@ export default function PinGuard({
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [pin, setPin] = useState('');
     const [error, setError] = useState('');
-    const formRef = useRef<HTMLDivElement>(null);
+    const formRef = useAnimatedMount<HTMLDivElement>({
+        selector: '.pin-stagger',
+        fromY: 24,
+        staggerDelay: 80,
+        startDelay: 100,
+        scale: [0.97, 1],
+        enabled: !isAuthenticated,
+    });
     const inputRef = useRef<HTMLInputElement>(null);
     const errorRef = useRef<HTMLParagraphElement>(null);
-    const hasAnimated = useRef(false);
 
     useEffect(() => {
         const auth = localStorage.getItem(authKey);
@@ -35,16 +42,6 @@ export default function PinGuard({
             setIsAuthenticated(true);
         }
     }, [authKey]);
-
-    useEffect(() => {
-        if (!hasAnimated.current && formRef.current) {
-            const children = formRef.current.querySelectorAll<HTMLElement>('.pin-stagger');
-            if (children.length) {
-                staggerEntrance(children, { fromY: 24, staggerDelay: 80, startDelay: 100, scale: [0.97, 1] });
-                hasAnimated.current = true;
-            }
-        }
-    }, []);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

@@ -63,13 +63,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             role="alert"
             aria-live="polite"
             className={cn(
-              "px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-2xl backdrop-blur-md pointer-events-auto",
+              "flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-2xl backdrop-blur-md pointer-events-auto",
               t.type === 'success' && "bg-emerald-900/90 border border-emerald-500/30 text-emerald-200",
               t.type === 'error' && "bg-red-900/90 border border-red-500/30 text-red-200",
               t.type === 'info' && "bg-theme-card/95 border border-theme-border text-theme-text"
             )}
           >
-            {t.message}
+            <span className="flex-1">{t.message}</span>
+            <button
+              onClick={() => startExit(t.id)}
+              aria-label="Descartar notificación"
+              className="shrink-0 ml-auto text-lg leading-none opacity-60 hover:opacity-100 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded"
+            >
+              &times;
+            </button>
           </div>
         ))}
       </div>
