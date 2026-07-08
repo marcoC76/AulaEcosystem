@@ -32,9 +32,7 @@ export default function PinEncoder() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-theme-base overflow-hidden relative">
-            {/* Background glow */}
-            <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-amber-600/[0.06] to-transparent pointer-events-none" />
 
             <div className="w-full max-w-[440px] z-10">
                 <div className="bg-theme-card border border-theme-border rounded-[2rem] shadow-2xl overflow-hidden relative">
@@ -71,7 +69,7 @@ export default function PinEncoder() {
                                         setCopied(false);
                                     }}
                                     onKeyDown={(e) => e.key === 'Enter' && handleEncode()}
-                                    className="w-full px-5 py-4 bg-gray-900 border border-theme-border rounded-2xl focus:outline-none focus:border-amber-500 text-theme-text transition-all duration-300 text-lg"
+                                    className="w-full px-5 py-4 bg-theme-base border border-theme-border rounded-2xl focus:outline-none focus:border-amber-500 text-theme-text transition-all duration-300 text-lg"
                                     autoFocus
                                 />
                             </div>
@@ -92,7 +90,7 @@ export default function PinEncoder() {
                                         VALOR CODIFICADO (Base64)
                                     </label>
                                     <div className="flex gap-2">
-                                        <div className="flex-1 px-4 py-3 bg-gray-900 border border-amber-500/30 rounded-xl text-amber-400 font-mono text-sm break-all select-all">
+                                        <div className="flex-1 px-4 py-3 bg-theme-base border border-amber-500/30 rounded-xl text-amber-400 font-mono text-sm break-all select-all">
                                             {encoded}
                                         </div>
                                         <button

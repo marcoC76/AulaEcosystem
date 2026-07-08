@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
-import { fetchAppConfig, sendAttendance, fetchStudentsDB, fetchParcialesConfig, type ParcialConfig, getConfig } from '../../lib/dataService';
+import { fetchAppConfig, sendAttendanceOfflineFirst, syncOfflineQueue, getOfflineQueueLength, fetchStudentsDB, fetchParcialesConfig, type ParcialConfig, getConfig } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -8,6 +8,9 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { cn } from '../../lib/utils';
 import { searchStudents, findStudentByControl, getStudentName, getStudentGrupo, getStudentEspecialidad } from '../../lib/search';
+import { Modal } from '../../components/ui/Modal';
+import { useToast } from '../../hooks/useToast';
+import { scanSuccessBurst, staggerEntrance } from '../../lib/animations';
 import type { ConfigOption, StudentDBRecord } from '../../types';
 
 // Audio Context for Beeps
@@ -56,9 +59,12 @@ interface ScanHistoryEntry {
     attendanceMode?: 'Asistencia' | 'Retardo';
     group?: string;
     specialty?: string;
+    queueId?: string;
 }
 
 export default function AulaScan() {
+    const { toast } = useToast();
+    const [showClearModal, setShowClearModal] = useState(false);
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
     const [masterQrVersion, setMasterQrVersion] = useState<string>('1');
     const [parcialesLocal, setParcialesLocal] = useState<ParcialConfig[]>([]);
@@ -80,8 +86,14 @@ export default function AulaScan() {
     const [attendanceStatus, setAttendanceStatus] = useState<'Asistencia' | 'Retardo'>('Asistencia');
     const [lastScanMsg, setLastScanMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [isKioskMode, setIsKioskMode] = useState(false);
+    const [queueCount, setQueueCount] = useState(getOfflineQueueLength());
 
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+
+    const todayStr = useMemo(() => {
+        const n = new Date();
+        return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+    }, []);
 
     useEffect(() => {
         fetchAppConfig().then(setConfig).catch(() => {});
@@ -203,7 +215,7 @@ export default function AulaScan() {
         if (selectedTeacher && selectedSubject && selectedParcial) {
             setIsConfigured(true);
         } else {
-            alert("Por favor selecciona todos los campos.");
+            toast("Por favor selecciona todos los campos.", "error");
         }
     };
 
@@ -268,36 +280,35 @@ export default function AulaScan() {
         // Optimistic history update
         setHistory(prev => [newEntry, ...prev]);
 
-        // Send to server
-        let success = false;
-        try {
-            success = await sendAttendance({
-                Time: new Date(),
-                No,
-                ID,
-                Gr,
-                Es,
-                Pe: selectedParcial,
-                Pro: selectedTeacher,
-                Ma: selectedSubject,
-                status: attendanceStatus
-            });
-            if (success) {
-                setLastScanMsg({ type: 'success', text: `Completado: ${No} OK` });
-                setTimeout(() => setLastScanMsg(null), 3000);
-            } else {
-                setLastScanMsg({ type: 'error', text: `Error: No se pudo registrar a ${No}` });
-            }
-        } catch (e: any) {
-            setLastScanMsg({ type: 'error', text: `Error de red: ${e.message.substring(0, 30)}` });
+        // Offline-first: send or queue
+        const { wasSent, wasQueued, queueId } = await sendAttendanceOfflineFirst({
+            Time: new Date(),
+            No,
+            ID,
+            Gr,
+            Es,
+            Pe: selectedParcial,
+            Pro: selectedTeacher,
+            Ma: selectedSubject,
+            status: attendanceStatus
+        });
+
+        if (wasSent) {
+            setLastScanMsg({ type: 'success', text: `Completado: ${No} OK` });
+            setTimeout(() => setLastScanMsg(null), 3000);
+        } else if (wasQueued) {
+            setLastScanMsg({ type: 'success', text: `Guardado localmente: ${No} (sin conexión)` });
+            setTimeout(() => setLastScanMsg(null), 3000);
         }
 
         // Update status
         setHistory(prev => prev.map(entry =>
             entry.id === ID && entry.time === newEntry.time
-                ? { ...entry, status: success ? 'sent' : 'error' }
+                ? { ...entry, status: wasSent ? 'sent' : 'pending', queueId }
                 : entry
         ));
+
+        setQueueCount(getOfflineQueueLength());
     };
 
     const onScanSuccess = (decodedText: string) => {
@@ -354,24 +365,38 @@ export default function AulaScan() {
     };
 
 
+    // Sincroniza la cola offline + actualiza el historial visual
+    const syncAndUpdate = async (): Promise<number> => {
+        const { sentIds } = await syncOfflineQueue();
+
+        // Marcar como 'sent' los history entries cuyo queueId fue enviado
+        if (sentIds.length > 0) {
+            setHistory(prev => prev.map(entry =>
+                entry.queueId && sentIds.includes(entry.queueId)
+                    ? { ...entry, status: 'sent' }
+                    : entry
+            ));
+        }
+
+        setQueueCount(getOfflineQueueLength());
+        return sentIds.length;
+    };
+
+    // Reintenta escaneos locales que quedaron pendientes
     const retryFailedScans = async () => {
         const n = new Date();
         const todayStr = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
         const todayItems = history.filter(h => h.date === todayStr && h.status === 'error');
-        
-        if (todayItems.length === 0) return;
 
-        setLastScanMsg({ type: 'success', text: `Reintentando ${todayItems.length} escaneos...` });
-        
-        // Marcar como pendientes visualmente
-        setHistory(prev => prev.map(entry => 
-            entry.date === todayStr && entry.status === 'error' 
-                ? { ...entry, status: 'pending' } 
-                : entry
-        ));
+        if (todayItems.length === 0 && getOfflineQueueLength() === 0) return;
 
+        setLastScanMsg({ type: 'success', text: 'Sincronizando...' });
+
+        // 1. Sincronizar cola offline
+        const sentFromQueue = await syncAndUpdate();
+
+        // 2. Reintentar los que están marcados como 'error' hoy
         let successCount = 0;
-
         for (const item of todayItems) {
             try {
                 let gr = item.group || 'N/A';
@@ -391,8 +416,8 @@ export default function AulaScan() {
                     }
                 }
 
-                const success = await sendAttendance({
-                    Time: new Date(), 
+                const { wasSent } = await sendAttendanceOfflineFirst({
+                    Time: new Date(),
                     No: item.name,
                     ID: item.id,
                     Gr: gr,
@@ -403,32 +428,27 @@ export default function AulaScan() {
                     status: item.attendanceMode || 'Asistencia'
                 });
 
-                if (success) {
-                    successCount++;
-                    setHistory(prev => prev.map(entry =>
-                        entry.id === item.id && entry.time === item.time && entry.date === item.date
-                            ? { ...entry, status: 'sent', group: gr, specialty: es }
-                            : entry
-                    ));
-                } else {
-                    setHistory(prev => prev.map(entry =>
-                        entry.id === item.id && entry.time === item.time && entry.date === item.date
-                            ? { ...entry, status: 'error' }
-                            : entry
-                    ));
-                }
-            } catch (e) {
-                 setHistory(prev => prev.map(entry =>
+                if (!wasSent) continue;
+
+                successCount++;
+                setHistory(prev => prev.map(entry =>
                     entry.id === item.id && entry.time === item.time && entry.date === item.date
-                        ? { ...entry, status: 'error' }
+                        ? { ...entry, status: 'sent', group: gr, specialty: es }
                         : entry
                 ));
+            } catch {
+                // leave as error
             }
         }
 
-        setLastScanMsg({ 
-            type: successCount === todayItems.length ? 'success' : 'error', 
-            text: `Reintento: ${successCount}/${todayItems.length} enviados.` 
+        setQueueCount(getOfflineQueueLength());
+
+        const totalSent = sentFromQueue + successCount;
+        setLastScanMsg({
+            type: totalSent > 0 ? 'success' : 'error',
+            text: totalSent > 0
+                ? `Sincronizados: ${totalSent} registro${totalSent !== 1 ? 's' : ''}`
+                : 'Sin cambios pendientes'
         });
         setTimeout(() => setLastScanMsg(null), 4000);
     };
@@ -439,7 +459,7 @@ export default function AulaScan() {
 
     useEffect(() => {
         const handleOnline = () => {
-            if (import.meta.env.DEV) console.log("Internet connection restored. Autosyncing failed scans...")
+            if (import.meta.env.DEV) console.log("Internet connection restored. Autosyncing...")
             retryRef.current()
         };
         window.addEventListener('online', handleOnline);
@@ -486,9 +506,29 @@ export default function AulaScan() {
         return groupedHistory[ts]?.length || 0;
     }, [groupedHistory]);
     const totalScans = history.length;
+    const metricsRef = useRef<HTMLDivElement>(null);
+    const historyRef = useRef<HTMLDivElement>(null);
+    const hasAnimatedMetrics = useRef(false);
+
+    useEffect(() => {
+        if (isConfigured && metricsRef.current && !hasAnimatedMetrics.current) {
+            const cards = metricsRef.current.querySelectorAll<HTMLElement>('.metrics-card');
+            if (cards.length) {
+                staggerEntrance(cards, { fromY: 24, staggerDelay: 80, scale: [0.95, 1] });
+                hasAnimatedMetrics.current = true;
+            }
+        }
+    }, [isConfigured]);
+
+    useEffect(() => {
+        if (lastScanMsg?.type === 'success' && metricsRef.current) {
+            const cards = metricsRef.current.querySelectorAll<HTMLElement>('.metrics-card');
+            cards.forEach(card => scanSuccessBurst(card));
+        }
+    }, [lastScanMsg]);
 
     return (
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24 space-y-6 animate-fade-in">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24 space-y-6">
 
             {!isConfigured ? (
                 <Card className="border-gray-700 shadow-xl mt-4">
@@ -530,17 +570,24 @@ export default function AulaScan() {
             ) : (
                 <div className="flex flex-col gap-6 mt-4">
                     {/* Metrics Dashboard */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in-up">
-                        <Card className="p-4 flex flex-col items-center justify-center border border-theme-border shadow-lg bg-theme-base/20">
+                    <div ref={metricsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <Card className="metrics-card p-4 flex flex-col items-center justify-center border border-theme-border shadow-lg bg-theme-base/20">
                             <span className="material-icons-round text-theme-accent1-500 mb-1 opacity-80">today</span>
                             <span className="text-2xl font-bold text-theme-text">{scansToday}</span>
                             <span className="text-[10px] text-theme-muted uppercase tracking-widest mt-1 font-semibold">Hoy</span>
                         </Card>
-                        <Card className="p-4 flex flex-col items-center justify-center border border-theme-border shadow-lg bg-theme-base/20">
+                        <Card className="metrics-card p-4 flex flex-col items-center justify-center border border-theme-border shadow-lg bg-theme-base/20">
                             <span className="material-icons-round text-theme-accent2-500 mb-1 opacity-80">storage</span>
                             <span className="text-2xl font-bold text-theme-text">{totalScans}</span>
                             <span className="text-[10px] text-theme-muted uppercase tracking-widest mt-1 font-semibold">En Memoria</span>
                         </Card>
+                        {queueCount > 0 && (
+                            <Card className="metrics-card p-4 flex flex-col items-center justify-center border border-amber-500/30 shadow-lg bg-amber-500/10">
+                                <span className="material-icons-round text-amber-400 mb-1 opacity-80">sync</span>
+                                <span className="text-2xl font-bold text-amber-400">{queueCount}</span>
+                                <span className="text-[10px] text-amber-400/80 uppercase tracking-widest mt-1 font-semibold">Pendientes</span>
+                            </Card>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -610,60 +657,28 @@ export default function AulaScan() {
 
                         {lastScanMsg && (
                             isKioskMode ? (
-                                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in">
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in pointer-events-none">
                                     <div className={cn(
-                                        "absolute inset-0 backdrop-blur-2xl transition-all duration-300",
-                                        lastScanMsg.type === 'success' ? "bg-emerald-950/90" : "bg-red-950/90"
+                                        "absolute inset-0 backdrop-blur-md transition-all duration-300",
+                                        lastScanMsg.type === 'success' ? "bg-emerald-950/80" : "bg-red-950/80"
                                     )} />
                                     <div className={cn(
-                                        "relative z-10 w-full max-w-2xl p-8 sm:p-12 rounded-3xl border-2 shadow-2xl flex flex-col items-center text-center gap-6 animate-scale-up",
+                                        "relative z-10 px-8 py-6 rounded-2xl border shadow-2xl text-center pointer-events-auto",
                                         lastScanMsg.type === 'success'
-                                            ? "bg-emerald-900/40 border-emerald-500/30 text-white"
-                                            : "bg-red-900/40 border-red-500/30 text-white"
+                                            ? "bg-emerald-900/60 border-emerald-500/20 text-white"
+                                            : "bg-red-900/60 border-red-500/20 text-white"
                                     )}>
-                                        {lastScanMsg.type === 'success' ? (
-                                            lastScanMsg.text.includes('Registrando') ? (
-                                                <div className="w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center animate-spin">
-                                                    <span className="material-icons-round text-5xl text-emerald-400">refresh</span>
-                                                </div>
-                                            ) : (
-                                                <div className="w-28 h-28 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-950/50 animate-bounce">
-                                                    <span className="material-icons-round text-6xl text-emerald-400">check_circle</span>
-                                                </div>
-                                            )
-                                        ) : (
-                                            <div className="w-28 h-28 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center shadow-lg shadow-red-950/50 animate-shake">
-                                                <span className="material-icons-round text-6xl text-red-400">error</span>
-                                            </div>
-                                        )}
-                                        
-                                        <div className="space-y-3">
-                                            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight uppercase">
-                                                {lastScanMsg.type === 'success' 
-                                                    ? (lastScanMsg.text.includes('Registrando') ? 'Procesando' : '¡Registro Exitoso!') 
-                                                    : 'Error de Escaneo'
-                                                }
-                                            </h2>
-                                            <p className="text-xl sm:text-2xl font-semibold opacity-90 leading-snug max-w-xl mx-auto">
-                                                {lastScanMsg.text}
-                                            </p>
-                                        </div>
+                                        <p className="text-xl font-semibold">{lastScanMsg.text}</p>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in-up">
+                                <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in pointer-events-none">
                                     <div className={cn(
-                                        "p-4 rounded-xl border shadow-2xl text-center font-bold text-lg flex flex-col items-center gap-2",
+                                        "px-4 py-3 rounded-xl shadow-2xl text-center font-semibold pointer-events-auto",
                                         lastScanMsg.type === 'success'
-                                            ? "bg-theme-accent2-900/95 backdrop-blur-md border-theme-accent2-500/50 text-white"
-                                            : "bg-red-900/95 backdrop-blur-md border-red-500 text-white shadow-red-900/50"
+                                            ? "bg-emerald-900/90 backdrop-blur-md border border-emerald-500/20 text-emerald-200"
+                                            : "bg-red-900/90 backdrop-blur-md border border-red-500/20 text-red-200"
                                     )}>
-                                        {lastScanMsg.type === 'success' 
-                                            ? (lastScanMsg.text.includes('Registrando') 
-                                                ? <span className="material-icons-round animate-spin text-2xl">refresh</span>
-                                                : <span className="material-icons-round text-3xl text-theme-accent2-400">check_circle</span>)
-                                            : <span className="material-icons-round text-3xl text-red-400">error</span>
-                                        }
                                         {lastScanMsg.text}
                                     </div>
                                 </div>
@@ -704,18 +719,17 @@ export default function AulaScan() {
 
                     {/* History view (Hidden in Kiosk) */}
                     {!isKioskMode && (
-                        <Card className="border-gray-700 shadow-xl flex flex-col max-h-[600px] overflow-hidden animate-fade-in">
+                        <Card ref={historyRef} className="border-gray-700 shadow-xl flex flex-col max-h-[600px] overflow-hidden">
                             <div className="flex items-center justify-between p-4 bg-theme-border/50 border-b border-theme-border">
                             <span className="font-semibold text-theme-text">Historial Reciente</span>
                             <div className="flex gap-2">
-                                {history.some(h => h.date === todayStr && h.status === 'error') && (
-                                    <Button variant="outline" size="sm" className="bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20" onClick={retryFailedScans}>
-                                        <span className="material-icons-round text-sm mr-1">sync_problem</span> Reintentar
+                                {(queueCount > 0 || history.some(h => h.date === todayStr && h.status === 'error')) && (
+                                    <Button variant="outline" size="sm" className="bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20" onClick={retryFailedScans}>
+                                        <span className="material-icons-round text-sm mr-1">sync</span>
+                                        Sincronizar{queueCount > 0 ? ` (${queueCount})` : ''}
                                     </Button>
                                 )}
-                                <Button variant="destructive" size="sm" onClick={() => {
-                                    if(confirm('¿Seguro que deseas eliminar absolutamente todo el historial del navegador?')) setHistory([]);
-                                }}>
+                                <Button variant="destructive" size="sm" onClick={() => setShowClearModal(true)}>
                                     Limpiar Todo
                                 </Button>
                             </div>
@@ -750,23 +764,23 @@ export default function AulaScan() {
                                                     <span className="material-icons-round text-xs mr-1 opacity-70">download</span> CSV
                                                 </Button>
                                             </div>
-                                            <div className="p-2 space-y-2">
+                                            <div>
                                                 {displayItems.map((entry, i) => (
-                                                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-theme-base/50 border border-theme-border">
-                                                        <div className="truncate pr-2">
-                                                            <p className="font-medium text-theme-text truncate text-sm flex items-center gap-2">
+                                                    <div key={i} className="data-row">
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm text-theme-text truncate flex items-center gap-2">
                                                                 {entry.name}
                                                                 {entry.attendanceMode === 'Retardo' && (
-                                                                    <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 rounded border border-yellow-500/30">RETARDO</span>
+                                                                    <span className="text-[10px] font-semibold text-yellow-500 bg-yellow-500/10 px-1.5 rounded">RETARDO</span>
                                                                 )}
                                                             </p>
                                                             <p className="text-xs text-theme-accent1-400 font-mono">{entry.id}</p>
                                                         </div>
-                                                        <div className="flex flex-col items-end shrink-0">
-                                                            <span className="text-[10px] text-theme-muted mb-1">{entry.time}</span>
-                                                            {entry.status === 'sent' && <span className="text-theme-accent2-400 text-xs bg-theme-accent2-400/10 px-2 py-0.5 rounded-full border border-theme-accent2-400/20">Registrado</span>}
-                                                            {entry.status === 'pending' && <span className="text-yellow-400 text-xs flex items-center gap-1"><span className="animate-spin material-icons-round text-[10px]">refresh</span> Enviando</span>}
-                                                            {entry.status === 'error' && <span className="text-red-400 text-xs bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20">Error Red</span>}
+                                                        <div className="flex items-center gap-3 shrink-0">
+                                                            <span className="text-xs text-theme-muted tabular-nums">{entry.time}</span>
+                                                            {entry.status === 'sent' && <span className="text-[11px] font-medium text-theme-accent2-400">Registrado</span>}
+                                                            {entry.status === 'pending' && <span className="text-[11px] font-medium text-yellow-400 flex items-center gap-1"><span className="animate-spin material-icons-round text-[12px]">refresh</span> Enviando</span>}
+                                                            {entry.status === 'error' && <span className="text-[11px] font-medium text-red-400">Error Red</span>}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -790,6 +804,29 @@ export default function AulaScan() {
                     </div>
                 </div>
             )}
+
+            <Modal isOpen={showClearModal} onClose={() => setShowClearModal(false)} title="Limpiar Historial">
+                <div className="space-y-4">
+                    <p className="text-theme-muted">
+                        ¿Seguro que deseas eliminar absolutamente todo el historial del navegador? Esta acción no se puede deshacer.
+                    </p>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="outline" onClick={() => setShowClearModal(false)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                setHistory([]);
+                                setShowClearModal(false);
+                                toast('Historial eliminado.', 'info');
+                            }}
+                        >
+                            Eliminar Todo
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

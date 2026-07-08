@@ -25,7 +25,7 @@ export function LiveClock() {
     });
 
     return (
-        <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-900/50 border border-gray-700 backdrop-blur-sm animate-pulse-slow">
+        <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-theme-base/50 backdrop-blur-sm">
             <div className="text-xl font-mono font-bold tracking-wider text-theme-accent2-400">
                 {timeString}
             </div>

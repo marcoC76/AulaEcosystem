@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
+import { animate } from 'animejs';
+import { spring } from 'animejs/easings';
 
 type Theme = 'dark' | 'light' | 'sunset' | 'ocean';
 
@@ -16,6 +18,7 @@ export function ThemeSelector() {
     const popupRef = useRef<HTMLDivElement>(null);
     const toggleRef = useRef<HTMLButtonElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
+    const iconRef = useRef<HTMLSpanElement>(null);
 
     useEffect(() => {
         const savedTheme = (localStorage.getItem('app_theme') as Theme) || 'dark';
@@ -43,11 +46,45 @@ export function ThemeSelector() {
         if (isOpen) {
             setShouldRender(true);
             requestAnimationFrame(() => {
-                listRef.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus()
+                if (iconRef.current) {
+                    animate(iconRef.current, {
+                        rotate: [0, 90],
+                        duration: 400,
+                        ease: spring({ mass: 1, stiffness: 120, damping: 14 }),
+                    });
+                }
+                if (listRef.current) {
+                    animate(listRef.current, {
+                        translateY: [8, 0],
+                        opacity: [0, 1],
+                        scale: [0.95, 1],
+                        duration: 300,
+                        ease: spring({ mass: 1, stiffness: 150, damping: 15 }),
+                    });
+                }
+                listRef.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
             })
         } else {
-            const timer = setTimeout(() => setShouldRender(false), 200);
-            return () => clearTimeout(timer);
+            if (iconRef.current) {
+                animate(iconRef.current, {
+                    rotate: [90, 0],
+                    duration: 300,
+                    ease: 'outQuad',
+                });
+            }
+            if (listRef.current) {
+                animate(listRef.current, {
+                    translateY: [0, 8],
+                    opacity: [1, 0],
+                    scale: [1, 0.95],
+                    duration: 200,
+                    ease: 'outQuad',
+                    complete: () => setShouldRender(false),
+                });
+            } else {
+                const timer = setTimeout(() => setShouldRender(false), 200);
+                return () => clearTimeout(timer);
+            }
         }
     }, [isOpen]);
 
@@ -76,7 +113,7 @@ export function ThemeSelector() {
                 aria-expanded={isOpen}
                 aria-haspopup="menu"
             >
-                <span className="material-icons-round text-theme-text opacity-80">palette</span>
+                <span ref={iconRef} className="material-icons-round text-theme-text opacity-80">palette</span>
             </button>
 
             {shouldRender && (
@@ -85,7 +122,7 @@ export function ThemeSelector() {
                     role="menu"
                     aria-label="Temas visuales"
                     onKeyDown={handleKeyDown}
-                    className={`absolute top-12 right-0 mt-2 w-48 bg-theme-card/95 backdrop-blur-xl border border-theme-border rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
+                    className="absolute top-12 right-0 mt-2 w-48 bg-theme-card/95 backdrop-blur-xl border border-theme-border rounded-2xl shadow-2xl overflow-hidden"
                 >
                     <div className="p-3 space-y-1">
                         <p className="text-[10px] uppercase tracking-widest text-theme-muted font-bold mb-2 ml-2">Temas Visuales</p>

@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "../../lib/utils"
+import { modalEnter, modalExit } from "../../lib/animations"
 
 interface ModalProps {
     isOpen: boolean;
@@ -14,15 +15,38 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreenO
     const overlayRef = React.useRef<HTMLDivElement>(null)
     const contentRef = React.useRef<HTMLDivElement>(null)
     const closeBtnRef = React.useRef<HTMLButtonElement>(null)
+    const [mounted, setMounted] = React.useState(false)
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setMounted(true)
+            requestAnimationFrame(() => {
+                if (overlayRef.current && contentRef.current) {
+                    overlayRef.current.style.opacity = '0'
+                    contentRef.current.style.opacity = '0'
+                    contentRef.current.style.transform = 'translateY(30px) scale(0.95)'
+
+                    modalEnter(overlayRef.current, contentRef.current)
+                }
+                requestAnimationFrame(() => {
+                    closeBtnRef.current?.focus()
+                })
+            })
+        } else {
+            if (overlayRef.current && contentRef.current) {
+                modalExit(overlayRef.current, contentRef.current)
+                setTimeout(() => setMounted(false), 300)
+            } else {
+                setMounted(false)
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen])
 
     React.useEffect(() => {
         if (!isOpen) return
 
         const previous = document.activeElement as HTMLElement | null
-
-        requestAnimationFrame(() => {
-            closeBtnRef.current?.focus()
-        })
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
@@ -53,18 +77,18 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreenO
         }
     }, [isOpen, onClose])
 
-    if (!isOpen) return null;
+    if (!mounted) return null;
 
     return (
         <div
             ref={overlayRef}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 sm:p-4 animate-fade-in backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 sm:p-4 backdrop-blur-sm"
             onClick={onClose}
         >
             <div
                 ref={contentRef}
                 className={cn(
-                    "w-full flex flex-col bg-theme-card shadow-2xl overflow-hidden animate-fade-in-up print-area",
+                    "w-full flex flex-col bg-theme-card shadow-2xl overflow-hidden print-area",
                     fullScreenOnMobile ? "h-full rounded-none sm:h-auto sm:max-h-[85vh] sm:rounded-2xl sm:max-w-xl" : "max-h-[85vh] rounded-t-2xl sm:rounded-2xl max-w-xl self-end sm:self-auto",
                     className
                 )}

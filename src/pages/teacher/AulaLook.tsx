@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { cn } from '../../lib/utils';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { applyPlugin } from 'jspdf-autotable';
+applyPlugin(jsPDF);
 
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine,
@@ -12,14 +14,16 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Input } from '../../components/ui/Input';
-import { Stepper } from '../../components/ui/Stepper';
 import { Modal } from '../../components/ui/Modal';
+import { useToast } from '../../hooks/useToast';
 import { searchStudents, getUniqueGroups } from '../../lib/search';
 import type { ConfigOption, AttendanceRecord, ParcialConfig } from '../../types';
 
 type ExtendedAttendanceRecord = AttendanceRecord & { faltasCalculadas?: string[]; apellidoPaterno?: string; rachaFaltas?: number };
 
 export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean }) {
+    const { toast } = useToast();
+    const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
     const [config, setConfig] = useState<{ profesores: ConfigOption[], materias: ConfigOption[] }>({ profesores: [], materias: [] });
     const [parciales, setParciales] = useState<ParcialConfig[]>([]);
     
@@ -109,60 +113,64 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
 
     const handleJustifyAbsence = useCallback(async (dateStr: string) => {
         if (!selectedStudent) return;
-        const confirmMsg = `¿Estás seguro de justificar la falta del ${dateStr}?`;
-        if (!window.confirm(confirmMsg)) return;
+        setConfirmAction({
+            message: `¿Estás seguro de justificar la falta del ${dateStr}?`,
+            onConfirm: async () => {
+                try {
+                    setIsLoading(true);
+                    const control = selectedStudent['Número de Control'];
+                    const { Grupo, Especialidad, Profesor, Materia } = selectedStudent;
 
-        try {
-            setIsLoading(true);
-            const control = selectedStudent['Número de Control'];
-            const { Grupo, Especialidad, Profesor, Materia } = selectedStudent;
+                    await insertJustifiedAbsence({
+                        No: String(selectedStudent['Nombre del Alumno'] || ''),
+                        ID: String(control),
+                        Gr: String(Grupo || (selectedGroups[0] || '')),
+                        Es: String(Especialidad || ''),
+                        Pe: 1,
+                        Pro: String(Profesor || selectedTeacher),
+                        Ma: String(Materia || selectedSubject),
+                        date: dateStr
+                    });
 
-            await insertJustifiedAbsence({
-                No: String(selectedStudent['Nombre del Alumno'] || ''),
-                ID: String(control),
-                Gr: String(Grupo || (selectedGroups[0] || '')),
-                Es: String(Especialidad || ''),
-                Pe: 1,
-                Pro: String(Profesor || selectedTeacher),
-                Ma: String(Materia || selectedSubject),
-                date: dateStr
-            });
-
-            setSelectedStudent(null);
-            if (mode === 'group') {
-                await loadGroupData();
-            } else {
-                await loadStudentData();
+                    setSelectedStudent(null);
+                    if (mode === 'group') {
+                        await loadGroupData();
+                    } else {
+                        await loadStudentData();
+                    }
+                } catch (error) {
+                    console.error('Error justificando falta:', error);
+                    toast('Error al justificar la falta.', 'error');
+                    setIsLoading(false);
+                }
             }
-        } catch (error) {
-            console.error('Error justificando falta:', error);
-            alert('Error al justificar la falta.');
-            setIsLoading(false);
-        }
-    }, [selectedStudent, selectedGroups, selectedTeacher, selectedSubject, mode, loadGroupData, loadStudentData]);
+        });
+    }, [selectedStudent, selectedGroups, selectedTeacher, selectedSubject, mode]);
 
     const handleDeleteAttendance = useCallback(async (dateStr: string) => {
         if (!selectedStudent) return;
-        const confirmMsg = `¿Estás seguro de borrar la asistencia del ${new Date(dateStr).toLocaleString('es-MX')}?`;
-        if (!window.confirm(confirmMsg)) return;
+        setConfirmAction({
+            message: `¿Estás seguro de borrar la asistencia del ${new Date(dateStr).toLocaleString('es-MX')}?`,
+            onConfirm: async () => {
+                try {
+                    setIsLoading(true);
+                    const materia = selectedStudent.Materia || selectedSubject;
+                    await deleteAttendanceRecord(materia, String(selectedStudent['Número de Control']), dateStr);
 
-        try {
-            setIsLoading(true);
-            const materia = selectedStudent.Materia || selectedSubject;
-            await deleteAttendanceRecord(materia, String(selectedStudent['Número de Control']), dateStr);
-
-            setSelectedStudent(null);
-            if (mode === 'group') {
-                await loadGroupData();
-            } else {
-                await loadStudentData();
+                    setSelectedStudent(null);
+                    if (mode === 'group') {
+                        await loadGroupData();
+                    } else {
+                        await loadStudentData();
+                    }
+                } catch (error) {
+                    console.error('Error borrando asistencia:', error);
+                    toast('Error al borrar la asistencia.', 'error');
+                    setIsLoading(false);
+                }
             }
-        } catch (error) {
-            console.error('Error borrando asistencia:', error);
-            alert('Error al borrar la asistencia.');
-            setIsLoading(false);
-        }
-    }, [selectedStudent, selectedSubject, mode, loadGroupData, loadStudentData]);
+        });
+    }, [selectedStudent, selectedSubject, mode]);
 
     useEffect(() => {
         fetchAppConfig().then(setConfig).catch(() => {});
@@ -376,7 +384,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             }
         } catch (error) {
             console.error('Error cargando datos de grupo:', error);
-            alert('Error al cargar los datos del grupo.');
+            toast('Error al cargar los datos del grupo.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -555,7 +563,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             }
         } catch (error) {
             console.error('Error cargando datos de alumno:', error);
-            alert('Error al cargar los datos del alumno.');
+            toast('Error al cargar los datos del alumno.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -576,7 +584,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             }
         } else {
             if (!selectedSearchStudent) {
-                alert("Por favor selecciona un alumno primero.");
+                toast("Por favor selecciona un alumno primero.", "error");
                 return;
             }
             setStep(3);
@@ -615,7 +623,10 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
 
     const downloadAbsenceReport = useCallback(() => {
         const d = mode === 'group' ? data : studentModeData;
-        if (d.length === 0) return alert("No hay datos para exportar.");
+        if (d.length === 0) {
+        toast("No hay datos para exportar.", "error");
+        return;
+    }
 
         const headers = mode === 'group'
             ? ["Control", "Alumno", "Grupo", "Clases Impartidas", "Asistencias", "Porcentaje (%)", "Total Faltas", "Fechas Ausentes"]
@@ -661,75 +672,200 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         document.body.removeChild(link);
     }, [mode, data, studentModeData, selectedGroups, selectedSearchStudent]);
 
-    // Native PDF exporting function
-    const exportPDF = useCallback(async () => {
-        const element = document.getElementById('dashboard-report-content');
-        if (!element) return;
+    const exportPDF = useCallback(() => {
+        const d = mode === 'group' ? data : studentModeData;
+        if (d.length === 0) {
+            toast('No hay datos para exportar.', 'error');
+            return;
+        }
         setIsLoading(true);
         try {
-            // Hide buttons or elements with "no-print" class
-            const noPrintElements = document.querySelectorAll('.no-print');
-            noPrintElements.forEach(el => el.setAttribute('data-html2canvas-ignore', 'true'));
-
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#0b0f19',
-                foreignObjectRendering: true
-            });
-            const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgWidth = 210; // A4 size page width in mm
-            const pageHeight = 297; // A4 size page height in mm
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 14;
+            const contentWidth = pageWidth - margin * 2;
+            let y = margin;
 
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+            const periodName = parciales.find(p => p.id === selectedPeriod)?.nombre || `Parcial ${selectedPeriod}`;
+            const title = mode === 'group' ? 'Reporte de Asistencia' : 'Kárdex de Asistencia';
+            const subtitle = mode === 'group'
+                ? `${selectedTeacher} • ${selectedSubject} • ${selectedGroups.join(', ')}`
+                : `${selectedSearchStudent?.nombre} • Control: ${selectedSearchStudent?.control}`;
 
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-            pdf.save(`Reporte_Asistencia_${mode === 'group' ? selectedGroups.join('_') : selectedSearchStudent?.nombre}.pdf`);
+            // ── Header ──
+            pdf.setFontSize(16);
+            pdf.setTextColor(122, 28, 49);
+            pdf.text('CETIS No. 76', margin, y);
+            y += 6;
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text('Control de Asistencias - Sistema AulaEcosystem', margin, y);
+            y += 10;
+
+            // Title
+            pdf.setFontSize(14);
+            pdf.setTextColor(30, 30, 30);
+            pdf.text(title, margin, y);
+            y += 6;
+            pdf.setFontSize(9);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(subtitle, margin, y);
+            y += 5;
+            pdf.text(`Período: ${periodName}`, margin, y);
+            y += 12;
+
+            // ── KPI Summary ──
+            const totalItems = d.length;
+            const totalAsistencias = d.reduce((sum, item) => sum + (item.Asistencias || 0), 0);
+            const avgAttendance = totalItems ? d.reduce((sum, item) => sum + (item.Porcentaje || 0), 0) / totalItems : 0;
+            const atRisk = d.filter(item => (item.Porcentaje || 0) < 0.8).length;
+            const kpiData = [
+                { label: mode === 'group' ? 'Alumnos' : 'Materias', value: totalItems },
+                { label: 'Asistencias', value: totalAsistencias },
+                { label: 'Promedio', value: `${(avgAttendance * 100).toFixed(1)}%` },
+                { label: 'En Riesgo', value: atRisk },
+            ];
+            const kpiBoxWidth = (contentWidth - 12) / 4;
+            kpiData.forEach((kpi, i) => {
+                const x = margin + i * (kpiBoxWidth + 4);
+                const colors = [
+                    { bg: [59, 130, 246], text: [255, 255, 255] },
+                    { bg: [16, 185, 129], text: [255, 255, 255] },
+                    { bg: [99, 102, 241], text: [255, 255, 255] },
+                    { bg: [239, 68, 68], text: [255, 255, 255] },
+                ];
+                const c = colors[i];
+                pdf.setFillColor(c.bg[0], c.bg[1], c.bg[2]);
+                pdf.roundedRect(x, y, kpiBoxWidth, 18, 2, 2, 'F');
+                pdf.setFontSize(7);
+                pdf.setTextColor(c.text[0], c.text[1], c.text[2]);
+                pdf.text(kpi.label, x + 3, y + 6);
+                pdf.setFontSize(12);
+                pdf.setFont('Helvetica', 'bold');
+                pdf.text(String(kpi.value), x + 3, y + 16);
+                pdf.setFont('Helvetica', 'normal');
+            });
+            y += 28;
+
+            // ── Student Table ──
+            const headers = mode === 'group'
+                ? [['No.', 'Control', 'Nombre del Alumno', 'Grupo', 'Clases', 'Asistencias', '%']]
+                : [['No.', 'Materia', 'Profesor', 'Clases', 'Asistencias', '%']];
+
+            const rows = d.map((item, idx) => {
+                if (mode === 'group') {
+                    return [
+                        String(idx + 1),
+                        item['Número de Control'],
+                        item['Nombre del Alumno'] || '',
+                        item.Grupo || '',
+                        String(item['Total de Clases'] || 0),
+                        String(item.Asistencias || 0),
+                        `${(item.Porcentaje * 100).toFixed(0)}%`,
+                    ];
+                }
+                return [
+                    String(idx + 1),
+                    item.Materia || '',
+                    item.Profesor || '',
+                    String(item['Total de Clases'] || 0),
+                    String(item.Asistencias || 0),
+                    `${(item.Porcentaje * 100).toFixed(0)}%`,
+                ];
+            });
+
+            const pctColIdx = mode === 'group' ? 6 : 5;
+
+            (pdf as any).autoTable({
+                head: headers,
+                body: rows,
+                startY: y,
+                margin: { left: margin, right: margin },
+                tableWidth: contentWidth,
+                styles: {
+                    fontSize: 7.5,
+                    cellPadding: 2.5,
+                    lineColor: [210, 210, 210],
+                    lineWidth: 0.3,
+                    textColor: [50, 50, 50],
+                    font: 'helvetica',
+                },
+                headStyles: {
+                    fillColor: [30, 30, 30],
+                    textColor: [255, 255, 255],
+                    fontSize: 7.5,
+                    fontStyle: 'bold',
+                    halign: 'center',
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 10 },
+                    ...(mode === 'group' ? {
+                        1: { halign: 'center', cellWidth: 24 },
+                        2: { cellWidth: 58 },
+                        3: { halign: 'center', cellWidth: 16 },
+                        4: { halign: 'center', cellWidth: 14 },
+                        5: { halign: 'center', cellWidth: 16 },
+                        6: { halign: 'center', cellWidth: 12 },
+                    } : {
+                        1: { cellWidth: 50 },
+                        2: { cellWidth: 40 },
+                        3: { halign: 'center', cellWidth: 16 },
+                        4: { halign: 'center', cellWidth: 16 },
+                        5: { halign: 'center', cellWidth: 12 },
+                    }),
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 248, 248],
+                },
+                didParseCell: (data: any) => {
+                    if (data.section === 'body' && data.column.index === pctColIdx) {
+                        const valStr = data.cell.text[0]?.replace('%', '');
+                        const val = parseFloat(valStr);
+                        if (!isNaN(val) && val < 80) {
+                            data.cell.styles.textColor = [220, 38, 38];
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.fillColor = [254, 242, 242];
+                        } else if (!isNaN(val) && val < 90) {
+                            data.cell.styles.textColor = [202, 138, 4];
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    }
+                },
+                didDrawPage: (data: any) => {
+                    const pageCount = (pdf as any).internal.getNumberOfPages();
+                    pdf.setFontSize(7);
+                    pdf.setTextColor(160, 160, 160);
+                    pdf.text(
+                        `Generado por AulaEcosystem • ${new Date().toLocaleString('es-MX')}`,
+                        margin,
+                        pageHeight - 8
+                    );
+                    pdf.text(
+                        `Página ${data.pageNumber} de ${pageCount}`,
+                        pageWidth - margin,
+                        pageHeight - 8,
+                        { align: 'right' }
+                    );
+                },
+            });
+
+            const filename = mode === 'group'
+                ? `Reporte_Asistencia_${selectedGroups.join('_')}.pdf`
+                : `Reporte_Asistencia_${selectedSearchStudent?.nombre || 'alumno'}.pdf`;
+            pdf.save(filename);
         } catch (error) {
             console.error('Error al generar PDF:', error);
-            alert('Hubo un error al generar el PDF.');
+            toast('Hubo un error al generar el PDF.', 'error');
         } finally {
             setIsLoading(false);
-            const noPrintElements = document.querySelectorAll('.no-print');
-            noPrintElements.forEach(el => el.removeAttribute('data-html2canvas-ignore'));
         }
-    }, [mode, selectedGroups, selectedSearchStudent]);
+    }, [mode, data, studentModeData, selectedGroups, selectedSearchStudent, selectedTeacher, selectedSubject, selectedPeriod, parciales]);
 
     // --- Search Helpers ---
     const suggestions = useMemo(() => {
         if (searchQuery.length < 2) return [];
-
-        const cleanStudents = studentsDB.map(student => {
-            const sObj = student as any;
-            const nameKey = Object.keys(sObj).find(k => k.toLowerCase().includes('nombre')) || 'Nombre(s)';
-            const patKey = Object.keys(sObj).find(k => k.toLowerCase().includes('paterno')) || 'Apellido Paterno';
-            const matKey = Object.keys(sObj).find(k => k.toLowerCase().includes('materno')) || 'Apellido Materno';
-            const controlKey = Object.keys(sObj).find(k => k.toLowerCase().includes('control'));
-
-            return {
-                ...student,
-                nombre: `${sObj[nameKey]} ${sObj[patKey]} ${sObj[matKey]}`.trim(),
-                control: controlKey ? String(sObj[controlKey]) : ''
-            };
-        });
-
-        const fuse = new Fuse(cleanStudents, {
-            keys: ['nombre', 'control'],
-            threshold: 0.4,
-            ignoreLocation: true
-        });
-
-        return fuse.search(searchQuery).slice(0, 5).map(r => r.item);
+        return searchStudents(studentsDB, searchQuery, 5);
     }, [studentsDB, searchQuery]);
 
     // --- Derived Metrics ---
@@ -872,11 +1008,11 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         return combined;
     }, [stats.currentTimeline, prevTimelineData]);
 
-    const { totalItems, totalAsistencias, avgAttendance, atRisk, perfect, statusData, weekdayData, dateCounts } = stats;
+    const { totalItems, totalAsistencias, avgAttendance, atRisk, statusData, weekdayData, dateCounts } = stats;
 
     const exportSabanaPDF = async () => {
         if (data.length === 0) {
-            alert("No hay datos para exportar.");
+            toast("No hay datos para exportar.", "error");
             return;
         }
         setIsLoading(true);
@@ -1098,12 +1234,12 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                     pdf.addPage();
                 }
                 const canvas = await html2canvas(pageElements[i] as HTMLElement, {
-                    scale: 2,
+                    scale: 3,
                     useCORS: true,
                     logging: false,
                     backgroundColor: '#ffffff'
                 });
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const imgData = canvas.toDataURL('image/png');
                 pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
             }
 
@@ -1112,7 +1248,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
 
         } catch (error) {
             console.error('Error al generar PDF Sábana:', error);
-            alert('Hubo un error al generar el PDF Sábana.');
+            toast('Hubo un error al generar el PDF Sábana.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -1124,6 +1260,224 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         return 'text-theme-accent2-500 bg-theme-accent2-500/10 border-theme-accent2-500/20';
     };
 
+    const exportStudentDetailPDF = async (student: ExtendedAttendanceRecord) => {
+        setIsLoading(true);
+        try {
+            const control = student['Número de Control'] || '';
+            const name = student['Nombre del Alumno'] || '';
+            const group = student.Grupo || selectedGroups.join(', ');
+            const subject = student.Materia || selectedSubject || '';
+            const teacher = student.Profesor || selectedTeacher || '';
+            const plan = student.Especialidad || 'RADIOLOGÍA E IMAGEN';
+            const periodName = parciales.find(p => p.id === selectedPeriod)?.nombre || `Parcial ${selectedPeriod}`;
+
+            let groupTurn = 'VESPERTINO';
+            if (group) {
+                const baseGroup = group.split(' - ')[0].trim();
+                const matchingStudent = studentsDB.find(s => String(s.Grupo).trim() === baseGroup);
+                if (matchingStudent?.Turno) groupTurn = matchingStudent.Turno.toUpperCase();
+            }
+
+            const rawDates: { dateStr: string; timeStr: string; status: string; notes: string }[] = [];
+            try {
+                const parsed = JSON.parse(student['Fechas y Horas de Asistencia'] || '[]');
+                if (Array.isArray(parsed)) {
+                    parsed.forEach((d: any) => {
+                        const dateStr = typeof d === 'string' ? d : d.date;
+                        const status = typeof d === 'object' ? d.status : 'Asistencia';
+                        const notes = typeof d === 'object' ? d.notes : '';
+                        const dt = new Date(dateStr);
+                        if (!isNaN(dt.getTime())) {
+                            rawDates.push({
+                                dateStr: dt.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }),
+                                timeStr: dt.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+                                status,
+                                notes
+                            });
+                        }
+                    });
+                }
+            } catch (e) {}
+
+            const faltas = (student.faltasCalculadas || []).map((f: string) => {
+                const parts = f.split('-');
+                const dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                return dt.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+            });
+
+            const totalAsistencias = student.Asistencias || 0;
+            const totalClases = student['Total de Clases'] || 0;
+            const porcentaje = ((student.Porcentaje || 0) * 100).toFixed(0);
+
+            const container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.zIndex = '-9999';
+            container.style.pointerEvents = 'none';
+            document.body.appendChild(container);
+
+            const pageEl = document.createElement('div');
+            pageEl.style.width = '794px';
+            pageEl.style.height = '1123px';
+            pageEl.style.padding = '40px';
+            pageEl.style.boxSizing = 'border-box';
+            pageEl.style.backgroundColor = '#ffffff';
+            pageEl.style.color = '#000000';
+            pageEl.style.fontFamily = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+            pageEl.style.display = 'flex';
+            pageEl.style.flexDirection = 'column';
+
+            const faltasHtml = faltas.length > 0
+                ? faltas.map(f => `<div style="color: #ef4444; padding: 4px 0; border-bottom: 1px solid #fee2e2; font-size: 11px;">✗ ${f}</div>`).join('')
+                : '<div style="color: #6b7280; font-size: 11px;">Sin faltas registradas.</div>';
+
+            const recordsHtml = rawDates.length > 0
+                ? rawDates.map(r => {
+                    const isJust = r.status === 'Justificado';
+                    const color = isJust ? '#0ea5e9' : '#16a34a';
+                    const icon = isJust ? 'ⓘ' : '✓';
+                    const bg = isJust ? '#f0f9ff' : '#f0fdf4';
+                    const border = isJust ? '#bae6fd' : '#bbf7d0';
+                    let extra = '';
+                    if (isJust && r.notes) {
+                        const match = r.notes.match(/histórico \((.+?)\)/i);
+                        if (match && match[1]) {
+                            const parts = match[1].split('-');
+                            const histDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                            extra = ` — Cubre falta del ${histDate.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}`;
+                        }
+                    }
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin-bottom: 4px; border-radius: 6px; background-color: ${bg}; border: 1px solid ${border};">
+                            <div>
+                                <span style="font-weight: 600; font-size: 12px; color: #1f2937;">${r.dateStr}</span>
+                                <span style="font-size: 11px; color: #6b7280; margin-left: 8px;">${r.timeStr}</span>
+                                ${extra ? `<span style="font-size: 10px; color: ${color}; display: block; margin-top: 2px;">${extra}</span>` : ''}
+                            </div>
+                            <span style="font-size: 11px; font-weight: 700; color: ${color};">${icon} ${isJust ? 'JUSTIFICADA' : 'ASISTENCIA'}</span>
+                        </div>
+                    `;
+                }).join('')
+                : '<div style="color: #6b7280; font-size: 11px;">Sin registros de asistencia.</div>';
+
+            pageEl.innerHTML = `
+                <div style="flex-shrink: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #7a1c31; padding-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 80" width="280" height="48">
+                                <g transform="translate(10, 5)">
+                                    <circle cx="30" cy="30" r="28" fill="none" stroke="#7a1c31" stroke-width="2"/>
+                                    <circle cx="30" cy="30" r="24" fill="none" stroke="#d4c19c" stroke-width="1.5"/>
+                                    <path d="M 30,12 C 22,20 20,32 30,48 C 40,32 38,20 30,12 Z" fill="#d4c19c"/>
+                                    <path d="M 24,25 Q 30,18 36,25 Q 30,35 24,25 Z" fill="#7a1c31"/>
+                                </g>
+                                <text x="85" y="38" font-family="'Lora', 'Times New Roman', serif" font-size="34" font-weight="bold" fill="#7a1c31" letter-spacing="1">SEP</text>
+                                <text x="85" y="54" font-family="'Montserrat', 'Arial', sans-serif" font-size="8.5" font-weight="600" fill="#6f7276" letter-spacing="0.5">SECRETARÍA DE</text>
+                                <text x="85" y="65" font-family="'Montserrat', 'Arial', sans-serif" font-size="8.5" font-weight="600" fill="#6f7276" letter-spacing="0.5">EDUCACIÓN PÚBLICA</text>
+                            </svg>
+                            <div style="border-left: 1px solid #d1d5db; height: 40px;"></div>
+                            <div style="text-align: left;">
+                                <div style="font-size: 13px; font-weight: 700; color: #7a1c31;">CETIS No. 76</div>
+                                <div style="font-size: 10px; color: #6f7276;">Control de Asistencias</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 9px; color: #6f7276;">${new Date().toLocaleDateString('es-MX')}</div>
+                    </div>
+
+                    <div style="background-color: #7a1c31; color: #ffffff; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 700; letter-spacing: 1px; margin-bottom: 16px; text-transform: uppercase; border-radius: 4px;">
+                        Detalle de Asistencias — ${name}
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 10px; margin-bottom: 16px; line-height: 1.5;">
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 2px 10px;">
+                            <span style="font-weight: 700; color: #374151;">ALUMNO:</span>
+                            <span style="text-transform: uppercase; font-weight: 600;">${name}</span>
+
+                            <span style="font-weight: 700; color: #374151;">NO. CONTROL:</span>
+                            <span style="font-family: monospace;">${control}</span>
+
+                            <span style="font-weight: 700; color: #374151;">GRUPO:</span>
+                            <span>${group}</span>
+
+                            <span style="font-weight: 700; color: #374151;">PLAN DE ESTUDIOS:</span>
+                            <span style="text-transform: uppercase;">${plan}</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 2px 10px;">
+                            <span style="font-weight: 700; color: #374151;">ASIGNATURA:</span>
+                            <span style="text-transform: uppercase; font-weight: 600; color: #7a1c31;">${subject}</span>
+
+                            <span style="font-weight: 700; color: #374151;">DOCENTE:</span>
+                            <span style="text-transform: uppercase;">${teacher}</span>
+
+                            <span style="font-weight: 700; color: #374151;">TURNO:</span>
+                            <span>${groupTurn}</span>
+
+                            <span style="font-weight: 700; color: #374151;">PERIODO:</span>
+                            <span>${periodName.toUpperCase()}</span>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+                        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Asistencias</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #16a34a;">${totalAsistencias}</div>
+                            <div style="font-size: 10px; color: #6b7280;">de ${totalClases} clases</div>
+                        </div>
+                        <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Promedio</div>
+                            <div style="font-size: 24px; font-weight: 700; color: ${Number(porcentaje) < 80 ? '#ef4444' : '#16a34a'};">${porcentaje}%</div>
+                        </div>
+                        <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Faltas</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #ef4444;">${faltas.length}</div>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 13px; font-weight: 700; color: #1f2937; margin-bottom: 10px; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px;">Registro Cronológico</div>
+                    <div style="margin-bottom: 16px;">
+                        ${recordsHtml}
+                    </div>
+
+                    ${faltas.length > 0 ? `
+                        <div style="font-size: 13px; font-weight: 700; color: #ef4444; margin-bottom: 10px; border-bottom: 2px solid #fecaca; padding-bottom: 6px;">Faltas Detectadas (${faltas.length})</div>
+                        <div>${faltasHtml}</div>
+                    ` : ''}
+                </div>
+
+                <div style="margin-top: auto; border-top: 1px solid #e5e7eb; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #9ca3af;">
+                    <div>Generado por Sistema AulaEcosystem</div>
+                    <div>${new Date().toLocaleString('es-MX')}</div>
+                </div>
+            `;
+
+            container.appendChild(pageEl);
+
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const canvas = await html2canvas(pageEl, {
+                scale: 3,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            pdf.save(`Detalle_${name.substring(0, 20)}.pdf`);
+
+            document.body.removeChild(container);
+        } catch (error) {
+            console.error('Error al generar PDF detalle:', error);
+            toast('Hubo un error al generar el PDF.', 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Calculate critical students list (absences streak >= 3)
     const criticalStudents = useMemo(() => {
         return activeData.filter(d => (d.rachaFaltas || 0) >= 3);
@@ -1132,88 +1486,91 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
     return (
         <div className="p-4 sm:p-6 pb-24 min-h-[100dvh] bg-transparent transition-all duration-300">
             {step < 3 ? (
-                <div className="max-w-2xl mx-auto mt-6 animate-fade-in-up transition-all duration-500">
+                <div className="max-w-4xl mx-auto mt-6 animate-fade-in-up transition-all duration-500">
+                    {/* Mode toggle + step tabs — compact top bar */}
+                    <div className="flex flex-wrap items-center gap-3 mb-6">
+                        <div className="flex gap-1 p-0.5 bg-theme-card/80 backdrop-blur-xl rounded-xl border border-theme-border">
+                            <button
+                                className={cn("px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2", mode === 'group' ? "bg-theme-accent1-600 text-white shadow-sm" : "text-theme-muted hover:text-theme-text")}
+                                onClick={() => { setMode('group'); setSelectedSearchStudent(null); }}
+                            >
+                                <span className="material-icons-round text-lg">groups</span> Grupo
+                            </button>
+                            <button
+                                className={cn("px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2", mode === 'student' ? "bg-theme-accent1-600 text-white shadow-sm" : "text-theme-muted hover:text-theme-text")}
+                                onClick={() => { setMode('student'); setStep(0); }}
+                            >
+                                <span className="material-icons-round text-lg">person_search</span> Alumno
+                            </button>
+                        </div>
+
+                        {mode === 'group' && (
+                            <div className="flex items-center gap-1.5 ml-1">
+                                {['Profesor', 'Materia', 'Grupo', 'Resultados'].map((label, i) => (
+                                    <div key={label} className="flex items-center">
+                                        <div className={cn(
+                                            "px-3 py-1.5 text-xs font-semibold rounded-md transition-colors",
+                                            i === step ? "bg-theme-accent1-600/20 text-theme-accent1-400" : "text-theme-muted/60"
+                                        )}>
+                                            {label}
+                                        </div>
+                                        {i < 3 && <span className="text-theme-muted/20 text-xs mx-0.5">›</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Stats cards — compact row */}
                     {step === 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                            <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
-                                <div className="p-3 rounded-xl bg-white/5 border border-theme-border text-theme-accent1-400">
-                                    <span className="material-icons-round text-2xl">school</span>
-                                </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                            <div className="flex items-center gap-3 bg-theme-card/50 rounded-xl px-4 py-3">
+                                <span className="material-icons-round text-lg text-theme-accent1-400">school</span>
                                 <div>
-                                    <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Alumnos</p>
-                                    <p className="text-xl font-bold">{studentsDB.length}</p>
+                                    <p className="text-xs text-theme-muted font-semibold">Alumnos</p>
+                                    <p className="text-lg font-bold tabular-nums">{studentsDB.length}</p>
                                 </div>
-                            </Card>
-                            <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
-                                <div className="p-3 rounded-xl bg-white/5 border border-theme-border text-theme-accent2-400">
-                                    <span className="material-icons-round text-2xl">groups</span>
-                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 bg-theme-card/50 rounded-xl px-4 py-3">
+                                <span className="material-icons-round text-lg text-theme-accent2-400">groups</span>
                                 <div>
-                                    <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Grupos</p>
-                                    <p className="text-xl font-bold">{availableGroups.length}</p>
+                                    <p className="text-xs text-theme-muted font-semibold">Grupos</p>
+                                    <p className="text-lg font-bold tabular-nums">{availableGroups.length}</p>
                                 </div>
-                            </Card>
-                            <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
-                                <div className="p-3 rounded-xl bg-white/5 border border-theme-border text-yellow-400">
-                                    <span className="material-icons-round text-2xl">auto_stories</span>
-                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 bg-theme-card/50 rounded-xl px-4 py-3">
+                                <span className="material-icons-round text-lg text-yellow-400">auto_stories</span>
                                 <div>
-                                    <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Materias</p>
-                                    <p className="text-xl font-bold">{config.materias.length}</p>
+                                    <p className="text-xs text-theme-muted font-semibold">Materias</p>
+                                    <p className="text-lg font-bold tabular-nums">{config.materias.length}</p>
                                 </div>
-                            </Card>
-                            <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
-                                <div className="p-3 rounded-xl bg-white/5 border border-theme-border text-emerald-400">
-                                    <span className="material-icons-round text-2xl">person_4</span>
-                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 bg-theme-card/50 rounded-xl px-4 py-3">
+                                <span className="material-icons-round text-lg text-emerald-400">person_4</span>
                                 <div>
-                                    <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Profesores</p>
-                                    <p className="text-xl font-bold">{config.profesores.length}</p>
+                                    <p className="text-xs text-theme-muted font-semibold">Profesores</p>
+                                    <p className="text-lg font-bold tabular-nums">{config.profesores.length}</p>
                                 </div>
-                            </Card>
+                            </div>
                         </div>
                     )}
 
-                    <Card className="border-theme-border shadow-2xl p-6 sm:p-8">
-                        {step === 0 && (
-                            <div className="mb-8 flex gap-2 p-1 bg-black/20 rounded-lg">
-                                <button
-                                    className={cn("flex-1 py-2 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2", mode === 'group' ? "bg-theme-accent1-600 text-white shadow" : "text-theme-muted hover:bg-theme-border/50")}
-                                    onClick={() => { setMode('group'); setSelectedSearchStudent(null); }}
-                                >
-                                    <span className="material-icons-round text-[18px]">groups</span> Por Grupo
-                                </button>
-                                <button
-                                    className={cn("flex-1 py-2 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2", mode === 'student' ? "bg-theme-accent1-600 text-white shadow" : "text-theme-muted hover:bg-theme-border/50")}
-                                    onClick={() => { setMode('student'); setStep(0); }}
-                                >
-                                    <span className="material-icons-round text-[18px]">person_search</span> Por Alumno
-                                </button>
-                            </div>
-                        )}
-
-                        {mode === 'group' && (
-                            <div className="mb-8">
-                                <Stepper steps={['Profesor', 'Materia', 'Grupo', 'Resultados']} currentStep={step} />
-                            </div>
-                        )}
-
-                        <div className="min-h-[200px] flex flex-col justify-center transition-all duration-300">
+                    {/* Config card — compact */}
+                    <div className="bg-theme-card/80 backdrop-blur-xl rounded-3xl shadow-[var(--shadow-card)] p-6">
+                        <div className="min-h-[160px] flex flex-col justify-center transition-all duration-300">
                             {mode === 'group' && (
                                 <>
                                     {step === 0 && (
-                                        <div className="space-y-4 animate-fade-in">
-                                            <h3 className="text-xl font-bold text-center mb-6">Selecciona el Profesor</h3>
-                                            <Select value={selectedTeacher} onChange={e => setSelectedTeacher(e.target.value)} className="h-12 text-lg">
+                                        <div className="space-y-3 animate-fade-in">
+                                            <Select value={selectedTeacher} onChange={e => setSelectedTeacher(e.target.value)}>
                                                 <option value="">-- Elige un profesor --</option>
                                                 {config.profesores.map(p => <option key={p.value} value={p.text}>{p.text}</option>)}
                                             </Select>
                                         </div>
                                     )}
                                     {step === 1 && (
-                                        <div className="space-y-4 animate-fade-in">
-                                            <h3 className="text-xl font-bold text-center mb-6">Selecciona la Materia</h3>
-                                            <Select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="h-12 text-lg">
+                                        <div className="space-y-3 animate-fade-in">
+                                            <Select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)}>
                                                 <option value="">-- Elige una materia --</option>
                                                 {config.materias.map(m => <option key={m.value} value={m.text}>{m.text}</option>)}
                                             </Select>
@@ -1221,10 +1578,9 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     )}
                                     {step === 2 && (
                                         <div className="space-y-4 animate-fade-in">
-                                            <h3 className="text-xl font-bold text-center mb-6">Selecciona los Grupos y Período</h3>
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-semibold text-theme-text">Grupos (Selecciona uno o más)</label>
-                                                <div className="flex flex-wrap gap-2 p-3 bg-black/25 rounded-2xl border border-theme-border">
+                                            <div>
+                                                <label className="text-xs font-semibold text-theme-muted uppercase tracking-wider block mb-2">Grupos</label>
+                                                <div className="flex flex-wrap gap-2">
                                                     {(() => {
                                                         const badgeColors = [
                                                             { active: "bg-blue-500/20 border-blue-500 text-blue-300", hover: "hover:bg-blue-500/10 hover:text-blue-200" },
@@ -1262,7 +1618,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                                     className={cn(
                                                                         "px-3 min-h-[44px] rounded-full border text-xs font-semibold cursor-pointer select-none transition-all duration-200 flex items-center gap-1",
                                                                         isSelected
-                                                                            ? cn("shadow-md scale-[1.02]", colorScheme.active)
+                                                                            ? cn("shadow-sm", colorScheme.active)
                                                                             : cn("bg-theme-border/20 border-theme-border text-theme-muted hover:bg-theme-border/40 hover:text-theme-text", colorScheme.hover)
                                                                     )}
                                                                 >
@@ -1275,9 +1631,9 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                 </div>
                                             </div>
                                             {parciales.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-semibold text-theme-text">Periodo / Parcial</label>
-                                                    <Select value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)} className="h-12 text-lg">
+                                                <div>
+                                                    <label className="text-xs font-semibold text-theme-muted uppercase tracking-wider block mb-2">Periodo</label>
+                                                    <Select value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)}>
                                                         {parciales.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                                                     </Select>
                                                 </div>
@@ -1289,8 +1645,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
 
                             {mode === 'student' && step === 0 && (
                                 <div className="space-y-4 animate-fade-in">
-                                    <h3 className="text-xl font-bold text-center mb-6">Búsqueda de Alumno</h3>
-                                    <p className="text-sm text-theme-muted text-center mb-4">Ingresa el nombre o número de control para ver su historial en todas sus materias.</p>
+                                    <p className="text-sm text-theme-muted">Ingresa el nombre o número de control para ver su historial en todas sus materias.</p>
 
                                     <div className="relative">
                                         <Input
@@ -1299,9 +1654,9 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             onChange={e => setSearchQuery(e.target.value)}
                                             onFocus={() => setShowSuggestions(true)}
                                             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                                            className="h-14 text-lg pl-12"
+                                            className="pl-10"
                                         />
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-theme-muted">search</span>
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-lg text-theme-muted">search</span>
 
                                         {showSuggestions && searchQuery.length > 1 && (
                                             <div className="absolute top-full mt-2 left-0 right-0 bg-theme-card border border-theme-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto">
@@ -1309,60 +1664,59 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                     <button
                                                         key={(s as any).control}
                                                         type="button"
-                                                        className="w-full text-left p-4 hover:bg-theme-base border-b border-theme-border flex flex-col transition-colors cursor-pointer"
+                                                        className="w-full text-left p-3 hover:bg-theme-base border-b border-theme-border flex flex-col transition-colors cursor-pointer"
                                                         onClick={() => {
                                                             setSelectedSearchStudent(s);
                                                             setSearchQuery((s as any).nombre);
                                                             setShowSuggestions(false);
                                                         }}
                                                     >
-                                                        <span className="text-lg text-theme-text font-medium">{(s as any).nombre}</span>
-                                                        <span className="text-sm text-theme-accent1-400 font-mono mt-1">{(s as any).control}</span>
+                                                        <span className="text-sm text-theme-text font-medium">{(s as any).nombre}</span>
+                                                        <span className="text-xs text-theme-accent1-400 font-mono mt-0.5">{(s as any).control}</span>
                                                     </button>
                                                 )) : (
-                                                    <div className="p-4 text-theme-muted text-center italic">No se encontraron alumnos.</div>
+                                                    <div className="p-3 text-theme-muted text-center text-sm italic">No se encontraron alumnos.</div>
                                                 )}
                                             </div>
                                         )}
                                     </div>
 
                                     {selectedSearchStudent && (
-                                        <div className="space-y-4 mt-6 animate-fade-in">
-                                            <div className="p-4 bg-theme-accent1-500/10 border border-theme-accent1-500/20 rounded-xl flex items-center gap-4">
-                                                <div className="p-3 bg-theme-accent1-500/20 rounded-full text-theme-accent1-400">
-                                                    <span className="material-icons-round">account_circle</span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-theme-text">{selectedSearchStudent.nombre}</p>
-                                                    <p className="text-xs text-theme-muted mt-1">Control: <span className="font-mono text-theme-accent1-300">{selectedSearchStudent.control}</span></p>
-                                                </div>
+                                        <div className="flex items-center gap-3 p-3 bg-theme-accent1-500/10 rounded-xl animate-fade-in">
+                                            <span className="material-icons-round text-2xl text-theme-accent1-400">account_circle</span>
+                                            <div>
+                                                <p className="text-sm font-medium text-theme-text">{selectedSearchStudent.nombre}</p>
+                                                <p className="text-xs text-theme-muted font-mono">{selectedSearchStudent.control}</p>
                                             </div>
-                                            {parciales.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-semibold text-theme-text">Periodo / Parcial</label>
-                                                    <Select value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)} className="h-12 text-lg">
-                                                        {parciales.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                                                    </Select>
-                                                </div>
-                                            )}
+                                        </div>
+                                    )}
+
+                                    {selectedSearchStudent && parciales.length > 0 && (
+                                        <div>
+                                            <label className="text-xs font-semibold text-theme-muted uppercase tracking-wider block mb-2">Periodo</label>
+                                            <Select value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)}>
+                                                {parciales.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                                            </Select>
                                         </div>
                                     )}
                                 </div>
                             )}
                         </div>
 
-                        <div className="flex justify-between mt-8 pt-6 border-t border-theme-border">
-                            <Button variant="ghost" onClick={handleBack} disabled={step === 0} className="w-24 text-theme-muted hover:text-theme-text hover:bg-theme-border/50">
-                                Atrás
-                            </Button>
-                            <Button onClick={handleNext} className="w-32 bg-theme-accent1-600 hover:bg-theme-accent1-700">
-                                {mode === 'group' && step === 2 ? 'Generar' : mode === 'student' && step === 0 ? 'Generar' : 'Siguiente'}
+                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-theme-border">
+                            {step > 0 && (
+                                <Button variant="ghost" onClick={handleBack} className="text-theme-muted">
+                                    Atrás
+                                </Button>
+                            )}
+                            <Button onClick={handleNext}>
+                                {mode === 'group' && step === 2 ? 'Generar Reporte' : mode === 'student' && step === 0 ? 'Generar Reporte' : 'Siguiente'}
                             </Button>
                         </div>
-                    </Card>
+                    </div>
                 </div>
             ) : (
-                <div id="dashboard-report-content" className="space-y-6 max-w-7xl mx-auto animate-fade-in p-4 bg-[#0b0f19] rounded-3xl transition-all duration-300">
+                <div id="dashboard-report-content" className="space-y-6 max-w-7xl mx-auto animate-fade-in p-4 bg-theme-base rounded-3xl transition-all duration-300">
                     {/* Dashboard Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-theme-card/80 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-theme-border shadow-md">
                         <div>
@@ -1414,11 +1768,11 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
 
                     {/* Critical Absences Banner */}
                     {criticalStudents.length > 0 && showCriticalAlert && (
-                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-3xl flex items-center justify-between gap-4 shadow-lg animate-fade-in no-print">
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-3xl flex items-center justify-between gap-4 shadow-lg animate-fade-in no-print" role="alert">
                             <div className="flex items-center gap-3">
-                                <span className="material-icons-round text-red-500 text-2xl animate-pulse">error_outline</span>
+                                <span className="material-icons-round text-red-500 text-2xl animate-pulse" aria-hidden="true">error_outline</span>
                                 <div>
-                                    <h4 className="font-bold text-sm">Alumnos en Riesgo Crítico</h4>
+                                    <h2 className="font-bold text-sm">Alumnos en Riesgo Crítico</h2>
                                     <p className="text-xs text-red-400/80">
                                         {criticalStudents.length === 1 
                                             ? `El alumno ${criticalStudents[0]['Nombre del Alumno']} tiene una racha de ${criticalStudents[0].rachaFaltas} faltas consecutivas.`
@@ -1427,15 +1781,15 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     </p>
                                 </div>
                             </div>
-                            <button onClick={() => setShowCriticalAlert(false)} className="text-red-400 hover:text-red-300">
-                                <span className="material-icons-round text-lg">close</span>
+                            <button onClick={() => setShowCriticalAlert(false)} className="text-red-400 hover:text-red-300" aria-label="Cerrar alerta">
+                                <span className="material-icons-round text-lg" aria-hidden="true">close</span>
                             </button>
                         </div>
                     )}
 
                     {isLoading ? (
-                        <div className="h-64 flex flex-col items-center justify-center text-theme-accent1-500">
-                            <span className="animate-spin material-icons-round text-5xl mb-4">settings</span>
+                        <div className="h-64 flex flex-col items-center justify-center text-theme-accent1-500" role="status" aria-live="polite">
+                            <span className="animate-spin material-icons-round text-5xl mb-4" aria-hidden="true">settings</span>
                             <p className="font-medium animate-pulse">Procesando Analytics desde Base de Datos...</p>
                         </div>
                     ) : (
@@ -1471,7 +1825,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     <div className="p-4 rounded-full bg-theme-border/30 text-theme-muted mb-4">
                                         <span className="material-icons-round text-5xl">analytics</span>
                                     </div>
-                                    <h3 className="text-xl font-bold text-theme-text mb-2">Sin Datos Disponibles</h3>
+                                    <h2 className="text-xl font-bold text-theme-text mb-2">Sin Datos Disponibles</h2>
                                     <p className="text-theme-muted text-sm max-w-md">
                                         No se encontraron registros de asistencia para el período o filtros seleccionados. Intenta cambiar de período o ajustar la búsqueda.
                                     </p>
@@ -1482,14 +1836,14 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     <div ref={chartsContainerRef} className={cn("grid grid-cols-1 lg:grid-cols-4 gap-6 transition-all duration-300", isFullscreen && "p-8 bg-slate-900 overflow-y-auto w-full h-full z-[9999]")}>
                                         <Card className="lg:col-span-2 border-theme-border bg-theme-border/50 p-6 relative">
                                             <div className="absolute top-4 right-4 flex items-center gap-2 z-10 no-print">
-                                                <Button variant="ghost" size="sm" onClick={toggleFullscreen} className="text-theme-muted hover:text-theme-text h-8 w-8 p-0">
-                                                    <span className="material-icons-round text-lg">{isFullscreen ? 'fullscreen_exit' : 'fullscreen'}</span>
+                                                <Button variant="ghost" size="sm" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'} className="text-theme-muted hover:text-theme-text h-8 w-8 p-0">
+                                                    <span className="material-icons-round text-lg" aria-hidden="true">{isFullscreen ? 'fullscreen_exit' : 'fullscreen'}</span>
                                                 </Button>
                                             </div>
-                                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                                                <span className="material-icons-round text-theme-accent1-400">insights</span>
+                                            <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                                <span className="material-icons-round text-theme-accent1-400" aria-hidden="true">insights</span>
                                                 Tendencia de Asistencia
-                                            </h3>
+                                            </h2>
                                             <div className="h-[250px] w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <LineChart data={timelineData}>
@@ -1507,10 +1861,10 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             </div>
                                         </Card>
                                         <Card className="border-theme-border bg-theme-border/50 p-6">
-                                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                                                <span className="material-icons-round text-theme-accent2-400">pie_chart</span>
+                                            <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                                <span className="material-icons-round text-theme-accent2-400" aria-hidden="true">pie_chart</span>
                                                 Estatus
-                                            </h3>
+                                            </h2>
                                             <div className="h-[250px] w-full mt-4">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <PieChart>
@@ -1524,10 +1878,10 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             </div>
                                         </Card>
                                         <Card className="border-theme-border bg-theme-border/50 p-6">
-                                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                                                <span className="material-icons-round text-red-400">warning</span>
+                                            <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                                <span className="material-icons-round text-red-400" aria-hidden="true">warning</span>
                                                 Patrón
-                                            </h3>
+                                            </h2>
                                             <div className="h-[250px] w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <BarChart data={weekdayData}>
@@ -1548,22 +1902,23 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                             <Card className="border-theme-border bg-theme-border/50 overflow-hidden">
                                 <div className="p-4 border-b border-theme-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                                        <h3 className="text-lg font-bold">{mode === 'group' ? 'Listado de Alumnos' : 'Historial de Materias'}</h3>
-                                        <div className="flex gap-2 bg-black/20 p-1 rounded-lg">
-                                            <button onClick={() => setFilterRisk('all')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors", filterRisk === 'all' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted hover:text-theme-text")}>Todos</button>
-                                            <button onClick={() => setFilterRisk('perfect')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1", filterRisk === 'perfect' ? "bg-emerald-500/20 text-emerald-400 shadow border border-emerald-500/30" : "text-theme-muted hover:text-emerald-400")}><span className="material-icons-round text-[14px]">star</span> Perfecta</button>
-                                            <button onClick={() => setFilterRisk('risk')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1", filterRisk === 'risk' ? "bg-red-500/20 text-red-400 shadow border border-red-500/30" : "text-theme-muted hover:text-red-400")}><span className="material-icons-round text-[14px]">warning</span> Riesgo</button>
+                                        <h2 className="text-lg font-bold">{mode === 'group' ? 'Listado de Alumnos' : 'Historial de Materias'}</h2>
+                                        <div className="flex gap-2 bg-theme-border/50 p-1 rounded-lg" role="radiogroup" aria-label="Filtrar por riesgo">
+                                            <button role="radio" aria-checked={filterRisk === 'all'} onClick={() => setFilterRisk('all')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors", filterRisk === 'all' ? "bg-theme-card text-theme-text shadow-sm" : "text-theme-muted hover:text-theme-text")}>Todos</button>
+                                            <button role="radio" aria-checked={filterRisk === 'perfect'} onClick={() => setFilterRisk('perfect')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1", filterRisk === 'perfect' ? "bg-emerald-500/20 text-emerald-400 shadow border border-emerald-500/30" : "text-theme-muted hover:text-emerald-400")}><span className="material-icons-round text-[14px]" aria-hidden="true">star</span> Perfecta</button>
+                                            <button role="radio" aria-checked={filterRisk === 'risk'} onClick={() => setFilterRisk('risk')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1", filterRisk === 'risk' ? "bg-red-500/20 text-red-400 shadow border border-red-500/30" : "text-theme-muted hover:text-red-400")}><span className="material-icons-round text-[14px]" aria-hidden="true">warning</span> Riesgo</button>
                                         </div>
                                     </div>
                                     <div className="flex gap-2 w-full sm:w-auto no-print">
                                         <div className="relative flex-1 sm:flex-none sm:w-64">
                                             <Input
                                                 placeholder={mode === 'group' ? "Buscar alumno..." : "Buscar materia..."}
+                                                aria-label={mode === 'group' ? 'Buscar alumno' : 'Buscar materia'}
                                                 value={localSearchQuery}
                                                 onChange={e => setLocalSearchQuery(e.target.value)}
                                                 className="h-9 pl-9 text-sm"
                                             />
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-[18px] text-theme-muted">search</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-[18px] text-theme-muted" aria-hidden="true">search</span>
                                         </div>
                                         <Button onClick={downloadAbsenceReport} variant="outline" size="sm" className="min-h-[44px] h-9 gap-2 text-sm text-theme-accent1-400 hover:bg-theme-accent1-500/10 whitespace-nowrap">
                                             <span className="material-icons-round text-[18px]">download</span> Faltas (CSV)
@@ -1573,7 +1928,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
-                                            <tr className="bg-black/20 text-theme-muted text-xs uppercase tracking-wider select-none">
+                                            <tr className="bg-theme-border/50 text-theme-muted text-xs uppercase tracking-wider select-none">
                                                 {(() => {
                                                     const handleSortClick = (field: string) => {
                                                         if (sortField === field) {
@@ -1593,31 +1948,31 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
 
                                                     return (
                                                         <>
-                                                            <th className="p-4 font-medium cursor-pointer hover:bg-white/5 transition-colors" onClick={() => handleSortClick('name')}>
+                                                            <th scope="col" tabIndex={0} role="columnheader" aria-sort={sortField === 'name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className="p-4 font-medium cursor-pointer hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-theme-accent1-500" onClick={() => handleSortClick('name')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSortClick('name'); } }}>
                                                                 <div className="flex items-center">
                                                                     {mode === 'group' ? 'Alumno' : 'Materia'}
                                                                     {renderSortIcon('name')}
                                                                 </div>
                                                             </th>
-                                                            <th className="p-4 font-medium cursor-pointer hover:bg-white/5 transition-colors" onClick={() => handleSortClick('control')}>
+                                                            <th scope="col" tabIndex={0} role="columnheader" aria-sort={sortField === 'control' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className="p-4 font-medium cursor-pointer hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-theme-accent1-500" onClick={() => handleSortClick('control')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSortClick('control'); } }}>
                                                                 <div className="flex items-center">
                                                                     {mode === 'group' ? 'Control' : 'Profesor'}
                                                                     {renderSortIcon('control')}
                                                                 </div>
                                                             </th>
-                                                            <th className="p-4 font-medium cursor-pointer hover:bg-white/5 transition-colors" onClick={() => handleSortClick('classes')}>
+                                                            <th scope="col" tabIndex={0} role="columnheader" aria-sort={sortField === 'classes' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className="p-4 font-medium cursor-pointer hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-theme-accent1-500" onClick={() => handleSortClick('classes')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSortClick('classes'); } }}>
                                                                 <div className="flex items-center">
                                                                     Clases
                                                                     {renderSortIcon('classes')}
                                                                 </div>
                                                             </th>
-                                                            <th className="p-4 font-medium cursor-pointer hover:bg-white/5 transition-colors" onClick={() => handleSortClick('percentage')}>
+                                                            <th scope="col" tabIndex={0} role="columnheader" aria-sort={sortField === 'percentage' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className="p-4 font-medium cursor-pointer hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-theme-accent1-500" onClick={() => handleSortClick('percentage')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSortClick('percentage'); } }}>
                                                                 <div className="flex items-center">
                                                                     Progreso
                                                                     {renderSortIcon('percentage')}
                                                                 </div>
                                                             </th>
-                                                            <th className="p-4 font-medium text-right">Estatus</th>
+                                                            <th scope="col" className="p-4 font-medium text-right">Estatus</th>
                                                         </>
                                                     );
                                                 })()}
@@ -1625,7 +1980,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                         </thead>
                                         <tbody className="text-sm divide-y divide-white/5">
                                             {paginatedData.map((item, i) => (
-                                                <tr key={i} className="hover:bg-theme-border/50 transition-colors cursor-pointer group" onClick={() => setSelectedStudent(item)}>
+                                                <tr key={i} tabIndex={0} role="button" className="hover:bg-theme-border/50 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-theme-accent1-500" onClick={() => setSelectedStudent(item)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedStudent(item); } }}>
                                                     <td className="p-4 text-theme-text font-medium group-hover:text-theme-accent1-400 transition-colors">
                                                         <div className="flex items-center gap-2">
                                                             {mode === 'group' ? item['Nombre del Alumno'] : item.Materia}
@@ -1640,7 +1995,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                                         <span className="material-icons-round text-[12px]">warning</span>
                                                                         {item.rachaFaltas} Faltas
                                                                     </span>
-                                                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-gray-900 text-white text-xs rounded-lg p-2 whitespace-normal w-48 shadow-xl border border-theme-border z-50 text-center transition-all duration-300">
+                                                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-theme-card text-theme-text text-xs rounded-lg p-2 whitespace-normal w-48 shadow-xl border border-theme-border z-50 text-center transition-all duration-300">
                                                                         Este alumno tiene {item.rachaFaltas} faltas consecutivas al final del periodo.
                                                                         <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
                                                                     </span>
@@ -1651,11 +2006,11 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                     <td className="p-4 text-theme-muted font-mono text-xs">
                                                         {mode === 'group' ? item['Número de Control'] : item.Profesor}
                                                     </td>
-                                                    <td className="p-4 text-gray-300">{item.Asistencias} / {item['Total de Clases']}</td>
+                                                    <td className="p-4 text-theme-text">{item.Asistencias} / {item['Total de Clases']}</td>
                                                     <td className="p-4 w-48">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-semibold w-8">{Math.round(item.Porcentaje * 100)}%</span>
-                                                            <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden">
+                                                            <div className="h-2 w-full bg-theme-border rounded-full overflow-hidden">
                                                                 <div className={cn("h-full transition-all duration-500", item.Porcentaje < 0.8 ? "bg-red-500" : item.Porcentaje < 0.9 ? "bg-yellow-500" : "bg-theme-accent2-500")} style={{ width: `${item.Porcentaje * 100}%` }} />
                                                             </div>
                                                         </div>
@@ -1706,11 +2061,32 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                         </>
                     )}
 
+                    {/* Confirm Action Modal */}
+                    <Modal isOpen={!!confirmAction} onClose={() => setConfirmAction(null)} title="Confirmar Acción">
+                        <div className="space-y-4">
+                            <p className="text-theme-muted">{confirmAction?.message}</p>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <Button variant="outline" onClick={() => setConfirmAction(null)}>
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={() => {
+                                        confirmAction?.onConfirm();
+                                        setConfirmAction(null);
+                                    }}
+                                >
+                                    Confirmar
+                                </Button>
+                            </div>
+                        </div>
+                    </Modal>
+
                     {/* Detailed Modal */}
                     <Modal isOpen={!!selectedStudent} onClose={() => setSelectedStudent(null)} title={selectedStudent ? (mode === 'group' ? selectedStudent['Nombre del Alumno'] : `${selectedStudent.Materia} - Detalles`) : 'Detalles'} fullScreenOnMobile>
                         {selectedStudent && (
                             <div className="space-y-6" ref={modalRef}>
-                                <div className="flex gap-2 p-1 bg-black/20 rounded-lg no-print">
+                                <div className="flex gap-2 p-1 bg-theme-border/50 rounded-lg no-print">
                                     <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'list' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('list')}>Lista Histórica</button>
                                     <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'sheet' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('sheet')}>Vista Mes</button>
                                 </div>
@@ -1785,7 +2161,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                         <div key={i} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-xl border gap-3", isJustificado ? "bg-[#0ea5e9]/10 border-[#0ea5e9]/20 shadow-inner" : "bg-theme-border/50 border-theme-border")}>
                                                             <div className="flex flex-col gap-1.5">
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="text-gray-200 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
+                                                                    <span className="text-theme-text font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
                                                                     {isJustificado && <span className="text-[10px] bg-[#0ea5e9] text-white px-2 py-0.5 rounded uppercase font-bold tracking-wider shadow-sm">Justificada</span>}
                                                                 </div>
                                                                 {isJustificado && histDateStr ? (
@@ -1881,8 +2257,8 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     <Button onClick={() => setSelectedStudent(null)} className="flex-1 min-w-[120px] bg-theme-border/50 hover:bg-theme-border/100 text-theme-text h-11" variant="outline">
                                         <span className="material-icons-round mr-2 text-sm">arrow_back</span> Regresar
                                     </Button>
-                                    <Button onClick={() => window.print()} className="flex-1 min-w-[120px] bg-theme-accent2-600 hover:bg-theme-accent2-700 h-11">
-                                        <span className="material-icons-round mr-2 text-sm">picture_as_pdf</span> Imprimir PDF
+                                    <Button onClick={() => exportStudentDetailPDF(selectedStudent)} disabled={isLoading} className="flex-1 min-w-[120px] bg-theme-accent2-600 hover:bg-theme-accent2-700 h-11">
+                                        <span className="material-icons-round mr-2 text-sm">{isLoading ? 'hourglass_top' : 'picture_as_pdf'}</span> {isLoading ? 'Generando...' : 'Imprimir PDF'}
                                     </Button>
                                 </div>
                             </div>

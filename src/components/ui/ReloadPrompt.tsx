@@ -21,7 +21,7 @@ export function ReloadPrompt() {
     }
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 p-4 z-[9999] pointer-events-none flex justify-center">
+        <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none flex justify-center">
             <div className="bg-theme-card/95 backdrop-blur-xl border border-theme-accent1-500/50 shadow-2xl rounded-2xl p-4 md:p-5 w-full max-w-sm pointer-events-auto flex flex-col gap-3 animate-fade-in-up">
                 <div className="flex items-start gap-3">
                     <div className="shrink-0 w-10 h-10 rounded-full bg-theme-accent1-500/20 flex items-center justify-center">

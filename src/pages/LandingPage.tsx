@@ -1,80 +1,96 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { heroEntrance, cardsEntrance } from '../lib/animations';
 
 export default function LandingPage() {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 py-12 bg-theme-base overflow-x-hidden relative">
-            {/* Background ambient lighting */}
-            <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-theme-accent1-600/10 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-theme-accent2-600/10 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30rem] h-[30rem] bg-theme-accent3-600/10 rounded-full blur-[120px] pointer-events-none" />
+  const heroRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
 
-            <div className="w-full max-w-5xl flex flex-col items-center z-10 animate-fade-in-up">
-                {/* Header */}
-                <div className="text-center mb-16">
-                    <div className="inline-flex items-center justify-center w-24 h-24 p-2 bg-theme-card/80 backdrop-blur-md rounded-3xl border border-theme-border shadow-2xl mb-8">
-                        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AulaEcosystem Logo" className="w-full h-full object-contain filter drop-shadow-md" />
-                    </div>
-                    <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-theme-text mb-4 drop-shadow-sm">
-                        AulaEcosystem
-                    </h1>
-                    <p className="text-lg sm:text-xl text-theme-muted font-medium max-w-md mx-auto">
-                        Sistema Inteligente de Control Escolar y Asistencia Digital
-                    </p>
-                </div>
+  useEffect(() => {
+    if (!heroRef.current || !cardsRef.current) return;
 
-                {/* Options Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full px-4">
-                    {/* Alumno Card */}
-                    <Link
-                        to="/student"
-                        className="group relative flex flex-col items-center justify-center p-10 bg-theme-card/80 backdrop-blur-xl border border-theme-border hover:border-theme-accent2-500/30 rounded-[2.5rem] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
-                    >
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-theme-accent2-500/0 via-theme-accent2-500 to-theme-accent2-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-theme-accent2-500/10 to-theme-accent2-500/5 border border-theme-accent2-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                            <span className="material-icons-round text-4xl text-theme-accent2-400">badge</span>
-                        </div>
-                        <h2 className="text-2xl font-bold text-theme-text mb-3">Alumno</h2>
-                        <p className="text-center text-theme-muted text-sm font-medium leading-relaxed">
-                            Genera tu pase digital QR usando tu número de control
-                        </p>
-                    </Link>
+    const logo = heroRef.current.querySelector<HTMLElement>('.hero-logo');
+    const title = heroRef.current.querySelector<HTMLElement>('.hero-title');
+    const subtitle = heroRef.current.querySelector<HTMLElement>('.hero-subtitle');
+    const cards = cardsRef.current.querySelectorAll<HTMLElement>('.entrance-card');
 
-                    {/* Docente Card */}
-                    <Link
-                        to="/teacher/scan"
-                        className="group relative flex flex-col items-center justify-center p-10 bg-theme-card/80 backdrop-blur-xl border border-theme-border hover:border-theme-accent1-500/30 rounded-[2.5rem] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
-                    >
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-theme-accent1-500/0 via-theme-accent1-500 to-theme-accent1-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-theme-accent1-500/10 to-theme-accent1-500/5 border border-theme-accent1-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                            <span className="material-icons-round text-4xl text-theme-accent1-400">admin_panel_settings</span>
-                        </div>
-                        <h2 className="text-2xl font-bold text-theme-text mb-3">Docente</h2>
-                        <p className="text-center text-theme-muted text-sm font-medium leading-relaxed">
-                            Registra y gestiona asistencia, justifica faltas
-                        </p>
-                    </Link>
+    if (logo && title && subtitle) {
+      heroEntrance(logo, title, subtitle);
+    }
+    if (cards.length) {
+      cardsEntrance(cards);
+    }
+  }, []);
 
-                    {/* Consulta Card */}
-                    <Link
-                        to="/consulta/report"
-                        className="group relative flex flex-col items-center justify-center p-10 bg-theme-card/80 backdrop-blur-xl border border-theme-border hover:border-theme-accent3-500/30 rounded-[2.5rem] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
-                    >
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-theme-accent3-500/0 via-theme-accent3-500 to-theme-accent3-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-theme-accent3-500/10 to-theme-accent3-500/5 border border-theme-accent3-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                            <span className="material-icons-round text-4xl text-theme-accent3-400">search</span>
-                        </div>
-                        <h2 className="text-2xl font-bold text-theme-text mb-3">Consulta</h2>
-                        <p className="text-center text-theme-muted text-sm font-medium leading-relaxed">
-                            Visualiza y exporta los reportes de asistencia
-                        </p>
-                    </Link>
-                </div>
-            </div>
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 py-12 bg-theme-base overflow-x-hidden relative">
+      <div className="absolute inset-0 bg-gradient-to-b from-theme-accent1-600/[0.08] to-transparent pointer-events-none" />
 
-            {/* Footer */}
-            <div className="mt-12 mb-6 text-center text-theme-muted/80 text-xs sm:text-sm z-10 animate-fade-in opacity-80 font-medium tracking-wide">
-                AulaEcosystem v1.0.0 &copy; {new Date().getFullYear()}
-            </div>
+      <div className="w-full max-w-5xl flex flex-col items-center z-10">
+        <div ref={heroRef} className="text-center mb-16 max-w-lg">
+          <div className="hero-logo inline-flex items-center justify-center w-24 h-24 p-2 bg-theme-card/80 backdrop-blur-md rounded-3xl shadow-2xl mb-8">
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AulaEcosystem Logo" className="w-full h-full object-contain filter drop-shadow-md" />
+          </div>
+          <h1 className="hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-theme-text mb-4 drop-shadow-sm text-balance">
+            AulaEcosystem
+          </h1>
+          <p className="hero-subtitle text-lg sm:text-xl text-theme-muted font-medium max-w-md mx-auto leading-relaxed">
+            Sistema Inteligente de Control Escolar y Asistencia Digital
+          </p>
         </div>
-    );
+
+        <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-5 gap-6 w-full px-4 md:px-0">
+          <Link
+            to="/teacher/scan"
+            className="entrance-card group relative flex flex-col items-start justify-center p-8 md:col-span-3 bg-theme-card/80 backdrop-blur-xl rounded-[2.5rem] transition-all duration-300 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
+          >
+            <div className="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-theme-accent1-500/10 blur-3xl pointer-events-none" />
+            <div className="w-16 h-16 rounded-2xl bg-theme-accent1-500/10 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-500">
+              <span className="material-icons-round text-3xl text-theme-accent1-400">admin_panel_settings</span>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-theme-text mb-2">Docente</h2>
+            <p className="text-theme-muted text-sm md:text-base font-medium leading-relaxed max-w-md">
+              Registra y gestiona asistencia, justifica faltas en tiempo real
+            </p>
+          </Link>
+
+          <div className="flex flex-col gap-6 md:col-span-2">
+            <Link
+              to="/student"
+              className="entrance-card group relative flex items-center gap-5 p-6 bg-theme-card/80 backdrop-blur-xl rounded-[2rem] transition-all duration-300 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-theme-accent2-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <span className="material-icons-round text-2xl text-theme-accent2-400">badge</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-theme-text">Alumno</h2>
+                <p className="text-theme-muted text-sm leading-relaxed">
+                  Genera tu pase digital QR
+                </p>
+              </div>
+            </Link>
+
+            <Link
+              to="/consulta/report"
+              className="entrance-card group relative flex items-center gap-5 p-6 bg-theme-card/80 backdrop-blur-xl rounded-[2rem] transition-all duration-300 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-theme-accent3-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <span className="material-icons-round text-2xl text-theme-accent3-400">search</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-theme-text">Consulta</h2>
+                <p className="text-theme-muted text-sm leading-relaxed">
+                  Visualiza y exporta reportes
+                </p>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-12 mb-6 text-center text-theme-muted/70 text-xs sm:text-sm z-10 font-medium tracking-wide">
+        AulaEcosystem v1.0.0 &copy; {new Date().getFullYear()}
+      </div>
+    </div>
+  );
 }

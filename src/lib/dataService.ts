@@ -1,5 +1,6 @@
 import { MASTER_CONFIG_URL, MOCK_ATTENDANCE_DATA } from './constants';
 import type { AttendanceRecord, StudentDBRecord, ConfigOption, AppConfig, ParcialConfig } from '../types';
+import { enqueue, dequeueAll, requeueOnFail, getQueueLength } from './offlineQueue';
 
 // ─── Cache del config maestro ───────────────────────────────────
 let _configCache: AppConfig | null = null;
@@ -225,6 +226,46 @@ export const sendAttendance = async (data: ScanPayload): Promise<boolean> => {
         throw error; // Lanzar error para que AulaScan lo atrape y lo muestre
     }
 };
+
+// ─── Offline-first: encola si no hay red ────────────────────────
+
+export async function sendAttendanceOfflineFirst(data: Record<string, any>): Promise<{ wasSent: boolean, wasQueued: boolean, queueId?: string }> {
+  if (navigator.onLine) {
+    try {
+      await sendAttendance(data as ScanPayload)
+      return { wasSent: true, wasQueued: false }
+    } catch (err) {
+      console.warn('[OfflineFirst] Online but send failed, queuing:', err)
+      const queueId = enqueue(data)
+      return { wasSent: false, wasQueued: true, queueId }
+    }
+  } else {
+    const queueId = enqueue(data)
+    if (import.meta.env.DEV) console.log('[OfflineFirst] Offline, queued attendance:', queueId)
+    return { wasSent: false, wasQueued: true, queueId }
+  }
+}
+
+export async function syncOfflineQueue(): Promise<{ sentIds: string[], failedIds: string[] }> {
+  const items = dequeueAll()
+  const sentIds: string[] = []
+  const failedIds: string[] = []
+
+  for (const item of items) {
+    try {
+      await sendAttendance(item.payload as ScanPayload)
+      sentIds.push(item.id)
+    } catch {
+      requeueOnFail(item)
+      failedIds.push(item.id)
+    }
+  }
+
+  if (import.meta.env.DEV) console.log(`[OfflineFirst] Sync complete: ${sentIds.length} sent, ${failedIds.length} failed`)
+  return { sentIds, failedIds }
+}
+
+export { getQueueLength as getOfflineQueueLength }
 
 export const insertJustifiedAbsence = async (data: {
     No: string;

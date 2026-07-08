@@ -3,12 +3,16 @@ import QRCode from 'react-qr-code';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
 import { LiveClock } from '../../components/ui/LiveClock';
 import { fetchStudentsDB, getConfig } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { useToast } from '../../hooks/useToast';
 import type { StudentDBRecord } from '../../types';
 
 export default function AulaPass() {
+    const { toast } = useToast();
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [student, setStudent] = useLocalStorage<StudentDBRecord | null>('aulaPassData', null);
     const [db, setDb] = useState<StudentDBRecord[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -45,10 +49,7 @@ export default function AulaPass() {
     };
 
     const clearIdentity = () => {
-        if (confirm('¿Estás seguro de que deseas cerrar sesión? Tendrás que buscar tu número de control nuevamente.')) {
-            setStudent(null);
-            setSearchQuery('');
-        }
+        setShowLogoutModal(true);
     };
 
     const getCareerColors = (career: string = '') => {
@@ -131,7 +132,7 @@ export default function AulaPass() {
 
         } catch (err) {
             console.error(err);
-            alert('Error generando la imagen.');
+            toast('Error generando la imagen.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -140,9 +141,7 @@ export default function AulaPass() {
     if (!student) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-theme-base relative overflow-hidden animate-fade-in">
-                {/* Ambient Glows */}
-                <div className="absolute top-[10%] left-[-10%] w-[40rem] h-[40rem] bg-theme-accent2-600/10 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute bottom-[10%] right-[-10%] w-[40rem] h-[40rem] bg-theme-accent2-600/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-b from-theme-accent2-600/[0.06] to-transparent pointer-events-none" />
                 
                 <div className="w-full max-w-md z-10 relative">
                     <div className="text-center mb-8">
@@ -200,8 +199,7 @@ export default function AulaPass() {
 
     return (
         <div className="min-h-[100dvh] bg-theme-base p-4 pb-24 sm:py-12 flex flex-col items-center animate-fade-in relative overflow-hidden">
-            {/* Ambient glows behind the credential */}
-            <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[30rem] h-[30rem] bg-theme-accent2-600/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-theme-accent2-600/[0.05] to-transparent pointer-events-none" />
             
             <div className="w-full max-w-md flex justify-between items-center mb-6 z-10">
                 <h1 className="text-2xl font-bold text-theme-text tracking-tight flex items-center gap-2">
@@ -288,6 +286,28 @@ export default function AulaPass() {
                 </Button>
             </div>
 
+            <Modal isOpen={showLogoutModal} onClose={() => setShowLogoutModal(false)} title="Cerrar Sesión">
+                <div className="space-y-4">
+                    <p className="text-theme-muted">
+                        ¿Estás seguro de que deseas cerrar sesión? Tendrás que buscar tu número de control nuevamente.
+                    </p>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="outline" onClick={() => setShowLogoutModal(false)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                setStudent(null);
+                                setSearchQuery('');
+                                setShowLogoutModal(false);
+                            }}
+                        >
+                            Cerrar Sesión
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

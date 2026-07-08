@@ -28,7 +28,7 @@ export function Stepper({ steps, currentStep }: StepperProps) {
                                 className={cn(
                                     "flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300",
                                     isActive
-                                        ? "border-theme-accent1-500 bg-theme-accent1-600 text-theme-text shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+                                        ? "border-theme-accent1-500 bg-theme-accent1-600 text-theme-text shadow-[var(--shadow-button-default)]"
                                         : "border-gray-700 bg-gray-850 text-theme-muted/80",
                                     isCurrent && "ring-4 ring-blue-500/20 scale-110"
                                 )}
