@@ -15,23 +15,62 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreenO
     const overlayRef = React.useRef<HTMLDivElement>(null)
     const contentRef = React.useRef<HTMLDivElement>(null)
     const closeBtnRef = React.useRef<HTMLButtonElement>(null)
+    const keyHandlerRef = React.useRef<((e: KeyboardEvent) => void) | null>(null)
     const [mounted, setMounted] = React.useState(false)
 
     React.useEffect(() => {
         if (isOpen) {
             setMounted(true)
+            const previous = document.activeElement as HTMLElement | null
+            let cancelled = false
+
             requestAnimationFrame(() => {
+                if (cancelled) return
                 if (overlayRef.current && contentRef.current) {
                     overlayRef.current.style.opacity = '0'
                     contentRef.current.style.opacity = '0'
                     contentRef.current.style.transform = 'translateY(30px) scale(0.95)'
-
                     modalEnter(overlayRef.current, contentRef.current)
                 }
                 requestAnimationFrame(() => {
+                    if (cancelled) return
                     closeBtnRef.current?.focus()
+
+                    const handleKeyDown = (e: KeyboardEvent) => {
+                        if (e.key === 'Escape') {
+                            onClose()
+                            return
+                        }
+                        if (e.key === 'Tab' && contentRef.current) {
+                            const focusable = contentRef.current.querySelectorAll<HTMLElement>(
+                                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                            )
+                            if (focusable.length === 0) return
+                            const first = focusable[0]
+                            const last = focusable[focusable.length - 1]
+                            if (e.shiftKey && document.activeElement === first) {
+                                e.preventDefault()
+                                last.focus()
+                            } else if (!e.shiftKey && document.activeElement === last) {
+                                e.preventDefault()
+                                first.focus()
+                            }
+                        }
+                    }
+
+                    keyHandlerRef.current = handleKeyDown
+                    document.addEventListener('keydown', handleKeyDown)
                 })
             })
+
+            return () => {
+                cancelled = true
+                if (keyHandlerRef.current) {
+                    document.removeEventListener('keydown', keyHandlerRef.current)
+                    keyHandlerRef.current = null
+                }
+                previous?.focus()
+            }
         } else {
             if (overlayRef.current && contentRef.current) {
                 modalExit(overlayRef.current, contentRef.current)
@@ -42,40 +81,6 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreenO
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen])
-
-    React.useEffect(() => {
-        if (!isOpen) return
-
-        const previous = document.activeElement as HTMLElement | null
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                onClose()
-                return
-            }
-            if (e.key === 'Tab' && contentRef.current) {
-                const focusable = contentRef.current.querySelectorAll<HTMLElement>(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                )
-                if (focusable.length === 0) return
-                const first = focusable[0]
-                const last = focusable[focusable.length - 1]
-                if (e.shiftKey && document.activeElement === first) {
-                    e.preventDefault()
-                    last.focus()
-                } else if (!e.shiftKey && document.activeElement === last) {
-                    e.preventDefault()
-                    first.focus()
-                }
-            }
-        }
-
-        document.addEventListener('keydown', handleKeyDown)
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown)
-            previous?.focus()
-        }
-    }, [isOpen, onClose])
 
     if (!mounted) return null;
 

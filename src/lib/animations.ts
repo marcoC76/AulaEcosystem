@@ -7,11 +7,28 @@ import type {
   AnimationParams,
 } from 'animejs';
 
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function noopAnimation(): JSAnimation {
+  const dummy = document.createElement('div');
+  document.body.appendChild(dummy);
+  const anim = animate(dummy, { duration: 1 } as AnimationParams);
+  setTimeout(() => dummy.remove(), 1);
+  return anim;
+}
+
+function noopTimeline(): Timeline {
+  return createTimeline({ autoplay: true });
+}
+
 export function heroEntrance(
   logo: TargetsParam,
   title: TargetsParam,
   subtitle: TargetsParam,
 ): Timeline {
+  if (prefersReducedMotion()) return noopTimeline();
   const tl = createTimeline({
     autoplay: true,
   });
@@ -46,6 +63,7 @@ export function heroEntrance(
 }
 
 export function cardsEntrance(cards: TargetsParam) {
+  if (prefersReducedMotion()) return noopAnimation();
   return animate(cards, {
     translateY: [60, 0],
     opacity: [0, 1],
@@ -65,6 +83,7 @@ export function staggerEntrance(
     scale?: [number, number];
   },
 ): JSAnimation {
+  if (prefersReducedMotion()) return noopAnimation();
   const { fromY = 30, staggerDelay = 60, startDelay = 0, scale } =
     options ?? {};
   return animate(targets, {
@@ -81,6 +100,7 @@ export function modalEnter(
   overlay: TargetsParam,
   content: TargetsParam,
 ): Timeline {
+  if (prefersReducedMotion()) return noopTimeline();
   const tl = createTimeline({ autoplay: true });
   tl.add(overlay, {
     opacity: [0, 1],
@@ -104,6 +124,7 @@ export function modalExit(
   overlay: TargetsParam,
   content: TargetsParam,
 ): Timeline {
+  if (prefersReducedMotion()) return noopTimeline();
   const tl = createTimeline({ autoplay: true });
   tl.add(content, {
     translateY: [0, 20],
@@ -120,6 +141,7 @@ export function modalExit(
 }
 
 export function toastEnter(target: TargetsParam): JSAnimation {
+  if (prefersReducedMotion()) return noopAnimation();
   return animate(target, {
     translateY: [24, 0],
     opacity: [0, 1],
@@ -130,6 +152,7 @@ export function toastEnter(target: TargetsParam): JSAnimation {
 }
 
 export function toastExit(target: TargetsParam): JSAnimation {
+  if (prefersReducedMotion()) return noopAnimation();
   return animate(target, {
     translateY: [0, -16],
     opacity: [1, 0],
@@ -140,6 +163,7 @@ export function toastExit(target: TargetsParam): JSAnimation {
 }
 
 export function shakeElement(target: TargetsParam): JSAnimation {
+  if (prefersReducedMotion()) return noopAnimation();
   return animate(target, {
     translateX: [0, -6, 6, -5, 5, -3, 3, -2, 2, 0],
     duration: 500,
@@ -151,6 +175,7 @@ export function pulseElement(
   target: TargetsParam,
   scale = 1.04,
 ): JSAnimation {
+  if (prefersReducedMotion()) return noopAnimation();
   return animate(target, {
     scale: [1, scale, 1],
     duration: 500,
@@ -159,6 +184,7 @@ export function pulseElement(
 }
 
 export function scanSuccessBurst(target: TargetsParam): JSAnimation {
+  if (prefersReducedMotion()) return noopAnimation();
   return animate(target, {
     scale: [1, 1.08, 1],
     boxShadow: [
@@ -175,6 +201,7 @@ export function glowPulse(
   target: TargetsParam,
   color = 'rgba(59,130,246,0.4)',
 ): JSAnimation {
+  if (prefersReducedMotion()) return noopAnimation();
   return animate(target, {
     boxShadow: [
       `0 0 0 0 ${color}`,
@@ -192,6 +219,7 @@ export function rippleEffect(
   x: number,
   y: number,
 ): JSAnimation {
+  if (prefersReducedMotion()) return noopAnimation();
   const rect = button.getBoundingClientRect();
   const size = Math.max(rect.width, rect.height) * 1.2;
   const ripple = document.createElement('span');

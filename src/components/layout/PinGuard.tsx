@@ -114,7 +114,7 @@ export default function PinGuard({
                                     }}
                                     aria-invalid={!!error}
                                     aria-describedby={error ? 'pin-error' : undefined}
-                                    className={`pin-stagger w-full px-5 py-4 bg-theme-base/50 border border-theme-border rounded-2xl focus:outline-none focus:ring-0 ${focusRing} transition-all duration-300 text-center text-2xl tracking-[0.5em] placeholder:text-theme-muted/50`}
+                                    className={`pin-stagger w-full px-5 py-4 bg-theme-base/50 border border-theme-border rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-accent1-500 ${focusRing} transition-all duration-300 text-center text-2xl tracking-[0.5em] placeholder:text-theme-muted/50`}
                                     autoFocus
                                 />
                                 {error && <p ref={errorRef} id="pin-error" className="text-sm font-medium text-red-500 text-center mt-2" role="alert">{error}</p>}

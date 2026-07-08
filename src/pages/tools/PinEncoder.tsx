@@ -69,7 +69,7 @@ export default function PinEncoder() {
                                         setCopied(false);
                                     }}
                                     onKeyDown={(e) => e.key === 'Enter' && handleEncode()}
-                                    className="w-full px-5 py-4 bg-theme-base border border-theme-border rounded-2xl focus:outline-none focus:border-amber-500 text-theme-text transition-all duration-300 text-lg"
+                                    className="w-full px-5 py-4 bg-theme-base border border-theme-border rounded-2xl focus:outline-none focus:border-amber-500 focus-visible:ring-2 focus-visible:ring-amber-500/50 text-theme-text transition-all duration-300 text-lg"
                                     autoFocus
                                 />
                             </div>

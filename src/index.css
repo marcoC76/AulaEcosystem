@@ -131,6 +131,8 @@
   --theme-accent3-400: #f87171; /* red */
   --theme-accent3-500: #ef4444;
   --theme-accent3-600: #dc2626;
+
+  --grain-opacity: 0.05;
 }
 
 /* Theme Ocean */
@@ -149,6 +151,8 @@
   --theme-accent3-400: #60a5fa; /* blue */
   --theme-accent3-500: #3b82f6;
   --theme-accent3-600: #2563eb;
+
+  --grain-opacity: 0.04;
 }
 
 html {
@@ -259,5 +263,14 @@ body::after {
   }
   .no-print, .no-print * {
     display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

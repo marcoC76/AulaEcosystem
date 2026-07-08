@@ -74,7 +74,7 @@ export default function ConsultaLayout() {
 
                 <header ref={navbarRef} className="hidden sm:flex items-center justify-between px-8 py-4 bg-theme-card/80 backdrop-blur-xl border-b border-theme-border shadow-md sticky top-0 z-40">
                     <div className="flex items-center gap-3">
-                        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" className="nav-logo w-8 h-8 rounded-md" />
+                        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AulaEcosystem" className="nav-logo w-8 h-8 rounded-md" />
                         <span className="font-bold tracking-tight text-xl">AulaConsulta</span>
                     </div>
                     <nav className="flex gap-2">
@@ -114,6 +114,7 @@ export default function ConsultaLayout() {
                     <div className="flex justify-around items-center h-16 px-2">
                         <Link
                             to="/consulta/report"
+                            aria-label="Ver reportes"
                             className={cn(
                                 "flex flex-col items-center justify-center w-full h-full gap-1 transition-colors duration-200 active:scale-95",
                                 location.pathname.startsWith('/consulta/report') ? "text-theme-accent3-500" : "text-theme-muted/80 hover:text-gray-300"
@@ -128,6 +129,7 @@ export default function ConsultaLayout() {
                             <span className="text-[10px] font-medium">Reportes</span>
                         </Link>
                         <button
+                            aria-label="Cerrar sesión"
                             onClick={(e) => {
                                 e.preventDefault();
                                 localStorage.removeItem('consulta_auth');

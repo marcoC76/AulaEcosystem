@@ -538,24 +538,24 @@ export default function AulaScan() {
                     </div>
                     <div className="p-6 space-y-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-theme-muted uppercase tracking-widest">Profesor</label>
-                            <Select value={selectedTeacher} onChange={e => setSelectedTeacher(e.target.value)}>
+                            <label htmlFor="teacher-select" className="text-sm font-medium text-theme-muted uppercase tracking-widest">Profesor</label>
+                            <Select id="teacher-select" value={selectedTeacher} onChange={e => setSelectedTeacher(e.target.value)}>
                                 <option value="">Selecciona un profesor...</option>
                                 {config.profesores.map(p => <option key={p.value} value={p.text}>{p.text}</option>)}
                             </Select>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-theme-muted uppercase tracking-widest">Materia</label>
-                            <Select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)}>
+                            <label htmlFor="subject-select" className="text-sm font-medium text-theme-muted uppercase tracking-widest">Materia</label>
+                            <Select id="subject-select" value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)}>
                                 <option value="">Selecciona una materia...</option>
                                 {config.materias.map(m => <option key={m.value} value={m.text}>{m.text}</option>)}
                             </Select>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-theme-muted uppercase tracking-widest">Parcial</label>
-                            <Select value={selectedParcial} onChange={e => setSelectedParcial(e.target.value)}>
+                            <label htmlFor="parcial-select" className="text-sm font-medium text-theme-muted uppercase tracking-widest">Parcial</label>
+                            <Select id="parcial-select" value={selectedParcial} onChange={e => setSelectedParcial(e.target.value)}>
                                 {parcialesLocal.map(p => (
                                     <option key={p.id} value={p.id}>{p.nombre}</option>
                                 ))}
@@ -600,12 +600,12 @@ export default function AulaScan() {
                                     <span className="font-semibold text-slate-100">Escaneando...</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <input type="file" id="qr-upload" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                                    <Button variant="outline" size="sm" onClick={() => document.getElementById('qr-upload')?.click()} className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
+                                    <input type="file" id="qr-upload" accept="image/*" className="hidden" onChange={handleFileUpload} aria-label="Subir imagen para escanear QR" />
+                                    <Button variant="outline" size="sm" onClick={() => document.getElementById('qr-upload')?.click()} aria-label="Subir foto" className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
                                         <span className="material-icons-round text-sm mr-1">upload_file</span>
                                         <span className="hidden sm:inline">Foto</span>
                                     </Button>
-                                    <Button variant="outline" size="sm" onClick={toggleKiosk} className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
+                                    <Button variant="outline" size="sm" onClick={toggleKiosk} aria-label="Alternar modo kiosco" className="bg-slate-700/50 hover:bg-slate-600 text-slate-200 border-0">
                                         <span className="material-icons-round text-sm mr-1">{isKioskMode ? 'fullscreen_exit' : 'fullscreen'}</span>
                                         <span className="hidden sm:inline">Kiosco</span>
                                     </Button>
@@ -629,6 +629,7 @@ export default function AulaScan() {
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => setAttendanceStatus('Asistencia')}
+                                        aria-pressed={attendanceStatus === 'Asistencia'}
                                         className={cn(
                                             "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
                                             attendanceStatus === 'Asistencia'
@@ -641,6 +642,7 @@ export default function AulaScan() {
                                     </button>
                                     <button
                                         onClick={() => setAttendanceStatus('Retardo')}
+                                        aria-pressed={attendanceStatus === 'Retardo'}
                                         className={cn(
                                             "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
                                             attendanceStatus === 'Retardo'
@@ -657,7 +659,7 @@ export default function AulaScan() {
 
                         {lastScanMsg && (
                             isKioskMode ? (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in pointer-events-none">
+                                <div role="alert" className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in pointer-events-none">
                                     <div className={cn(
                                         "absolute inset-0 backdrop-blur-md transition-all duration-300",
                                         lastScanMsg.type === 'success' ? "bg-emerald-950/80" : "bg-red-950/80"
@@ -672,7 +674,7 @@ export default function AulaScan() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in pointer-events-none">
+                                <div role="alert" className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in pointer-events-none">
                                     <div className={cn(
                                         "px-4 py-3 rounded-xl shadow-2xl text-center font-semibold pointer-events-auto",
                                         lastScanMsg.type === 'success'
@@ -688,19 +690,24 @@ export default function AulaScan() {
                         <Card className="border-gray-700 shadow-xl overflow-visible relative z-50">
                             <div className="p-4 flex gap-2 relative">
                                 <div className="relative flex-1">
+                                    <label htmlFor="manual-search" className="sr-only">Buscar alumno por nombre o ID</label>
                                     <Input
+                                        id="manual-search"
                                         placeholder="Buscar nombre o ID..."
                                         value={manualInput}
                                         onChange={e => setManualInput(e.target.value)}
                                         onFocus={() => setShowSuggestions(true)}
                                         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                        aria-expanded={showSuggestions && manualInput.length > 1}
+                                        aria-controls="suggestions-listbox"
                                     />
                                     {showSuggestions && manualInput.length > 1 && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-theme-card border border-theme-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto">
+                                        <div id="suggestions-listbox" role="listbox" className="absolute top-full left-0 right-0 mt-2 bg-theme-card border border-theme-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto">
                                             {suggestions.length > 0 ? suggestions.map(s => (
                                                 <button
                                                     key={s.control}
                                                     type="button"
+                                                    role="option"
                                                     className="w-full text-left p-3 hover:bg-theme-base border-b border-theme-border flex flex-col transition-colors"
                                                     onClick={() => executeManualAttendance(s.control)}
                                                 >
@@ -764,7 +771,7 @@ export default function AulaScan() {
                                                     <span className="material-icons-round text-xs mr-1 opacity-70">download</span> CSV
                                                 </Button>
                                             </div>
-                                            <div>
+                                            <div id={`history-${dateKey}`}>
                                                 {displayItems.map((entry, i) => (
                                                     <div key={i} className="data-row">
                                                         <div className="flex-1 min-w-0">
@@ -789,6 +796,8 @@ export default function AulaScan() {
                                                         variant="ghost" 
                                                         className="w-full text-xs text-theme-muted hover:text-theme-text mt-2 h-8"
                                                         onClick={() => setExpandedDays(prev => ({...prev, [dateKey]: !isExpanded}))}
+                                                        aria-expanded={!!isExpanded}
+                                                        aria-controls={`history-${dateKey}`}
                                                     >
                                                         {isExpanded ? 'Ocultar recientes' : `Visualizar los ${dayItems.length} escaneos`}
                                                     </Button>

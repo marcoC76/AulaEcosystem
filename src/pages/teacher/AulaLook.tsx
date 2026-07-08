@@ -1511,7 +1511,8 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                         <div className={cn(
                                             "px-3 py-1.5 text-xs font-semibold rounded-md transition-colors",
                                             i === step ? "bg-theme-accent1-600/20 text-theme-accent1-400" : "text-theme-muted/60"
-                                        )}>
+                                        )}
+                                            aria-current={i === step ? 'step' : undefined}>
                                             {label}
                                         </div>
                                         {i < 3 && <span className="text-theme-muted/20 text-xs mx-0.5">›</span>}
@@ -1903,7 +1904,22 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 <div className="p-4 border-b border-theme-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                                         <h2 className="text-lg font-bold">{mode === 'group' ? 'Listado de Alumnos' : 'Historial de Materias'}</h2>
-                                        <div className="flex gap-2 bg-theme-border/50 p-1 rounded-lg" role="radiogroup" aria-label="Filtrar por riesgo">
+                                        <div className="flex gap-2 bg-theme-border/50 p-1 rounded-lg" role="radiogroup" aria-label="Filtrar por riesgo"
+                                            onKeyDown={(e) => {
+                                                const buttons = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]'));
+                                                const currentIdx = buttons.findIndex(b => b === document.activeElement);
+                                                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                                                    e.preventDefault();
+                                                    const next = (currentIdx + 1) % buttons.length;
+                                                    buttons[next]?.focus();
+                                                    buttons[next]?.click();
+                                                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                                                    e.preventDefault();
+                                                    const prev = (currentIdx - 1 + buttons.length) % buttons.length;
+                                                    buttons[prev]?.focus();
+                                                    buttons[prev]?.click();
+                                                }
+                                            }}>
                                             <button role="radio" aria-checked={filterRisk === 'all'} onClick={() => setFilterRisk('all')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors", filterRisk === 'all' ? "bg-theme-card text-theme-text shadow-sm" : "text-theme-muted hover:text-theme-text")}>Todos</button>
                                             <button role="radio" aria-checked={filterRisk === 'perfect'} onClick={() => setFilterRisk('perfect')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1", filterRisk === 'perfect' ? "bg-emerald-500/20 text-emerald-400 shadow border border-emerald-500/30" : "text-theme-muted hover:text-emerald-400")}><span className="material-icons-round text-[14px]" aria-hidden="true">star</span> Perfecta</button>
                                             <button role="radio" aria-checked={filterRisk === 'risk'} onClick={() => setFilterRisk('risk')} className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1", filterRisk === 'risk' ? "bg-red-500/20 text-red-400 shadow border border-red-500/30" : "text-theme-muted hover:text-red-400")}><span className="material-icons-round text-[14px]" aria-hidden="true">warning</span> Riesgo</button>
@@ -1980,7 +1996,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                         </thead>
                                         <tbody className="text-sm divide-y divide-white/5">
                                             {paginatedData.map((item, i) => (
-                                                <tr key={i} tabIndex={0} role="button" className="hover:bg-theme-border/50 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-theme-accent1-500" onClick={() => setSelectedStudent(item)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedStudent(item); } }}>
+                                                <tr key={i} tabIndex={0} className="hover:bg-theme-border/50 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-theme-accent1-500" onClick={() => setSelectedStudent(item)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedStudent(item); } }}>
                                                     <td className="p-4 text-theme-text font-medium group-hover:text-theme-accent1-400 transition-colors">
                                                         <div className="flex items-center gap-2">
                                                             {mode === 'group' ? item['Nombre del Alumno'] : item.Materia}
@@ -1995,7 +2011,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                                         <span className="material-icons-round text-[12px]">warning</span>
                                                                         {item.rachaFaltas} Faltas
                                                                     </span>
-                                                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-theme-card text-theme-text text-xs rounded-lg p-2 whitespace-normal w-48 shadow-xl border border-theme-border z-50 text-center transition-all duration-300">
+                                                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block group-focus-within/tooltip:block bg-theme-card text-theme-text text-xs rounded-lg p-2 whitespace-normal w-48 shadow-xl border border-theme-border z-50 text-center transition-all duration-300">
                                                                         Este alumno tiene {item.rachaFaltas} faltas consecutivas al final del periodo.
                                                                         <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
                                                                     </span>
@@ -2087,8 +2103,10 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                         {selectedStudent && (
                             <div className="space-y-6" ref={modalRef}>
                                 <div className="flex gap-2 p-1 bg-theme-border/50 rounded-lg no-print">
-                                    <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'list' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('list')}>Lista Histórica</button>
-                                    <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'sheet' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('sheet')}>Vista Mes</button>
+                                    <div role="tablist" className="flex">
+                                        <button role="tab" aria-selected={modalView === 'list'} className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'list' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('list')}>Lista Histórica</button>
+                                        <button role="tab" aria-selected={modalView === 'sheet'} className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'sheet' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('sheet')}>Vista Mes</button>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-theme-border/50 rounded-2xl border border-theme-border shadow-inner">
                                     <div>

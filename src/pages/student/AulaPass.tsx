@@ -164,15 +164,19 @@ export default function AulaPass() {
                         ) : (
                             <form onSubmit={handleSearch} className="p-6 space-y-4">
                                 <div className="space-y-2">
+                                    <label htmlFor="student-search" className="sr-only">Buscar alumno por ID</label>
                                     <Input
+                                        id="student-search"
                                         type="text"
                                         placeholder="Ej. 24309060760447"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="text-lg text-center font-mono tracking-widest"
                                         autoFocus
+                                        aria-describedby={error ? 'student-search-error' : undefined}
+                                        aria-invalid={!!error}
                                     />
-                                    {error && <p className="text-red-400 text-sm text-center animate-pulse">{error}</p>}
+                                    {error && <p id="student-search-error" className="text-red-400 text-sm text-center animate-pulse">{error}</p>}
                                 </div>
                                 <Button type="submit" className="w-full bg-theme-accent2-600 hover:bg-theme-accent2-700 text-theme-text shadow-emerald-900/50">
                                     Buscar Alumno
@@ -203,7 +207,7 @@ export default function AulaPass() {
             
             <div className="w-full max-w-md flex justify-between items-center mb-6 z-10">
                 <h1 className="text-2xl font-bold text-theme-text tracking-tight flex items-center gap-2">
-                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" className="w-7 h-7" />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AulaEcosystem" className="w-7 h-7" />
                     AulaPass
                 </h1>
                 <Button variant="ghost" size="sm" onClick={clearIdentity} className="text-theme-muted hover:text-red-400">
@@ -260,7 +264,7 @@ export default function AulaPass() {
                         id="qr-code-svg"
                         value={getQrValue()}
                         size={220}
-                        level="L"
+                        level="M"
                         className="h-auto max-w-full w-full"
                         viewBox={`0 0 256 256`}
                     />

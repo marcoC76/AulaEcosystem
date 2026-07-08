@@ -89,7 +89,7 @@ export default function LandingPage() {
       </div>
 
       <div className="mt-12 mb-6 text-center text-theme-muted/70 text-xs sm:text-sm z-10 font-medium tracking-wide">
-        AulaEcosystem v1.0.0 &copy; {new Date().getFullYear()}
+        AulaEcosystem v2.0.0 &copy; {new Date().getFullYear()}
       </div>
     </div>
   );
