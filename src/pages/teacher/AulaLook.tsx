@@ -1,15 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { cn } from '../../lib/utils';
 
-import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine,
-    PieChart, Pie, Cell, Legend, BarChart, Bar
-} from 'recharts';
 import { fetchAppConfig, fetchReportData, fetchStudentsDB, insertJustifiedAbsence, deleteAttendanceRecord, fetchParcialesConfig } from '../../lib/dataService';
-import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Select } from '../../components/ui/Select';
-import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../hooks/useToast';
 import { searchStudents, getUniqueGroups, getStudentName, getStudentControl, getStudentEspecialidad } from '../../lib/search';
@@ -63,7 +56,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
     const [studentModeData, setStudentModeData] = useState<ExtendedAttendanceRecord[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<ExtendedAttendanceRecord | null>(null);
-    const [modalView, setModalView] = useState<'list' | 'sheet'>('list');
+    const [modalView, setModalView] = useState<'list' | 'sheet' | 'calendar'>('list');
     const [localSearchQuery, setLocalSearchQuery] = useState('');
     const [filterRisk, setFilterRisk] = useState<'all' | 'perfect' | 'risk'>('all');
     const [sortField, setSortField] = useState<string>('name');
@@ -80,6 +73,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
     const [availableGroups, setAvailableGroups] = useState<string[]>([]);
     const [studentsDB, setStudentsDB] = useState<any[]>([]);
     const modalRef = useRef<HTMLDivElement>(null);
+    const initialLoadRef = useRef(false);
 
     // ── Persist state ──
     useEffect(() => {
@@ -272,7 +266,6 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         if (!selectedSearchStudent) return;
         setIsLoading(true);
         try {
-            const cleanStr = (s: any) => String(s || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const sControl = selectedSearchStudent.control;
             let rawRes: any[] = [];
             const chunkSize = 4;
@@ -293,7 +286,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             const studentResults: ExtendedAttendanceRecord[] = [];
             materiasMap.forEach((records, materiaName) => {
                 let maxAsistencias = 0;
-                let masterStudent: AttendanceRecord | null = null;
+                let masterStudent: any = null;
                 records.forEach(d => { const a = Number(d.Asistencias); if (a > maxAsistencias) { maxAsistencias = a; masterStudent = d; } });
                 const newTotal = maxAsistencias > 0 ? maxAsistencias : 1;
                 const serverRecord = records.find(r => String(r['Número de Control']).trim() === sControl) as ExtendedAttendanceRecord | undefined;
@@ -352,6 +345,22 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             toast('Error al cargar los datos del alumno.', 'error');
         } finally { setIsLoading(false); }
     }
+
+    // Trigger initial load if step is already 3 (e.g. state loaded from localStorage)
+    useEffect(() => {
+        if (step === 3 && studentsDB.length > 0 && parciales.length > 0 && !initialLoadRef.current) {
+            initialLoadRef.current = true;
+            if (mode === 'group') {
+                if (selectedTeacher && selectedSubject && selectedGroups.length > 0) {
+                    loadGroupData(selectedPeriod, selectedGroups);
+                }
+            } else {
+                if (selectedSearchStudent) {
+                    loadStudentData(selectedPeriod);
+                }
+            }
+        }
+    }, [step, studentsDB, parciales, mode, selectedTeacher, selectedSubject, selectedGroups, selectedSearchStudent, selectedPeriod]);
 
     // ── Action callbacks ──
     const handleJustifyAbsence = useCallback(async (dateStr: string) => {
@@ -442,7 +451,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             else if (sortField === 'control') { fA = mode === 'group' ? (a['Número de Control'] || '') : (a.Profesor || ''); fB = mode === 'group' ? (b['Número de Control'] || '') : (b.Profesor || ''); }
             else if (sortField === 'classes') { fA = a.Asistencias; fB = b.Asistencias; }
             else if (sortField === 'percentage') { fA = a.Porcentaje; fB = b.Porcentaje; }
-            return typeof fA === 'string' ? (sortDir === 'asc' ? fA.localeCompare(fB, 'es', { sensitivity: 'base' }) : fB.localeCompare(fA, 'es', { sensitivity: 'base' })) : sortDir === 'asc' ? (fA as number) - (fB as number) : (fB as number) - (fA as number);
+            return typeof fA === 'string' && typeof fB === 'string' ? (sortDir === 'asc' ? fA.localeCompare(fB, 'es', { sensitivity: 'base' }) : fB.localeCompare(fA, 'es', { sensitivity: 'base' })) : sortDir === 'asc' ? (fA as number) - (fB as number) : (fB as number) - (fA as number);
         });
     }, [mode, data, studentModeData, localSearchQuery, filterRisk, sortField, sortDir]);
 
@@ -547,12 +556,6 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
 
     const handleBackToFilters = useCallback(() => setStep(0), []);
 
-    const getRiskColor = (percent: number) => {
-        if (percent < 0.8) return 'text-theme-accent1-500 bg-theme-accent1-500/10 border-theme-accent1-500/20';
-        if (percent < 0.9) return 'text-theme-warning-500 bg-theme-warning-500/10 border-theme-warning-500/20';
-        return 'text-theme-accent2-500 bg-theme-accent2-500/10 border-theme-accent2-500/20';
-    };
-
     // ── Render ──
     return (
         <div className="p-4 sm:p-6 pb-24 min-h-[100dvh] bg-transparent transition-all duration-300">
@@ -625,13 +628,16 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                         {selectedStudent && (
                             <div className="space-y-6" ref={modalRef}>
                                 <div className="flex gap-2 p-1 bg-theme-border/50 rounded-lg no-print">
-                                    <div role="tablist" className="flex">
+                                    <div role="tablist" className="flex w-full">
                                         <button role="tab" aria-selected={modalView === 'list'}
                                             className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'list' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")}
                                             onClick={() => setModalView('list')}>Lista Histórica</button>
                                         <button role="tab" aria-selected={modalView === 'sheet'}
                                             className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'sheet' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")}
                                             onClick={() => setModalView('sheet')}>Vista Mes</button>
+                                        <button role="tab" aria-selected={modalView === 'calendar'}
+                                            className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'calendar' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")}
+                                            onClick={() => setModalView('calendar')}>Gráfico de Actividad</button>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-theme-border/50 rounded-2xl border border-theme-border shadow-inner">
@@ -639,7 +645,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     <div><span className="text-xs text-theme-muted/80 uppercase">Promedio</span><p className={cn("font-bold text-lg", selectedStudent.Porcentaje < 0.8 ? "text-theme-accent1-400" : "text-theme-accent2-400")}>{(selectedStudent.Porcentaje * 100).toFixed(0)}%</p></div>
                                     {mode === 'student' && <div className="col-span-2"><span className="text-xs text-theme-muted/80 uppercase">Profesor</span><p className="font-medium text-sm truncate">{selectedStudent.Profesor}</p></div>}
                                 </div>
-                                {modalView === 'list' ? (
+                                {modalView === 'list' && (
                                     <div className="space-y-3 mt-4 max-h-[40vh] overflow-y-auto pr-2">
                                         <p className="font-medium mb-2 border-b border-theme-border pb-2">Registro Cronológico</p>
                                         {selectedStudent.faltasCalculadas && selectedStudent.faltasCalculadas.length > 0 && (
@@ -696,7 +702,8 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             } catch (e) { return <p>Error cargando fechas.</p>; }
                                         })()}
                                     </div>
-                                ) : (
+                                )}
+                                {modalView === 'sheet' && (
                                     <div className="overflow-x-auto mt-4 p-4 bg-theme-border/50 border border-theme-border rounded-2xl max-h-[40vh]">
                                         <p className="font-medium mb-4 flex items-center gap-2"><span className="material-icons-round text-theme-accent1-400">calendar_month</span> Vista Mensual</p>
                                         {(() => {
@@ -710,7 +717,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                     let histDate: Date | null = null;
                                                     if (status === 'Justificado' && typeof notes === 'string') { const m = notes.match(/histórico \((.+?)\)/i); if (m?.[1]) { const p = m[1].split('-'); histDate = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2])); } }
                                                     return { date: new Date(dateStr), isJustificado: status === 'Justificado', isHist: histDate !== null, histDate };
-                                                }).filter(x => !isNaN(x.date.getTime()));
+                                                 }).filter(x => !isNaN(x.date.getTime()));
                                             } catch (e) {}
                                             const rawFaltas: Date[] = (selectedStudent.faltasCalculadas || []).map(f => { const p = f.split('-'); return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2])); });
                                             const allRecords = [...rawAsistencias.map(x => ({ date: x.isHist && x.histDate ? x.histDate : x.date, type: (x.isJustificado ? 'justificado' as const : 'asistencia' as const) })), ...rawFaltas.map(x => ({ date: x, type: 'falta' as const }))].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -735,6 +742,222 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                     </div>
                                                 </div>
                                             ));
+                                        })()}
+                                    </div>
+                                )}
+                                {modalView === 'calendar' && (
+                                    <div className="overflow-x-auto mt-4 p-4 bg-theme-border/50 border border-theme-border rounded-2xl">
+                                        <p className="font-medium mb-4 flex items-center gap-2">
+                                            <span className="material-icons-round text-theme-accent1-400">grid_on</span>
+                                            Gráfico de Actividad
+                                        </p>
+                                        {(() => {
+                                            let rawAsistencias: { date: Date; isJustificado: boolean; isHist: boolean; histDate: Date | null }[] = [];
+                                            try {
+                                                const parsed = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
+                                                if (Array.isArray(parsed)) {
+                                                    rawAsistencias = parsed.map(d => {
+                                                        const dateStr = typeof d === 'string' ? d : d.date;
+                                                        const status = typeof d === 'object' ? d.status : 'Asistencia';
+                                                        const notes = typeof d === 'object' ? d.notes : '';
+                                                        let histDate: Date | null = null;
+                                                        if (status === 'Justificado' && typeof notes === 'string') {
+                                                            const m = notes.match(/histórico \((.+?)\)/i);
+                                                            if (m?.[1]) {
+                                                                const p = m[1].split('-');
+                                                                histDate = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+                                                            }
+                                                        }
+                                                        return {
+                                                            date: new Date(dateStr),
+                                                            isJustificado: status === 'Justificado',
+                                                            isHist: histDate !== null,
+                                                            histDate
+                                                        };
+                                                    }).filter(x => !isNaN(x.date.getTime()));
+                                                }
+                                            } catch (e) {}
+
+                                            const rawFaltas: Date[] = (selectedStudent.faltasCalculadas || []).map(f => {
+                                                const p = f.split('-');
+                                                return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+                                            });
+
+                                            const allRecords = [
+                                                ...rawAsistencias.map(x => ({
+                                                    date: x.isHist && x.histDate ? x.histDate : x.date,
+                                                    type: (x.isJustificado ? 'justificado' as const : 'asistencia' as const)
+                                                })),
+                                                ...rawFaltas.map(x => ({ date: x, type: 'falta' as const }))
+                                            ].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+                                            // Determine start & end date of period
+                                            const currentParcial = parciales.find(p => p.id === selectedPeriod);
+                                            let startDate = currentParcial?.inicio ? new Date(currentParcial.inicio) : null;
+                                            let endDate = currentParcial?.fin ? new Date(currentParcial.fin) : null;
+
+                                            if (!startDate || isNaN(startDate.getTime()) || !endDate || isNaN(endDate.getTime())) {
+                                                if (allRecords.length > 0) {
+                                                    const dates = allRecords.map(r => r.date.getTime());
+                                                    startDate = new Date(Math.min(...dates));
+                                                    endDate = new Date(Math.max(...dates));
+                                                } else {
+                                                    endDate = new Date();
+                                                    startDate = new Date();
+                                                    startDate.setDate(endDate.getDate() - 30);
+                                                }
+                                            }
+
+                                            // Align to Monday-Sunday weeks
+                                            const sDay = startDate.getDay();
+                                            const diffToMon = sDay === 0 ? 6 : sDay - 1;
+                                            const calStart = new Date(startDate);
+                                            calStart.setDate(calStart.getDate() - diffToMon);
+                                            calStart.setHours(0, 0, 0, 0);
+
+                                            const eDay = endDate.getDay();
+                                            const diffToSun = eDay === 0 ? 0 : 7 - eDay;
+                                            const calEnd = new Date(endDate);
+                                            calEnd.setDate(calEnd.getDate() + diffToSun);
+                                            calEnd.setHours(23, 59, 59, 999);
+
+                                            // Create records lookup map
+                                            const lookup = new Map<string, 'asistencia' | 'justificado' | 'falta'>();
+                                            allRecords.forEach(rec => {
+                                                const k = rec.date.toISOString().split('T')[0];
+                                                lookup.set(k, rec.type);
+                                            });
+
+                                            // Group days into weeks (columns of 7 days: Mon-Sun)
+                                            const weeks: Date[][] = [];
+                                            let currentWeek: Date[] = [];
+                                            let curr = new Date(calStart);
+
+                                            while (curr <= calEnd) {
+                                                currentWeek.push(new Date(curr));
+                                                if (currentWeek.length === 7) {
+                                                    weeks.push(currentWeek);
+                                                    currentWeek = [];
+                                                }
+                                                curr.setDate(curr.getDate() + 1);
+                                            }
+                                            if (currentWeek.length > 0) {
+                                                while (currentWeek.length < 7) {
+                                                    const nextDay = new Date(currentWeek[currentWeek.length - 1]);
+                                                    nextDay.setDate(nextDay.getDate() + 1);
+                                                    currentWeek.push(nextDay);
+                                                }
+                                                weeks.push(currentWeek);
+                                            }
+
+                                            // Helper to get month label position
+                                            const monthLabels: { text: string; colIndex: number }[] = [];
+                                            let lastMonthStr = '';
+                                            weeks.forEach((wk, wIdx) => {
+                                                const firstDay = wk[0];
+                                                const mName = firstDay.toLocaleDateString('es-MX', { month: 'short' });
+                                                if (mName !== lastMonthStr) {
+                                                    monthLabels.push({ text: mName, colIndex: wIdx });
+                                                    lastMonthStr = mName;
+                                                }
+                                            });
+
+                                            return (
+                                                <div className="flex flex-col gap-4 select-none">
+                                                    {/* Months Row */}
+                                                    <div className="flex text-[10px] text-theme-muted font-semibold pl-8 gap-[1px]">
+                                                        {weeks.map((_, wIdx) => {
+                                                            const label = monthLabels.find(ml => ml.colIndex === wIdx);
+                                                            return (
+                                                                <div key={wIdx} className="w-[18px] text-center shrink-0">
+                                                                    {label ? label.text : ''}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    <div className="flex gap-2">
+                                                        {/* Day Labels Column */}
+                                                        <div className="flex flex-col text-[10px] text-theme-muted font-semibold justify-between h-[123px] w-6 pr-1 pt-[2px]">
+                                                            <span>Lun</span>
+                                                            <span>Mié</span>
+                                                            <span>Vie</span>
+                                                            <span>Dom</span>
+                                                        </div>
+
+                                                        {/* Grid */}
+                                                        <div className="flex gap-[3px] overflow-x-auto pb-2 shrink-0">
+                                                            {weeks.map((week, wIdx) => (
+                                                                <div key={wIdx} className="flex flex-col gap-[3px] shrink-0">
+                                                                    {week.map((day, dIdx) => {
+                                                                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                                                                        const dateKey = day.toISOString().split('T')[0];
+                                                                        const type = lookup.get(dateKey);
+                                                                        const isOutRange = day < startDate || day > endDate;
+
+                                                                        let cellColorClass = 'bg-theme-border/20'; // default weekday empty
+                                                                        let statusText = 'Sin registro / Clase';
+
+                                                                        if (isWeekend) {
+                                                                            cellColorClass = 'bg-theme-border/5';
+                                                                            statusText = 'Fin de semana';
+                                                                        }
+                                                                        if (isOutRange) {
+                                                                            cellColorClass = 'opacity-20 bg-theme-border/5';
+                                                                            statusText = 'Fuera del parcial';
+                                                                        }
+
+                                                                        if (type === 'asistencia') {
+                                                                            cellColorClass = 'bg-theme-accent2-500 hover:ring-2 hover:ring-theme-accent2-400';
+                                                                            statusText = 'Asistencia';
+                                                                        } else if (type === 'justificado') {
+                                                                            cellColorClass = 'bg-sky-500 hover:ring-2 hover:ring-sky-400';
+                                                                            statusText = 'Falta Justificada';
+                                                                        } else if (type === 'falta') {
+                                                                            cellColorClass = 'bg-rose-500 hover:ring-2 hover:ring-rose-400';
+                                                                            statusText = 'Falta';
+                                                                        }
+
+                                                                        const dayFormatted = day.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
+                                                                        const tooltipText = `${dayFormatted}: ${statusText}`;
+
+                                                                        return (
+                                                                            <div
+                                                                                key={dIdx}
+                                                                                title={tooltipText}
+                                                                                className={cn(
+                                                                                    "w-[15px] h-[15px] rounded-[2px] transition-all cursor-pointer relative group/cell",
+                                                                                    cellColorClass
+                                                                                )}
+                                                                            />
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Legend */}
+                                                    <div className="flex flex-wrap gap-4 items-center text-xs text-theme-muted mt-2 border-t border-theme-border/50 pt-3">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-[12px] h-[12px] rounded-[2px] bg-theme-border/20" />
+                                                            <span>Sin registro</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-[12px] h-[12px] rounded-[2px] bg-theme-accent2-500" />
+                                                            <span>Asistencia</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-[12px] h-[12px] rounded-[2px] bg-sky-500" />
+                                                            <span>Justificada</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-[12px] h-[12px] rounded-[2px] bg-rose-500" />
+                                                            <span>Falta</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
                                         })()}
                                     </div>
                                 )}

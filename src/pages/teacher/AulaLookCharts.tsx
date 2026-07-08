@@ -30,7 +30,7 @@ interface WeekdayDatum {
 
 interface AulaLookChartsProps {
     timelineData: TimelineItem[];
-    prevTimelineData: TimelineItem[];
+    prevTimelineData: any[];
     totalItems: number;
     statusData: StatusDatum[];
     weekdayData: WeekdayDatum[];

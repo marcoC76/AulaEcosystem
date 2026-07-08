@@ -9,6 +9,7 @@ import ErrorBoundary from './components/ui/ErrorBoundary';
 import { CookieConsent } from './components/ui/CookieConsent';
 import { InstallPWA } from './components/ui/InstallPWA';
 import { ToastProvider } from './components/ui/Toast';
+import { ThemeSelector } from './components/ui/ThemeSelector';
 
 const AulaScan = lazy(() => import('./pages/teacher/AulaScan'));
 const AulaLook = lazy(() => import('./pages/teacher/AulaLook'));
@@ -40,6 +41,7 @@ function App() {
       </ErrorBoundary>
       <CookieConsent />
       <InstallPWA />
+      <ThemeSelector />
       <div
         className="pointer-events-none fixed inset-0 z-[60]"
         style={{

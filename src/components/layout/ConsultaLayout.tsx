@@ -5,7 +5,6 @@ import { cn } from '../../lib/utils';
 import { getConfig } from '../../lib/dataService';
 import { heroEntrance } from '../../lib/animations';
 import { ReloadPrompt } from '../ui/ReloadPrompt';
-import { ThemeSelector } from '../ui/ThemeSelector';
 
 export default function ConsultaLayout() {
     const location = useLocation();
@@ -72,7 +71,6 @@ export default function ConsultaLayout() {
             description="Ingresa el PIN de acceso para ver los reportes."
         >
             <ReloadPrompt />
-            <ThemeSelector />
             <div className="flex flex-col min-h-[100dvh] bg-theme-base text-theme-text relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-b from-theme-accent3-600/[0.06] to-transparent pointer-events-none" />
 
