@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **bf18942** — feat: implement attendance visualization charts and helper utilities for teacher dashboard (2026-07-09)
+
 - **45b682d** — feat: add AulaLook dashboard for teacher attendance reporting and analytics with visualization components (2026-07-09)
 
 ### Feat

@@ -113,7 +113,7 @@ En AulaLook.tsx reemplaza cada alert() por toast('mensaje', 'tipo'). Reemplaza c
 
 **Skills:** `frontend-developer`
 
-- [ ] **RH-4a** — `AulaLookCharts.tsx` o `AulaLook.tsx` (useMemo de stats): agregar cálculos de `markTypeData`, `histogramData`, y `streakData` dentro del bloque que procesa `activeData`.
+- [ ] **RH-4a** — ``AulaLook.tsx` (useMemo de stats): agregar cálculos de `markTypeData`, `histogramData`, y `streakData` dentro del bloque que procesa `activeData`.
 - [ ] **RH-4b** — Renderizar 3 `<ChartCard>` adicionales en grid `lg:grid-cols-4`:
   - **Tipos de Marca:** PieChart donut (4 segmentos: Asistencia verde, Retardo amarillo, Justificado azul, Falta rojo)
   - **Rachas:** BarChart horizontal con barras coloreadas por severidad (0-5+ faltas consecutivas)
@@ -166,7 +166,7 @@ const streakData = [0, 1, 2, 3, 4, 5].map(i => ({
 
 **Prompt RH-4:**
 ```
-Carga la skill frontend-developer. En el componente de charts (AulaLookCharts.tsx o donde se计算 el useMemo de stats), agrega los cálculos de markTypeData, histogramData, y streakData usando activeData. Renderiza 3 ChartCard adicionales: PieChart donut para Tipos de Marca (4 segmentos), BarChart horizontal para Rachas (6 barras 0-5+), BarChart para Distribución (5 buckets). Usa cssVar() para colores del tema. Verifica con npm run build.
+Carga la skill frontend-developer. agrega los cálculos de markTypeData, histogramData, y streakData usando activeData. Renderiza 3 ChartCard adicionales: PieChart donut para Tipos de Marca (4 segmentos), BarChart horizontal para Rachas (6 barras 0-5+), BarChart para Distribución (5 buckets). Usa cssVar() para colores del tema. Verifica con npm run build.
 ```
 
 ---

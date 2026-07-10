@@ -1,6 +1,6 @@
 import Fuse from 'fuse.js'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { cn } from '../../lib/utils';
+import { cn, cssVar } from '../../lib/utils';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -15,6 +15,7 @@ import { Select } from '../../components/ui/Select';
 import { Input } from '../../components/ui/Input';
 import { Stepper } from '../../components/ui/Stepper';
 import { Modal } from '../../components/ui/Modal';
+import StudentAvatar from '../../components/ui/StudentAvatar';
 import { getUniqueGroups } from '../../lib/search';
 import type { StudentSearchResult } from '../../lib/search';
 import type { ConfigOption, AttendanceRecord, ParcialConfig, StudentDBRecord } from '../../types';
@@ -47,7 +48,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
     const [studentModeData, setStudentModeData] = useState<ExtendedAttendanceRecord[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<ExtendedAttendanceRecord | null>(null);
-    const [modalView, setModalView] = useState<'list' | 'sheet'>('list');
+    const [modalView, setModalView] = useState<'list' | 'sheet' | 'calendar'>('list');
     const [localSearchQuery, setLocalSearchQuery] = useState('');
     const [filterRisk, setFilterRisk] = useState<'all' | 'perfect' | 'risk'>('all');
     const [sortField, setSortField] = useState<string>('name'); // 'name', 'control', 'classes', 'percentage'
@@ -69,6 +70,13 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
     const modalRef = useRef<HTMLDivElement>(null);
     const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
     const { toast } = useToast();
+    const tooltipStyle = {
+        backgroundColor: cssVar('--theme-card') || '#1f2937',
+        borderColor: cssVar('--theme-border') || '#374151',
+        borderRadius: '8px',
+        color: cssVar('--theme-text') || '#fff',
+        fontSize: 12,
+    };
 
     // Clear reports selections from localStorage on mount (so they are not saved/restored)
     useEffect(() => {
@@ -682,7 +690,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             const canvas = await html2canvas(element, {
                 scale: 2,
                 useCORS: true,
-                backgroundColor: '#0b0f19',
+                backgroundColor: cssVar('--theme-base') || '#0b0f19',
                 foreignObjectRendering: true
             });
             const imgData = canvas.toDataURL('image/png');
@@ -829,9 +837,9 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         const perfect = activeData.filter(d => d.Porcentaje === 1.0).length;
 
         const statusData = [
-            { name: 'Riesgo (<80%)', value: atRisk, color: '#ef4444' },
-            { name: 'Regular', value: totalItems - atRisk - perfect, color: '#eab308' },
-            { name: 'Perfecta', value: perfect, color: '#10b981' },
+            { name: 'Riesgo (<80%)', value: atRisk, color: cssVar('--theme-accent1-500') || '#ef4444' },
+            { name: 'Regular', value: totalItems - atRisk - perfect, color: cssVar('--theme-warning-500') || '#eab308' },
+            { name: 'Perfecta', value: perfect, color: cssVar('--theme-accent2-500') || '#10b981' },
         ];
 
         const currentTimeline = Object.values(dateCounts).sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -1373,7 +1381,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                     </Card>
                 </div>
             ) : (
-                <div id="dashboard-report-content" className="space-y-6 max-w-7xl mx-auto animate-fade-in p-4 bg-[#0b0f19] rounded-3xl transition-all duration-300">
+                <div id="dashboard-report-content" className="space-y-6 max-w-7xl mx-auto animate-fade-in p-4 bg-theme-base rounded-3xl transition-all duration-300">
                     {/* Dashboard Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-theme-card/80 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-theme-border shadow-md">
                         <div>
@@ -1504,14 +1512,14 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             <div className="h-[250px] w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <LineChart data={timelineData}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                                                        <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                                                        <YAxis domain={[0, Math.max(totalItems, 5)]} stroke="#9ca3af" tick={{ fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                                                        <RechartsTooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
-                                                        <ReferenceLine y={totalItems * 0.85} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'top', value: 'Umbral 85%', fill: '#ef4444', fontSize: 12 }} />
-                                                        <Line type="monotone" name="Período Actual" dataKey="asistencias" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                                        <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
+                                                        <XAxis dataKey="name" stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af' }} axisLine={false} tickLine={false} />
+                                                        <YAxis domain={[0, Math.max(totalItems, 5)]} stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af' }} axisLine={false} tickLine={false} />
+                                                        <RechartsTooltip contentStyle={tooltipStyle} />
+                                                        <ReferenceLine y={totalItems * 0.85} stroke={cssVar('--theme-accent1-500') || '#ef4444'} strokeDasharray="3 3" label={{ position: 'top', value: 'Umbral 85%', fill: cssVar('--theme-accent1-500') || '#ef4444', fontSize: 12 }} />
+                                                        <Line type="monotone" name="Período Actual" dataKey="asistencias" stroke={cssVar('--theme-accent3-500') || '#3b82f6'} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                                         {prevTimelineData.length > 0 && (
-                                                            <Line type="monotone" name="Período Anterior" dataKey="asistenciasPrev" stroke="#a855f7" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} />
+                                                            <Line type="monotone" name="Período Anterior" dataKey="asistenciasPrev" stroke={cssVar('--theme-accent3-500') || '#a855f7'} strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} />
                                                         )}
                                                     </LineChart>
                                                 </ResponsiveContainer>
@@ -1528,7 +1536,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                         <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" stroke="none">
                                                             {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                                         </Pie>
-                                                        <RechartsTooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
+                                                        <RechartsTooltip contentStyle={tooltipStyle} />
                                                         <Legend verticalAlign="bottom" height={36} iconType="circle" />
                                                     </PieChart>
                                                 </ResponsiveContainer>
@@ -1542,11 +1550,11 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             <div className="h-[250px] w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <BarChart data={weekdayData}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                                                        <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
+                                                        <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
+                                                        <XAxis dataKey="name" stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
                                                         <YAxis hide />
-                                                        <RechartsTooltip cursor={{ fill: '#374151', opacity: 0.4 }} contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '8px', color: '#fff' }} />
-                                                        <Bar dataKey="faltas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                                        <RechartsTooltip cursor={{ fill: cssVar('--theme-border') || '#374151', opacity: 0.4 }} contentStyle={tooltipStyle} />
+                                                        <Bar dataKey="faltas" fill={cssVar('--theme-accent1-500') || '#ef4444'} radius={[4, 4, 0, 0]} />
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                             </div>
@@ -1639,7 +1647,12 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                 <tr key={i} className="hover:bg-theme-border/50 transition-colors cursor-pointer group" onClick={() => setSelectedStudent(item)}>
                                                     <td className="p-4 text-theme-text font-medium group-hover:text-theme-accent1-400 transition-colors">
                                                         <div className="flex items-center gap-2">
-                                                            {mode === 'group' ? item['Nombre del Alumno'] : item.Materia}
+                                                            {mode === 'group' ? (
+                                                                <>
+                                                                    <StudentAvatar name={item['Nombre del Alumno']} control={item['Número de Control']} size={36} />
+                                                                    {item['Nombre del Alumno']}
+                                                                </>
+                                                            ) : item.Materia}
                                                             {mode === 'group' && selectedGroups.length > 1 && (
                                                                 <span className="text-[10px] bg-theme-border text-theme-text px-2 py-0.5 rounded font-bold">
                                                                     {item.Grupo}
@@ -1724,6 +1737,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 <div className="flex gap-2 p-1 bg-black/20 rounded-lg no-print">
                                     <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'list' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('list')}>Lista Histórica</button>
                                     <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'sheet' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('sheet')}>Vista Mes</button>
+                                    <button className={cn("flex-1 py-1.5 text-sm font-medium rounded-md", modalView === 'calendar' ? "bg-theme-border/100 text-theme-text shadow" : "text-theme-muted")} onClick={() => setModalView('calendar')}>Gráfico de Actividad</button>
                                 </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-theme-border/50 rounded-2xl border border-theme-border shadow-inner">
                                     <div>
@@ -1793,14 +1807,14 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                     }
 
                                                     return (
-                                                        <div key={i} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-xl border gap-3", isJustificado ? "bg-[#0ea5e9]/10 border-[#0ea5e9]/20 shadow-inner" : "bg-theme-border/50 border-theme-border")}>
+                                                        <div key={i} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-xl border gap-3", isJustificado ? "bg-theme-accent1-400/10 border-theme-accent1-400/20 shadow-inner" : "bg-theme-border/50 border-theme-border")}>
                                                             <div className="flex flex-col gap-1.5">
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="text-gray-200 font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
-                                                                    {isJustificado && <span className="text-[10px] bg-[#0ea5e9] text-white px-2 py-0.5 rounded uppercase font-bold tracking-wider shadow-sm">Justificada</span>}
+                                                                    <span className="text-theme-text font-medium">{date.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
+                                                                    {isJustificado && <span className="text-[10px] bg-theme-accent1-400 text-white px-2 py-0.5 rounded uppercase font-bold tracking-wider shadow-sm">Justificada</span>}
                                                                 </div>
                                                                 {isJustificado && histDateStr ? (
-                                                                    <span className="text-xs text-[#0ea5e9] font-medium">Registrado el: {date.toLocaleDateString('es-MX')} • Cubre falta del: {histDateStr}</span>
+                                                                    <span className="text-xs text-theme-accent1-400 font-medium">Registrado el: {date.toLocaleDateString('es-MX')} • Cubre falta del: {histDateStr}</span>
                                                                 ) : (
                                                                     <span className="text-xs text-theme-muted/80 font-mono">{date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
                                                                 )}
@@ -1816,7 +1830,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             } catch { return <p>Error cargando fechas.</p>; }
                                         })()}
                                     </div>
-                                ) : (
+                                ) : modalView === 'sheet' ? (
                                     <div className="overflow-x-auto mt-4 p-4 bg-theme-border/50 border border-theme-border rounded-2xl max-h-[40vh]">
                                         <p className="font-medium mb-4 flex items-center gap-2"><span className="material-icons-round text-theme-accent1-400">calendar_month</span> Vista Mensual</p>
                                         {(() => {
@@ -1875,7 +1889,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                                 const isAsistencia = rec.type === 'asistencia';
                                                                 const isJustificado = rec.type === 'justificado';
                                                                 return (
-                                                                    <div key={rIdx} className={cn("w-[2.5rem] h-[3rem] rounded-lg flex flex-col items-center justify-center text-xs font-mono shadow-sm border transition-shadow", isJustificado ? "bg-[#0ea5e9]/10 border-[#0ea5e9]/30 text-[#0ea5e9]" : isAsistencia ? "bg-theme-accent2-500/10 border-theme-accent2-500/20 text-theme-accent2-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
+                                                                    <div key={rIdx} className={cn("w-[2.5rem] h-[3rem] rounded-lg flex flex-col items-center justify-center text-xs font-mono shadow-sm border transition-shadow", isJustificado ? "bg-theme-accent1-400/10 border-theme-accent1-400/30 text-theme-accent1-400" : isAsistencia ? "bg-theme-accent2-500/10 border-theme-accent2-500/20 text-theme-accent2-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
                                                                         <span className="font-bold mb-1">{rec.date.getDate()}</span>
                                                                         <span className="material-icons-round text-[14px]">{isJustificado ? 'info' : isAsistencia ? 'check_circle' : 'close'}</span>
                                                                     </div>
@@ -1885,6 +1899,154 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                     </div>
                                                 </div>
                                             ));
+                                        })()}
+                                    </div>
+                                ) : (
+                                    <div className="overflow-x-auto mt-4 p-4 bg-theme-border/50 border border-theme-border rounded-2xl max-h-[40vh]">
+                                        <p className="font-medium mb-4 flex items-center gap-2"><span className="material-icons-round text-theme-accent1-400">grid_view</span> Gráfico de Actividad</p>
+                                        {(() => {
+                                            const rawAsistencias: { date: Date; isJustificado: boolean; isHist: boolean; histDate: Date | null }[] = [];
+                                            try {
+                                                const parsed = JSON.parse(selectedStudent['Fechas y Horas de Asistencia'] || '[]');
+                                                if (Array.isArray(parsed)) {
+                                                    parsed.forEach(d => {
+                                                        const dateStr = typeof d === 'string' ? d : d.date;
+                                                        const status = typeof d === 'object' ? d.status : 'Asistencia';
+                                                        const notes = typeof d === 'object' ? d.notes : '';
+                                                        let histDate: Date | null = null;
+                                                        if (status === 'Justificado' && typeof notes === 'string') {
+                                                            const match = notes.match(/histórico \((.+?)\)/i);
+                                                            if (match && match[1]) {
+                                                                const parts = match[1].split('-');
+                                                                histDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                                                            }
+                                                        }
+                                                        rawAsistencias.push({
+                                                            date: new Date(dateStr),
+                                                            isJustificado: status === 'Justificado',
+                                                            isHist: histDate !== null,
+                                                            histDate,
+                                                        });
+                                                    });
+                                                }
+                                            } catch { /* ignored */ }
+                                            const rawFaltas: Date[] = (selectedStudent.faltasCalculadas || []).map(f => {
+                                                const parts = f.split('-');
+                                                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                                            });
+                                            const dateInfo = new Map<string, { status: 'asistencia' | 'falta' | 'justificado'; originalDate?: Date }>();
+                                            rawAsistencias.forEach(a => {
+                                                const key = a.date.toISOString().split('T')[0];
+                                                if (a.isHist && a.histDate) {
+                                                    dateInfo.set(a.histDate.toISOString().split('T')[0], { status: 'justificado', originalDate: a.date });
+                                                } else {
+                                                    dateInfo.set(key, { status: a.isJustificado ? 'justificado' : 'asistencia', originalDate: a.date });
+                                                }
+                                            });
+                                            rawFaltas.forEach(f => {
+                                                const key = f.toISOString().split('T')[0];
+                                                if (!dateInfo.has(key)) dateInfo.set(key, { status: 'falta' });
+                                            });
+                                            const currentPeriod = parciales.find(p => p.id === selectedPeriod);
+                                            let start: Date;
+                                            let end: Date;
+                                            if (currentPeriod?.inicio && currentPeriod?.fin) {
+                                                start = new Date(currentPeriod.inicio);
+                                                end = new Date(currentPeriod.fin);
+                                            } else {
+                                                const allKeys = [...dateInfo.keys()].sort();
+                                                if (allKeys.length === 0) return <p className="text-theme-muted/80 text-sm">Sin registros en este periodo.</p>;
+                                                start = new Date(allKeys[0] + 'T00:00:00');
+                                                end = new Date(allKeys[allKeys.length - 1] + 'T00:00:00');
+                                            }
+                                            const dow = start.getDay();
+                                            const mondayOff = dow === 0 ? -6 : 1 - dow;
+                                            const gridStart = new Date(start);
+                                            gridStart.setDate(gridStart.getDate() + mondayOff);
+                                            const weeks: { date: Date; status?: 'asistencia' | 'falta' | 'justificado'; isWeekend: boolean; isOutside: boolean; originalDate?: Date }[][] = [];
+                                            const cur = new Date(gridStart);
+                                            while (cur <= end) {
+                                                const week: { date: Date; status?: 'asistencia' | 'falta' | 'justificado'; isWeekend: boolean; isOutside: boolean; originalDate?: Date }[] = [];
+                                                for (let d = 0; d < 7; d++) {
+                                                    const key = cur.toISOString().split('T')[0];
+                                                    const info = dateInfo.get(key);
+                                                    week.push({
+                                                        date: new Date(cur),
+                                                        status: info?.status,
+                                                        originalDate: info?.originalDate,
+                                                        isWeekend: cur.getDay() === 0 || cur.getDay() === 6,
+                                                        isOutside: cur < start || cur > end,
+                                                    });
+                                                    cur.setDate(cur.getDate() + 1);
+                                                }
+                                                weeks.push(week);
+                                            }
+                                            if (weeks.length === 0) return <p className="text-theme-muted/80 text-sm">Sin registros en este periodo.</p>;
+                                            const monthLabels: { label: string; col: number }[] = [];
+                                            weeks.forEach((w, wi) => {
+                                                const m = w[0].date.toLocaleDateString('es-MX', { month: 'short' });
+                                                if (wi === 0 || w[0].date.getMonth() !== weeks[wi - 1][0].date.getMonth()) {
+                                                    monthLabels.push({ label: m, col: wi });
+                                                }
+                                            });
+                                            const CELL = 15;
+                                            const GAP = 2;
+                                            const cellColor = (item: typeof weeks[0][0]) => {
+                                                if (item.isOutside) return 'bg-theme-border/20';
+                                                if (item.isWeekend) return 'bg-theme-muted/10';
+                                                if (item.status === 'asistencia') return 'bg-emerald-500';
+                                                if (item.status === 'justificado') return 'bg-sky-500';
+                                                if (item.status === 'falta') return 'bg-red-500';
+                                                return 'bg-theme-border/30';
+                                            };
+                                            const tooltipText = (item: typeof weeks[0][0]) => {
+                                                const ds = item.date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                                const ts = item.originalDate?.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+                                                if (item.isOutside) return '';
+                                                if (item.isWeekend) return `${ds} (fin de semana)`;
+                                                if (item.status === 'asistencia') return `${ds}${ts ? ` ${ts}` : ''} - Asistencia`;
+                                                if (item.status === 'justificado') return `${ds} - Justificado`;
+                                                if (item.status === 'falta') return `${ds} - Falta`;
+                                                return `${ds} - Sin registro`;
+                                            };
+                                            const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                                            return (
+                                                <div className="space-y-4">
+                                                    <div className="overflow-x-auto pb-2">
+                                                        <div className="inline-flex flex-col gap-1">
+                                                            <div className="flex gap-[2px] text-[10px] text-theme-muted leading-none" style={{ marginLeft: 28 }}>
+                                                                {monthLabels.map((ml, i) => {
+                                                                    const w = i < monthLabels.length - 1 ? (monthLabels[i + 1].col - ml.col) * (CELL + GAP) : (weeks.length - ml.col) * (CELL + GAP);
+                                                                    return <span key={ml.label} style={{ width: w }} className="truncate">{ml.label}</span>;
+                                                                })}
+                                                            </div>
+                                                            {dayLabels.map((dl, di) => (
+                                                                <div key={di} className="flex gap-[2px] items-center">
+                                                                    <span className="w-7 text-right text-[10px] text-theme-muted/70 font-mono leading-none">{dl}</span>
+                                                                    {weeks.map((week, wi) => {
+                                                                        const day = week[di];
+                                                                        return (
+                                                                            <div
+                                                                                key={wi}
+                                                                                title={tooltipText(day)}
+                                                                                className={`rounded-sm animate-fade-in transition-all duration-150 ease-out cursor-default hover:scale-[1.6] hover:ring-2 hover:ring-white/40 hover:z-10 hover:shadow-lg ${cellColor(day)}`}
+                                                                                style={{ width: CELL, height: CELL, animationDelay: `${(di * weeks.length + wi) * 5}ms` }}
+                                                                            />
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-4 text-xs text-theme-muted pt-2 border-t border-theme-border">
+                                                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500" /> Asistencia</span>
+                                                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-sky-500" /> Justificado</span>
+                                                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-500" /> Falta</span>
+                                                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-theme-border/30" /> Sin registro</span>
+                                                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-theme-muted/10" /> Fin de semana</span>
+                                                    </div>
+                                                </div>
+                                            );
                                         })()}
                                     </div>
                                 )}

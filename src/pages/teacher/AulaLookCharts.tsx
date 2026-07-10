@@ -1,15 +1,11 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
+import { cn, cssVar } from '../../lib/utils';
 import { Card } from '../../components/ui/Card';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
     ReferenceLine, ResponsiveContainer,
     PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
-
-function cssVar(name: string): string {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
 
 interface TimelineItem {
     name: string;
