@@ -2,13 +2,17 @@
 
 ## [Unreleased]
 
-- **6433384** — feat: replace alert()/confirm() with toast/Modal in AulaLook (RH-3) (2026-07-09)
+- **45b682d** — feat: add AulaLook dashboard for teacher attendance reporting and analytics with visualization components (2026-07-09)
 
-- **5c5c016** — feat: replace alert()/confirm() with toast/Modal in AulaLook (RH-3) (2026-07-09)
+### Feat
 
-- **cbf8d98** — feat: initialize open-code ecosystem documentation and scaffolding for core components (2026-07-09)
+- **RL-1:** Nuevo tab "Gráfico de Actividad" en modal de detalle del alumno con grid tipo GitHub contributions (horizontal, semanas como columnas, días como filas). Micro-interacciones (hover scale, ring glow, fade-in escalonado). Tooltip con fecha y hora, leyenda de colores. (`AulaLook.tsx`)
+- **RM-3:** Avatar pixel-art (`StudentAvatar`) en cada fila de la tabla de alumnos en modo grupo. (`AulaLook.tsx`)
 
-- **dfa4105** — aqui funciona (2026-07-09)
+### Refactor
+
+- **RM-1:** Centralizada función `cssVar()` en `src/lib/utils.ts`. Reemplazados ~20 colores hex hardcodeados en Recharts, tooltips, statusData, backgrounds y estilos de justificadas por variables CSS del tema (`--theme-border`, `--theme-muted`, `--theme-accent1-500`, etc.) en `AulaLook.tsx` y `AulaLookCharts.tsx`.
+- **RH-3:** Reemplazados 9x `alert()` por `toast()` y 2x `window.confirm()` por modal de confirmación con `setConfirmAction`. (`AulaLook.tsx`)
 
 ### Fix
 
