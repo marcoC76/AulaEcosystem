@@ -804,6 +804,9 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         let totalAsistencias = 0;
         const dateCounts: Record<string, { date: Date; count: number }> = {};
         const wdCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        let markAsistencia = 0, markRetardo = 0, markJustificado = 0, markFalta = 0;
+        const histo = [0, 0, 0, 0, 0];
+        const streakCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
         activeData.forEach(d => {
             totalAsistencias += d.Asistencias;
@@ -811,16 +814,22 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                 const fechas: FechaAsistencia[] = JSON.parse(d['Fechas y Horas de Asistencia'] || '[]');
                 fechas.forEach((fReq) => {
                     const fStr = typeof fReq === 'object' ? fReq.date : fReq;
+                    const status = typeof fReq === 'object' ? fReq.status : 'Asistencia';
                     const dateObj = new Date(fStr);
                     if (isNaN(dateObj.getTime())) return;
                     const dateKey = dateObj.toISOString().split('T')[0];
                     if (!dateCounts[dateKey]) dateCounts[dateKey] = { date: dateObj, count: 0 };
                     dateCounts[dateKey].count++;
+
+                    if (status === 'Asistencia') markAsistencia++;
+                    else if (status === 'Retardo') markRetardo++;
+                    else if (status === 'Justificado') markJustificado++;
                 });
             } catch { /* ignored */ }
 
             if (d.faltasCalculadas) {
                 d.faltasCalculadas.forEach(f => {
+                    markFalta++;
                     const parts = f.split('-');
                     const dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
                     const wd = dt.getDay();
@@ -829,6 +838,13 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                     }
                 });
             }
+
+            const pct = (d.Porcentaje ?? 0) * 100;
+            const bucket = Math.min(Math.floor(pct / 20), 4);
+            histo[bucket]++;
+
+            const racha = Math.min(d.rachaFaltas ?? 0, 5);
+            streakCounts[racha] = (streakCounts[racha] || 0) + 1;
         });
 
         const totalItems = activeData.length;
@@ -852,7 +868,28 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
             { name: 'Vie', faltas: wdCounts[5] },
         ];
 
-        return { totalItems, totalAsistencias, avgAttendance, atRisk, perfect, statusData, currentTimeline, weekdayData, dateCounts };
+        const markTypeData = [
+            { name: 'Asistencia', value: markAsistencia, color: cssVar('--theme-accent2-500') || '#10b981' },
+            { name: 'Retardo', value: markRetardo, color: cssVar('--theme-warning-500') || '#eab308' },
+            { name: 'Justificado', value: markJustificado, color: cssVar('--theme-accent3-500') || '#3b82f6' },
+            { name: 'Falta', value: markFalta, color: cssVar('--theme-accent1-500') || '#ef4444' },
+        ];
+
+        const histogramData = [
+            { name: '0-20%', alumnos: histo[0], color: '#ef4444' },
+            { name: '20-40%', alumnos: histo[1], color: '#f97316' },
+            { name: '40-60%', alumnos: histo[2], color: '#eab308' },
+            { name: '60-80%', alumnos: histo[3], color: '#22c55e' },
+            { name: '80-100%', alumnos: histo[4], color: '#10b981' },
+        ];
+
+        const streakData = [0, 1, 2, 3, 4, 5].map(i => ({
+            label: i === 5 ? '5+' : String(i),
+            alumnos: streakCounts[i] || 0,
+            color: i <= 1 ? '#10b981' : i <= 3 ? '#eab308' : '#ef4444',
+        }));
+
+        return { totalItems, totalAsistencias, avgAttendance, atRisk, perfect, statusData, currentTimeline, weekdayData, dateCounts, markTypeData, histogramData, streakData };
     }, [activeData]);
 
     const prevTimelineData = useMemo(() => {
@@ -888,7 +925,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
         return combined;
     }, [stats.currentTimeline, prevTimelineData]);
 
-    const { totalItems, totalAsistencias, avgAttendance, atRisk, statusData, weekdayData, dateCounts } = stats;
+    const { totalItems, totalAsistencias, avgAttendance, atRisk, statusData, weekdayData, dateCounts, markTypeData, histogramData, streakData } = stats;
 
     const exportSabanaPDF = async () => {
         if (data.length === 0) {
@@ -1555,6 +1592,61 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                                         <YAxis hide />
                                                         <RechartsTooltip cursor={{ fill: cssVar('--theme-border') || '#374151', opacity: 0.4 }} contentStyle={tooltipStyle} />
                                                         <Bar dataKey="faltas" fill={cssVar('--theme-accent1-500') || '#ef4444'} radius={[4, 4, 0, 0]} />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </Card>
+                                        <Card className="border-theme-border bg-theme-border/50 p-6">
+                                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                                <span className="material-icons-round text-theme-accent3-400">fact_check</span>
+                                                Tipos de Marca
+                                            </h3>
+                                            <div className="h-[250px] w-full mt-4">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie data={markTypeData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" stroke="none">
+                                                            {markTypeData.map((entry, index) => <Cell key={`mt-${index}`} fill={entry.color} />)}
+                                                        </Pie>
+                                                        <RechartsTooltip contentStyle={tooltipStyle} />
+                                                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </Card>
+                                        <Card className="border-theme-border bg-theme-border/50 p-6">
+                                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                                <span className="material-icons-round text-theme-warning-400">trending_up</span>
+                                                Rachas
+                                            </h3>
+                                            <div className="h-[250px] w-full">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={streakData} margin={{ top: 4, right: 4, bottom: 4, left: -16 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
+                                                        <XAxis dataKey="label" stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} interval={0} />
+                                                        <YAxis hide />
+                                                        <RechartsTooltip cursor={{ fill: cssVar('--theme-border') || '#374151', opacity: 0.4 }} contentStyle={tooltipStyle} />
+                                                        <Bar dataKey="alumnos" radius={[4, 4, 0, 0]}>
+                                                            {streakData.map((entry, index) => <Cell key={`sr-${index}`} fill={entry.color} />)}
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </Card>
+                                        <Card className="lg:col-span-2 border-theme-border bg-theme-border/50 p-6">
+                                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                                <span className="material-icons-round text-theme-accent1-400">bar_chart</span>
+                                                Distribución
+                                            </h3>
+                                            <div className="h-[250px] w-full">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={histogramData} margin={{ top: 4, right: 4, bottom: 4, left: -16 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
+                                                        <XAxis dataKey="name" stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} interval={0} />
+                                                        <YAxis hide />
+                                                        <RechartsTooltip cursor={{ fill: cssVar('--theme-border') || '#374151', opacity: 0.4 }} contentStyle={tooltipStyle} />
+                                                        <Bar dataKey="alumnos" radius={[4, 4, 0, 0]}>
+                                                            {histogramData.map((entry, index) => <Cell key={`hd-${index}`} fill={entry.color} />)}
+                                                        </Bar>
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                             </div>

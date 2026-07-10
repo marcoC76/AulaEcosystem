@@ -2,11 +2,15 @@
 
 ## [Unreleased]
 
+- **e86ea67** — feat: implement teacher dashboard charts with Recharts and add utility functions (2026-07-09)
+
 - **bf18942** — feat: implement attendance visualization charts and helper utilities for teacher dashboard (2026-07-09)
 
 - **45b682d** — feat: add AulaLook dashboard for teacher attendance reporting and analytics with visualization components (2026-07-09)
 
 ### Feat
+
+- **RH-4:** 3 nuevos gráficos en dashboard de reporte: Tipos de Marca (PieChart donut con 4 segmentos), Rachas (BarChart con 6 buckets 0-5+ coloreados por severidad) y Distribución (BarChart con 5 buckets porcentuales degradados). Cálculos de `markTypeData`, `histogramData`, `streakData` en `stats` useMemo a partir de `activeData`. (`AulaLook.tsx`)
 
 - **RL-1:** Nuevo tab "Gráfico de Actividad" en modal de detalle del alumno con grid tipo GitHub contributions (horizontal, semanas como columnas, días como filas). Micro-interacciones (hover scale, ring glow, fade-in escalonado). Tooltip con fecha y hora, leyenda de colores. (`AulaLook.tsx`)
 - **RM-3:** Avatar pixel-art (`StudentAvatar`) en cada fila de la tabla de alumnos en modo grupo. (`AulaLook.tsx`)
