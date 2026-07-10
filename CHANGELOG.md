@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **84fa74f** — feat: add 3 new charts to report dashboard (Tipos de Marca, Rachas, Distribución) (2026-07-10)
+
 - **e86ea67** — feat: implement teacher dashboard charts with Recharts and add utility functions (2026-07-09)
 
 - **bf18942** — feat: implement attendance visualization charts and helper utilities for teacher dashboard (2026-07-09)
@@ -9,6 +11,9 @@
 - **45b682d** — feat: add AulaLook dashboard for teacher attendance reporting and analytics with visualization components (2026-07-09)
 
 ### Feat
+
+- **RM-4:** Exportación de PDF individual por alumno desde el modal de detalle. Nueva función `exportStudentDetailPDF()` con jsPDF dinámico: encabezado, info (materia/grupo/profesor/período), resumen con barra de porcentaje coloreada, tabla cronológica con status coloreados (Asistencia/Retardo/Justificado/Falta), paginación automática y fecha de generación. Botón "Imprimir PDF" en modal reemplaza `window.print()`. (`AulaLook.tsx`)
+- **RM-4 (cont):** Exportación PDF grupal (`exportGroupPDF`) desde la barra de herramientas del reporte. Reemplaza el anterior `exportPDF` (html2canvas) por un PDF programático con tabla cronológica por alumno, manejo de saltos de página con re-encabezado de tabla, y paginación automática. (`AulaLook.tsx`)
 
 - **RH-4:** 3 nuevos gráficos en dashboard de reporte: Tipos de Marca (PieChart donut con 4 segmentos), Rachas (BarChart con 6 buckets 0-5+ coloreados por severidad) y Distribución (BarChart con 5 buckets porcentuales degradados). Cálculos de `markTypeData`, `histogramData`, `streakData` en `stats` useMemo a partir de `activeData`. (`AulaLook.tsx`)
 

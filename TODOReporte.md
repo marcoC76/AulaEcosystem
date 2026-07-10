@@ -256,7 +256,7 @@ En AulaLookTable.tsx importa StudentAvatar desde ../../components/ui/StudentAvat
 
 **Skills:** `frontend-developer`
 
-- [ ] **RM-4a** — `AulaLookPDF.tsx`: agregar función `exportStudentDetailPDF(student: ExtendedAttendanceRecord)` que genere un PDF individual con: encabezado (nombre + control), info general (materia, grupo, profesor, período), resumen (asistencias/total, porcentaje con barra), tabla cronológica (fecha, día, status coloreado), y fecha de generación.
+- [ ] **RM-4a** — `AulaLook.tsx`: agregar función `exportStudentDetailPDF(student: ExtendedAttendanceRecord)` que genere un PDF individual con: encabezado (nombre + control), info general (materia, grupo, profesor, período), resumen (asistencias/total, porcentaje con barra), tabla cronológica (fecha, día, status coloreado), y fecha de generación.
 - [ ] **RM-4b** — `AulaLook.tsx` o modal de detalle: agregar botón "Imprimir PDF" que llame a `PDF.exportStudentDetailPDF(selectedStudent)`.
 
 **Código clave:**
@@ -277,7 +277,7 @@ async function exportStudentDetailPDF(student: ExtendedAttendanceRecord) {
 
 **Prompt RM-4:**
 ```
-En AulaLookPDF.tsx agrega exportStudentDetailPDF(student: ExtendedAttendanceRecord). Usa jsPDF (dynamic import). Renderiza: encabezado con nombre y control, info de materia/grupo/profesor/período, resumen con porcentaje, tabla cronológica de fechas con status coloreado, y fecha de generación. En el modal de detalle del alumno, agrega botón "Imprimir PDF" que llame a esta función. Verifica con npm run build.
+En AulaLook.tsx agrega exportStudentDetailPDF(student: ExtendedAttendanceRecord). Usa jsPDF (dynamic import). Renderiza: encabezado con nombre y control, info de materia/grupo/profesor/período, resumen con porcentaje, tabla cronológica de fechas con status coloreado, y fecha de generación. En el modal de detalle del alumno, agrega botón "Imprimir PDF" que llame a esta función. Verifica con npm run build.
 ```
 
 ---
