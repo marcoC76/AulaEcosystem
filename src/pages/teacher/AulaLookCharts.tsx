@@ -1,10 +1,10 @@
+import React from 'react';
 import { cn } from '../../lib/utils';
 import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-    ResponsiveContainer, ReferenceLine,
-    PieChart, Pie, Cell, Legend, BarChart, Bar
+    ReferenceLine, ResponsiveContainer,
+    PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
 
 function cssVar(name: string): string {
@@ -28,87 +28,181 @@ interface WeekdayDatum {
     faltas: number;
 }
 
+interface MarkTypeDatum {
+    name: string;
+    value: number;
+    color: string;
+}
+
+interface HistogramDatum {
+    name: string;
+    alumnos: number;
+    color: string;
+}
+
+interface StreakDatum {
+    label: string;
+    alumnos: number;
+    color: string;
+}
+
 interface AulaLookChartsProps {
     timelineData: TimelineItem[];
     prevTimelineData: any[];
     totalItems: number;
     statusData: StatusDatum[];
     weekdayData: WeekdayDatum[];
-    isFullscreen: boolean;
-    toggleFullscreen: () => void;
+    markTypeData: MarkTypeDatum[];
+    histogramData: HistogramDatum[];
+    streakData: StreakDatum[];
     chartsContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export default function AulaLookCharts({
-    timelineData, prevTimelineData, totalItems, statusData, weekdayData,
-    isFullscreen, toggleFullscreen, chartsContainerRef,
-}: AulaLookChartsProps) {
-    if (timelineData.length === 0 && statusData.every(d => d.value === 0)) {
-        return null;
-    }
+function ChartCard({ children, className, ...rest }: { children: React.ReactNode; className?: string; [key: string]: any }) {
+    return <Card className={cn("border-theme-border bg-theme-border/50 p-5 overflow-hidden", className)} {...rest}>{children}</Card>;
+}
 
+function ChartTitle({ icon, children }: { icon: string; children: React.ReactNode }) {
     return (
-        <div ref={chartsContainerRef} className={cn("grid grid-cols-1 lg:grid-cols-4 gap-6 transition-all duration-300", isFullscreen && "p-8 bg-slate-900 overflow-y-auto w-full h-full z-[9999]")}>
-            <Card className="lg:col-span-2 border-theme-border bg-theme-border/50 p-6 relative">
-                <div className="absolute top-4 right-4 flex items-center gap-2 z-10 no-print">
-                    <Button variant="ghost" size="sm" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'} className="text-theme-muted hover:text-theme-text h-8 w-8 p-0">
-                        <span className="material-icons-round text-lg" aria-hidden="true">{isFullscreen ? 'fullscreen_exit' : 'fullscreen'}</span>
-                    </Button>
-                </div>
-                <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <span className="material-icons-round text-theme-accent1-400" aria-hidden="true">insights</span>
-                    Tendencia de Asistencia
-                </h2>
-                <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={timelineData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
-                            <XAxis dataKey="name" stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af' }} axisLine={false} tickLine={false} />
-                            <YAxis domain={[0, Math.max(totalItems, 5)]} stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af' }} axisLine={false} tickLine={false} />
-                            <RechartsTooltip contentStyle={{ backgroundColor: cssVar('--theme-card') || '#1f2937', borderColor: cssVar('--theme-border') || '#374151', borderRadius: '8px', color: cssVar('--theme-text') || '#fff' }} />
-                            <ReferenceLine y={totalItems * 0.85} stroke={cssVar('--theme-accent1-500') || '#ef4444'} strokeDasharray="3 3" label={{ position: 'top', value: 'Umbral 85%', fill: cssVar('--theme-accent1-500') || '#ef4444', fontSize: 12 }} />
-                            <Line type="monotone" name="Período Actual" dataKey="asistencias" stroke={cssVar('--theme-accent1-500') || '#3b82f6'} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                            {prevTimelineData.length > 0 && (
-                                <Line type="monotone" name="Período Anterior" dataKey="asistenciasPrev" stroke={cssVar('--theme-accent3-500') || '#a855f7'} strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} />
-                            )}
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-            </Card>
-            <Card className="border-theme-border bg-theme-border/50 p-6">
-                <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <span className="material-icons-round text-theme-accent2-400" aria-hidden="true">pie_chart</span>
-                    Estatus
-                </h2>
-                <div className="h-[250px] w-full mt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" stroke="none">
-                                {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                            </Pie>
-                            <RechartsTooltip contentStyle={{ backgroundColor: cssVar('--theme-card') || '#1f2937', borderColor: cssVar('--theme-border') || '#374151', borderRadius: '8px', color: cssVar('--theme-text') || '#fff' }} />
-                            <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
-            </Card>
-            <Card className="border-theme-border bg-theme-border/50 p-6">
-                <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <span className="material-icons-round text-theme-accent1-400" aria-hidden="true">warning</span>
-                    Patrón
-                </h2>
-                <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={weekdayData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
-                            <XAxis dataKey="name" stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
-                            <YAxis hide />
-                            <RechartsTooltip cursor={{ fill: cssVar('--theme-border') || '#374151', opacity: 0.4 }} contentStyle={{ backgroundColor: cssVar('--theme-card') || '#1f2937', borderColor: cssVar('--theme-border') || '#374151', borderRadius: '8px', color: cssVar('--theme-text') || '#fff' }} />
-                            <Bar dataKey="faltas" fill={cssVar('--theme-accent1-500') || '#ef4444'} radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </Card>
+        <h2 className="text-sm font-bold flex items-center gap-1.5">
+            <span className="material-icons-round text-base shrink-0" aria-hidden="true">{icon}</span>
+            <span className="truncate">{children}</span>
+        </h2>
+    );
+}
+
+const tooltipStyle = {
+    backgroundColor: cssVar('--theme-card') || '#1f2937',
+    borderColor: cssVar('--theme-border') || '#374151',
+    borderRadius: '8px',
+    color: cssVar('--theme-text') || '#fff',
+    fontSize: 12,
+};
+
+export default function AulaLookCharts({
+    timelineData, prevTimelineData, totalItems, statusData, weekdayData, markTypeData, histogramData, streakData,
+    chartsContainerRef,
+}: AulaLookChartsProps) {
+    return (
+        <div ref={chartsContainerRef} className="space-y-5">
+            {/* ── Row 1: Tendencia + Patrón side by side ── */}
+            <div className="flex flex-col lg:flex-row gap-5">
+                <ChartCard className="flex-1 min-w-0">
+                    <ChartTitle icon="insights">Tendencia de Asistencia</ChartTitle>
+                    <div style={{ height: 250, width: '100%' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={timelineData} margin={{ top: 4, right: 4, bottom: 4, left: -16 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
+<XAxis dataKey="name" stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 10, opacity: 0.85 }} axisLine={false} tickLine={false} />
+                                <YAxis domain={[0, Math.max(totalItems, 5)]} stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 10, opacity: 0.85 }} axisLine={false} tickLine={false} />
+                                    <RechartsTooltip contentStyle={tooltipStyle} />
+                                    <ReferenceLine y={totalItems * 0.85} stroke={cssVar('--theme-danger-500') || '#ef4444'} strokeDasharray="3 3" label={{ position: 'top', value: 'Umbral 85%', fill: cssVar('--theme-danger-500') || '#ef4444', fontSize: 11 }} />
+                                    <Line type="monotone" name="Período Actual" dataKey="asistencias" stroke={cssVar('--theme-accent2-500') || '#10b981'} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                                    {prevTimelineData.length > 0 && (
+                                        <Line type="monotone" name="Período Anterior" dataKey="asistenciasPrev" stroke={cssVar('--theme-accent3-500') || '#a855f7'} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 2 }} />
+                                    )}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                </ChartCard>
+                <ChartCard className="w-full lg:w-[300px] xl:w-[340px] shrink-0">
+                    <ChartTitle icon="warning">Patrón Semanal</ChartTitle>
+                    <div style={{ height: 250, width: '100%' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={weekdayData} margin={{ top: 4, right: 4, bottom: 4, left: -16 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
+<XAxis dataKey="name" stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 12, opacity: 0.85 }} axisLine={false} tickLine={false} />
+                            <YAxis stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 11, opacity: 0.85 }} axisLine={false} tickLine={false} />
+                                <RechartsTooltip cursor={{ fill: cssVar('--theme-border') || '#374151', opacity: 0.4 }} contentStyle={tooltipStyle} />
+                                <Bar dataKey="faltas" fill={cssVar('--theme-danger-500') || '#ef4444'} radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                </ChartCard>
+            </div>
+
+            {/* ── Row 2: 4-column grid ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+                <ChartCard>
+                    <ChartTitle icon="pie_chart">Estatus</ChartTitle>
+                    <div style={{ height: 150, width: '100%' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={statusData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={3} dataKey="value" stroke="none">
+                                    {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                </Pie>
+                                <RechartsTooltip contentStyle={tooltipStyle} />
+                            </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 text-[11px] text-theme-text">
+                        {statusData.map(s => (
+                            <span key={s.name} className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                                <span className="opacity-90">{s.name}</span>
+                            </span>
+                        ))}
+                    </div>
+                </ChartCard>
+
+                <ChartCard>
+                    <ChartTitle icon="fact_check">Tipos de Marca</ChartTitle>
+                    <div style={{ height: 150, width: '100%' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={markTypeData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={3} dataKey="value" stroke="none">
+                                    {markTypeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                </Pie>
+                                <RechartsTooltip contentStyle={tooltipStyle} />
+                            </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 text-[11px] text-theme-text">
+                        {markTypeData.map(s => (
+                            <span key={s.name} className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                                <span className="opacity-90">{s.name}</span>
+                            </span>
+                        ))}
+                    </div>
+                </ChartCard>
+
+                <ChartCard>
+                    <ChartTitle icon="trending_up">Rachas</ChartTitle>
+                    <div style={{ height: 150, width: '100%' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={streakData} margin={{ top: 2, right: 2, bottom: 0, left: -14 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
+                                <XAxis dataKey="label" stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 10 }} axisLine={false} tickLine={false} interval={0} />
+                                <YAxis hide />
+                                <RechartsTooltip cursor={{ fill: cssVar('--theme-border') || '#374151', opacity: 0.4 }} contentStyle={tooltipStyle} />
+                                <Bar dataKey="alumnos" radius={[3, 3, 0, 0]}>
+                                    {streakData.map((entry, index) => <Cell key={`sc-${index}`} fill={entry.color} />)}
+                                </Bar>
+                            </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    <p className="text-[10px] text-theme-text/80 text-center">Faltas consecutivas</p>
+                </ChartCard>
+
+                <ChartCard>
+                    <ChartTitle icon="bar_chart">Distribución</ChartTitle>
+                    <div style={{ height: 150, width: '100%' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={histogramData} margin={{ top: 2, right: 2, bottom: 0, left: -14 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
+                                <XAxis dataKey="name" stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 8 }} axisLine={false} tickLine={false} interval={0} />
+                                <YAxis hide />
+                                <RechartsTooltip cursor={{ fill: cssVar('--theme-border') || '#374151', opacity: 0.4 }} contentStyle={tooltipStyle} />
+                                <Bar dataKey="alumnos" radius={[2, 2, 0, 0]}>
+                                    {histogramData.map((entry, index) => <Cell key={`hc-${index}`} fill={entry.color} />)}
+                                </Bar>
+                            </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    <p className="text-[10px] text-theme-text/80 text-center">% de asistencia</p>
+                </ChartCard>
+            </div>
         </div>
     );
 }

@@ -10,12 +10,12 @@
 
 **Skills:** `tailwind-v4-patterns`
     
-- [ ] **C-1a** — `AulaScan.tsx`: reemplazar `bg-slate-900`, `bg-slate-800`, `bg-slate-950` en el scanner card con `bg-gray-900` (oscuro fijo, no de tema) + variables `theme-*` para textos y bordes
-- [ ] **C-1b** — `AulaScan.tsx`: reemplazar colores fijos del status selector (emerald, orange, amber) con `text-theme-accent2-*`, `text-theme-warning-*`
-- [ ] **C-1c** — `AulaScan.tsx`: reemplazar colores del history y cards métricas (amber, red, blue) con `text-theme-warning-*`, `text-theme-accent1-*`, `bg-theme-*`
-- [ ] **C-1d** — `AulaLook.tsx`: reemplazar colores fijos de los KPIs summary cards con `bg-theme-accent1-400/10`, `text-theme-accent1-400`
-- [ ] **C-1e** — `AulaLook.tsx`: reemplazar colores de badges de grupos (colores enumerados en `badgeColors`) con variantes de `accent1-3` del tema cíclicamente
-- [ ] **C-1f** — `AulaLook.tsx`: reemplazar colores de gráficas Recharts (hex `#3b82f6`, `#a855f7`, etc.) con getters que usen `getComputedStyle` para leer variables CSS del tema
+- [x] **C-1a** — `AulaScan.tsx`: reemplazar `bg-slate-900`, `bg-slate-800`, `bg-slate-950` en el scanner card con `bg-gray-900` (oscuro fijo, no de tema) + variables `theme-*` para textos y bordes
+- [x] **C-1b** — `AulaScan.tsx`: reemplazar colores fijos del status selector (emerald, orange, amber) con `text-theme-accent2-*`, `text-theme-warning-*`
+- [x] **C-1c** — `AulaScan.tsx`: reemplazar colores del history y cards métricas (amber, red, blue) con `text-theme-warning-*`, `text-theme-accent1-*`, `bg-theme-*`
+- [x] **C-1d** — `AulaLook.tsx`: reemplazar colores fijos de los KPIs summary cards con `bg-theme-accent1-400/10`, `text-theme-accent1-400`
+- [x] **C-1e** — `AulaLook.tsx`: reemplazar colores de badges de grupos (colores enumerados en `badgeColors`) con variantes de `accent1-3` del tema cíclicamente
+- [x] **C-1f** — `AulaLook.tsx`: reemplazar colores de gráficas Recharts (hex `#3b82f6`, `#a855f7`, etc.) con getters que usen `getComputedStyle` para leer variables CSS del tema
 
 **Prompt C-1:**
 ```
@@ -44,12 +44,12 @@ Carga la skill frontend-developer. Revisa los archivos indicados buscando casteo
 
 **Skills:** `frontend-developer`
 
-- [ ] **C-3a** — Extraer `AulaLookFilters.tsx`: wizard de configuración (pasos 0-2, selección profe/materia/grupo/alumno)
-- [ ] **C-3b** — Extraer `AulaLookDashboard.tsx`: KPIs + header del dashboard post-configuración
-- [ ] **C-3c** — Extraer `AulaLookCharts.tsx`: componentes Recharts (LineChart, PieChart, BarChart + weekday)
-- [ ] **C-3d** — Extraer `AulaLookTable.tsx`: tabla de estudiantes paginada con filtros/sort/riesgo
-- [ ] **C-3e** — Extraer `AulaLookPDF.tsx`: todas las funciones de exportación (CSV, PDF kárdex, PDF sábana, detalle alumno)
-- [ ] **C-3f** — Refactorizar `AulaLook.tsx` para que solo sea el orquestador que importa los 5 componentes nuevos
+- [x] **C-3a** — Extraer `AulaLookFilters.tsx`: wizard de configuración (pasos 0-2, selección profe/materia/grupo/alumno)
+- [x] **C-3b** — Extraer `AulaLookDashboard.tsx`: KPIs + header del dashboard post-configuración
+- [x] **C-3c** — Extraer `AulaLookCharts.tsx`: componentes Recharts (LineChart, PieChart, BarChart + weekday)
+- [x] **C-3d** — Extraer `AulaLookTable.tsx`: tabla de estudiantes paginada con filtros/sort/riesgo
+- [x] **C-3e** — Extraer `AulaLookPDF.tsx`: todas las funciones de exportación (CSV, PDF kárdex, PDF sábana, detalle alumno)
+- [x] **C-3f** — Refactorizar `AulaLook.tsx` para que solo sea el orquestador que importa los 5 componentes nuevos
 
 **Prompt C-3:**
 ```
@@ -164,9 +164,9 @@ En App.tsx, elimina los componentes ThemeSelector y ReloadPrompt del render prin
 
 **Skills:** `frontend-developer`
 
-- [ ] **M-4a** — Crear `AppLayout.tsx` con la lógica compartida (navbar, bottom nav, PIN guard, outlet)
-- [ ] **M-4b** — Refactorizar `TeacherLayout.tsx` para que use `AppLayout` con props (blue theme, teacher nav items)
-- [ ] **M-4c** — Refactorizar `ConsultaLayout.tsx` para que use `AppLayout` con props (purple theme, consulta nav items)
+- [x] **M-4a** — Crear `AppLayout.tsx` con la lógica compartida (navbar, bottom nav, PIN guard, outlet)
+- [x] **M-4b** — Refactorizar `TeacherLayout.tsx` para que use `AppLayout` con props (blue theme, teacher nav items)
+- [x] **M-4c** — Refactorizar `ConsultaLayout.tsx` para que use `AppLayout` con props (purple theme, consulta nav items)
 
 **Prompt M-4:**
 ```

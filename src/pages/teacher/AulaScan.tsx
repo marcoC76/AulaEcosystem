@@ -599,69 +599,69 @@ export default function AulaScan() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Scanner view */}
                         <div className="space-y-6">
-                        <Card className="border-0 overflow-hidden shadow-xl bg-gray-950 text-white rounded-2xl">
-                            <div className="flex items-center justify-between p-4 bg-gray-800/50 border-b border-theme-border/50">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-icons-round text-theme-accent1-400 animate-pulse">videocam</span>
-                                    <span className="font-semibold text-theme-text">Escaneando...</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input type="file" id="qr-upload" accept="image/*" className="hidden" onChange={handleFileUpload} aria-label="Subir imagen para escanear QR" />
-                                    <Button variant="outline" size="sm" onClick={() => document.getElementById('qr-upload')?.click()} aria-label="Subir foto" className="bg-gray-700/50 hover:bg-gray-600 text-theme-text border-0">
-                                        <span className="material-icons-round text-sm mr-1">upload_file</span>
-                                        <span className="hidden sm:inline">Foto</span>
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={toggleKiosk} aria-label="Alternar modo kiosco" className="bg-gray-700/50 hover:bg-gray-600 text-theme-text border-0">
-                                        <span className="material-icons-round text-sm mr-1">{isKioskMode ? 'fullscreen_exit' : 'fullscreen'}</span>
-                                        <span className="hidden sm:inline">Kiosco</span>
-                                    </Button>
-                                    <Button variant="secondary" size="sm" onClick={() => { if(isKioskMode) toggleKiosk(); setIsConfigured(false); }} className="bg-gray-700 hover:bg-gray-600 text-white border-0 hidden sm:flex">
-                                        Clase
-                                    </Button>
-                                </div>
-                            </div>
-                            <div className={cn("bg-gray-950 p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
-                                <div id="file-scanner-hidden" className="hidden"></div>
-                                {/* HTML5 QR Scanner Target */}
-                                <div id={scannerId} className="w-full max-w-[260px] mx-auto override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
-                                <div className="absolute bottom-6 text-center w-full px-4 text-sm font-medium text-white/90">
-                                    Alinea el código QR con el marco
-                                </div>
-                            </div>
+<Card className="border-0 overflow-hidden shadow-xl bg-gray-900 text-theme-text rounded-2xl">
+                             <div className="flex items-center justify-between p-4 bg-gray-900/80 border-b border-theme-border/50">
+                                 <div className="flex items-center gap-2">
+                                     <span className="material-icons-round text-theme-accent1-400 animate-pulse">videocam</span>
+                                     <span className="font-semibold text-theme-text">Escaneando...</span>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                     <input type="file" id="qr-upload" accept="image/*" className="hidden" onChange={handleFileUpload} aria-label="Subir imagen para escanear QR" />
+                                     <Button variant="outline" size="sm" onClick={() => document.getElementById('qr-upload')?.click()} aria-label="Subir foto" className="bg-theme-card hover:bg-theme-border/50 text-theme-text border-0">
+                                         <span className="material-icons-round text-sm mr-1">upload_file</span>
+                                         <span className="hidden sm:inline">Foto</span>
+                                     </Button>
+                                     <Button variant="outline" size="sm" onClick={toggleKiosk} aria-label="Alternar modo kiosco" className="bg-theme-card hover:bg-theme-border/50 text-theme-text border-0">
+                                         <span className="material-icons-round text-sm mr-1">{isKioskMode ? 'fullscreen_exit' : 'fullscreen'}</span>
+                                         <span className="hidden sm:inline">Kiosco</span>
+                                     </Button>
+                                     <Button variant="secondary" size="sm" onClick={() => { if(isKioskMode) toggleKiosk(); setIsConfigured(false); }} className="bg-theme-card hover:bg-theme-border/50 text-theme-text border-0 hidden sm:flex">
+                                         Clase
+                                     </Button>
+                                 </div>
+                             </div>
+                             <div className={cn("bg-gray-900 p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
+                                 <div id="file-scanner-hidden" className="hidden"></div>
+                                 {/* HTML5 QR Scanner Target */}
+                                 <div id={scannerId} className="w-full max-w-[260px] mx-auto override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
+                                 <div className="absolute bottom-6 text-center w-full px-4 text-sm font-medium text-theme-muted">
+                                     Alinea el código QR con el marco
+                                 </div>
+                             </div>
 
-                            {/* Status Selector */}
-                            <div className="p-4 bg-gray-950 border-t border-theme-border rounded-b-2xl">
-                                <label className="text-[10px] font-bold text-theme-muted uppercase tracking-widest block mb-3">Estado de Toma</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button
-                                        onClick={() => setAttendanceStatus('Asistencia')}
-                                        aria-pressed={attendanceStatus === 'Asistencia'}
-                                        className={cn(
-                                            "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
-                                            attendanceStatus === 'Asistencia'
-                                                ? "bg-theme-accent2-500/20 border-theme-accent2-500/50 text-theme-accent2-400"
-                                                : "bg-gray-800/50 border-theme-border/50 text-theme-muted hover:bg-gray-800"
-                                        )}
-                                    >
-                                        <span className="material-icons-round text-lg">check_circle</span>
-                                        Asistencia
-                                    </button>
-                                    <button
-                                        onClick={() => setAttendanceStatus('Retardo')}
-                                        aria-pressed={attendanceStatus === 'Retardo'}
-                                        className={cn(
-                                            "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
-                                            attendanceStatus === 'Retardo'
-                                                ? "bg-theme-warning-500/20 border-theme-warning-500/50 text-theme-warning-400"
-                                                : "bg-gray-800/50 border-theme-border/50 text-theme-muted hover:bg-gray-800"
-                                        )}
-                                    >
-                                        <span className="material-icons-round text-lg">schedule</span>
-                                        Retardo
-                                    </button>
-                                </div>
-                            </div>
-                        </Card>
+                             {/* Status Selector */}
+                             <div className="p-4 bg-gray-900 border-t border-theme-border rounded-b-2xl">
+                                 <label className="text-[10px] font-bold text-theme-muted uppercase tracking-widest block mb-3">Estado de Toma</label>
+                                 <div className="grid grid-cols-2 gap-3">
+                                     <button
+                                         onClick={() => setAttendanceStatus('Asistencia')}
+                                         aria-pressed={attendanceStatus === 'Asistencia'}
+                                         className={cn(
+                                             "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
+                                             attendanceStatus === 'Asistencia'
+                                                 ? "bg-theme-accent2-500/20 border-theme-accent2-500/50 text-theme-accent2-400"
+                                                 : "bg-theme-card border-theme-border/50 text-theme-muted hover:bg-theme-border/50"
+                                         )}
+                                     >
+                                         <span className="material-icons-round text-lg">check_circle</span>
+                                         Asistencia
+                                     </button>
+                                     <button
+                                         onClick={() => setAttendanceStatus('Retardo')}
+                                         aria-pressed={attendanceStatus === 'Retardo'}
+                                         className={cn(
+                                             "flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-semibold",
+                                             attendanceStatus === 'Retardo'
+                                                 ? "bg-theme-warning-500/20 border-theme-warning-500/50 text-theme-warning-400"
+                                                 : "bg-theme-border border-theme-border/50 text-theme-muted hover:bg-theme-border/50"
+                                         )}
+                                     >
+                                         <span className="material-icons-round text-lg">schedule</span>
+                                         Retardo
+                                     </button>
+                                 </div>
+                             </div>
+                         </Card>
 
                         {lastScanMsg && (
                             isKioskMode ? (

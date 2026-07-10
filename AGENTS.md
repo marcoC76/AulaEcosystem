@@ -9,8 +9,6 @@
 | `npm run lint` | ESLint flat config |
 | `npm run preview` | Vista previa del build de producción |
 
-No hay framework de tests configurado. `src/lib/__tests__/` está vacío.
-
 ## Arquitectura
 
 - **Paquete único** Vite 7 + React 19 + TypeScript 5.9 + Tailwind CSS 4. Sin workspaces de monorepo.
@@ -52,6 +50,14 @@ No hay framework de tests configurado. `src/lib/__tests__/` está vacío.
 - `vite.config.ts` — Configuración de Vite + PWA
 - `eslint.config.js` — Configuración plana de ESLint
 - `recursos/Code_AppsScript.js` — Backend de Google Apps Script
+
+## Changelog
+
+- **Siempre que completes un cambio, actualiza `CHANGELOG.md`** antes de hacer commit.
+- Usa el formato de versiones semánticas `[X.Y.Z] — YYYY-MM-DD`.
+- Agrupa las entradas por categoría: `### Refactor`, `### Feat`, `### Fix`, `### Accessibility`, `### Chore`.
+- Si el cambio corresponde a un item de `TODO.md`, referencia el ID (ej. `**C-3:** ...`).
+- Hay un git hook `post-commit` que registra automáticamente el mensaje del commit bajo `## [Unreleased]`. Puedes mover esas entradas a una versión concreta cuando hagas release.
 
 ## Notas
 

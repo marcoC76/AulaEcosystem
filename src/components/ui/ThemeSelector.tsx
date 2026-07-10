@@ -107,7 +107,7 @@ export function ThemeSelector() {
     };
 
     return (
-        <div ref={popupRef} className="fixed bottom-4 right-4 z-50">
+        <div ref={popupRef} className="fixed sm:bottom-4 bottom-20 right-4 z-[9999]">
             <button
                 ref={toggleRef}
                 onClick={() => setIsOpen(!isOpen)}

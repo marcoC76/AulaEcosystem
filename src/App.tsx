@@ -39,9 +39,9 @@ function App() {
       </Routes>
       </Suspense>
       </ErrorBoundary>
+      <ThemeSelector />
       <CookieConsent />
       <InstallPWA />
-      <ThemeSelector />
       <div
         className="pointer-events-none fixed inset-0 z-[60]"
         style={{

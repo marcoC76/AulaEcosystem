@@ -25,6 +25,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 py-12 bg-theme-base overflow-x-hidden relative">
       <div className="absolute inset-0 bg-gradient-to-b from-theme-accent1-600/[0.08] to-transparent pointer-events-none" />
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '32px 32px', color: 'var(--theme-text)' }} />
 
       <div className="w-full max-w-5xl flex flex-col items-center z-10">
         <div ref={heroRef} className="text-center mb-16 max-w-lg">

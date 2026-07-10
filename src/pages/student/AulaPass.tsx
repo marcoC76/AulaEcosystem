@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { LiveClock } from '../../components/ui/LiveClock';
+import StudentAvatar from '../../components/ui/StudentAvatar';
 import { fetchStudentsDB, getConfig } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useToast } from '../../hooks/useToast';
@@ -59,12 +60,91 @@ export default function AulaPass() {
         return 'from-gray-600 to-gray-800 border-gray-500/30';
     };
 
+    function generateAvatarSvgForCanvas(name: string, control: string): string {
+        function hashStr(s: string): number {
+            let hash = 0;
+            for (let i = 0; i < s.length; i++) {
+                hash = ((hash << 5) - hash) + s.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(hash);
+        }
+        const seed = hashStr((name || '') + String(control || ''));
+        const skinColors = ['#FDE3C8', '#E8C39E', '#D4A574', '#C68642', '#8D5524', '#A0714F', '#C68642', '#E8C39E'];
+        const hairColors = ['#1C1C1C', '#3B2F2F', '#5C4033', '#B5651D', '#D4A017', '#F5D06C', '#8B4513', '#4A4A4A', '#2B1B17', '#6B3A2A', '#1A1A2E', '#16213E'];
+        const shirtColors = ['#E74C3C', '#3498DB', '#2ECC71', '#9B59B6', '#F39C12', '#1ABC9C', '#E67E22', '#FF6B6B', '#00CEC9', '#6C5CE7', '#FD79A8', '#0984E3'];
+        const eyeColors = ['#1C1C1C', '#3B2F2F', '#4A3728', '#2C1810', '#1C1C1C', '#3B3028'];
+        const mouthColors = ['#E74C3C', '#C0392B', '#FF6B6B', '#E8A0A8', '#E74C3C', '#D63031'];
+        const bgColors = ['#FFEAA7', '#DFE6E9', '#B8E994', '#F8C291', '#A29BFE', '#FD79A8', '#74B9FF', '#55EFC4', '#FFEAA7', '#81ECEC', '#FAB1A0', '#DDA0DD'];
+        const skinColor = skinColors[seed % skinColors.length];
+        const hairColor = hairColors[(seed >> 2) % hairColors.length];
+        const shirtColor = shirtColors[(seed >> 4) % shirtColors.length];
+        const eyeColor = eyeColors[(seed >> 6) % eyeColors.length];
+        const mouthColor = mouthColors[(seed >> 8) % mouthColors.length];
+        const bgColor = bgColors[(seed >> 10) % bgColors.length];
+
+        const hairStyle = seed % 5; const eyeStyle = (seed >> 3) % 3; const mouthStyle = (seed >> 5) % 3;
+        const hat = ((seed >> 7) & 1) === 0; const blush = ((seed >> 8) & 1) === 1; const glasses = ((seed >> 9) & 1) === 0 && !hat;
+        const grid: string[][] = Array.from({ length: 8 }, () => Array(8).fill(skinColor));
+        const colorMap: Record<string, string> = { A: skinColor, B: hairColor, C: eyeColor, D: mouthColor, E: shirtColor, F: hairColor, G: '#F1C40F', H: '#FF6B6B' };
+        if (hat) {
+            for (let r = 0; r < 3; r++) for (let c = 0; c < 8; c++) grid[r][c] = 'B';
+            grid[0][0] = 'A'; grid[0][7] = 'A';
+        } else if (hairStyle === 0) {
+            for (let c = 0; c < 8; c++) { grid[0][c] = 'B'; grid[1][c] = 'B'; }
+            grid[2][0] = 'B'; grid[2][1] = 'B'; grid[2][6] = 'B'; grid[2][7] = 'B';
+        } else if (hairStyle === 1) {
+            for (let r = 0; r < 3; r++) for (let c = 2; c <= 5; c++) grid[r][c] = 'B';
+        } else if (hairStyle === 2) {
+            for (let c = 0; c < 8; c++) { grid[0][c] = 'B'; grid[1][c] = 'B'; }
+            grid[2][0] = 'B'; grid[2][1] = 'B'; grid[2][6] = 'B'; grid[2][7] = 'B';
+            grid[3][0] = 'B'; grid[3][7] = 'B'; grid[4][0] = 'B'; grid[4][7] = 'B';
+        } else if (hairStyle === 3) {
+            for (let r = 0; r < 2; r++) for (let c = 0; c < 8; c++) grid[r][c] = 'B';
+            for (let c = 0; c < 8; c++) grid[2][c] = 'B';
+            grid[0][2] = 'A'; grid[0][5] = 'A';
+        } else {
+            for (let r = 0; r < 2; r++) for (let c = 0; c < 8; c++) grid[r][c] = 'B';
+            grid[2][0] = 'B'; grid[2][1] = 'B'; grid[2][2] = 'B'; grid[2][5] = 'B'; grid[2][6] = 'B'; grid[2][7] = 'B';
+        }
+        if (glasses) {
+            grid[3][1] = 'G'; grid[3][2] = 'G'; grid[3][3] = 'G'; grid[3][4] = 'G'; grid[3][5] = 'G'; grid[3][6] = 'G';
+            grid[4][2] = 'C'; grid[4][5] = 'C';
+        } else if (eyeStyle === 0) { grid[3][2] = 'C'; grid[3][5] = 'C'; }
+        else if (eyeStyle === 1) { for (let c = 2; c <= 5; c++) grid[3][c] = 'C'; }
+        else { grid[4][2] = 'C'; grid[4][5] = 'C'; }
+        if (blush) { grid[4][1] = 'H'; grid[4][6] = 'H'; }
+        if (mouthStyle === 0) { grid[5][3] = 'D'; grid[5][4] = 'D'; grid[6][2] = 'D'; grid[6][5] = 'D'; }
+        else if (mouthStyle === 1) { grid[5][3] = 'D'; grid[5][4] = 'D'; }
+        else { grid[5][3] = 'D'; }
+        for (let c = 2; c <= 5; c++) grid[6][c] = 'E';
+        for (let c = 0; c < 8; c++) grid[7][c] = 'E';
+
+        const PIXEL = 6; const SIZE = PIXEL * 8; const GAP = 0.5;
+        const cells = grid.map((row, r) =>
+            row.map((cell, c) => `<rect x="${c * PIXEL + GAP}" y="${r * PIXEL + GAP}" width="${PIXEL - GAP * 2}" height="${PIXEL - GAP * 2}" rx="1" fill="${colorMap[cell]}"/>`).join('')
+        ).join('');
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}" width="120" height="120">
+            <rect width="${SIZE}" height="${SIZE}" rx="12" fill="${bgColor}"/>${cells}</svg>`;
+    }
+
+    const drawAvatarOnCanvas = async (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, name: string, control: string) => {
+        const svgStr = generateAvatarSvgForCanvas(name, control);
+        const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        const img = new Image();
+        await new Promise<void>((resolve) => {
+            img.onload = () => { ctx.drawImage(img, x, y, size, size); URL.revokeObjectURL(url); resolve(); };
+            img.onerror = () => resolve();
+            img.src = url;
+        });
+    };
+
     const downloadPNG = async () => {
         if (!student) return;
         setIsLoading(true);
 
         try {
-            // Manual canvas drawing to avoid external heavy libraries like html2canvas
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
@@ -72,42 +152,45 @@ export default function AulaPass() {
             canvas.width = 800;
             canvas.height = 1200;
 
-            // Draw Background
-            ctx.fillStyle = '#111827'; // gray-900
+            // Background
+            ctx.fillStyle = '#111827';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Header colored rect
-            ctx.fillStyle = student.Carrera.toLowerCase().includes('radiología') ? '#2563eb' :
+            // Header
+            const headerColor = student.Carrera.toLowerCase().includes('radiología') ? '#2563eb' :
                 student.Carrera.toLowerCase().includes('enfermería') ? '#059669' : '#4b5563';
+            ctx.fillStyle = headerColor;
             ctx.fillRect(0, 0, canvas.width, 180);
 
-            // Draw Text Info
+            // Title
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 50px Inter, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('AulaPass', canvas.width / 2, 100);
 
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 36px Inter, sans-serif';
             const fullName = `${student['Nombre(s)']} ${student['Apellido Paterno']} ${student['Apellido Materno']}`;
 
-            // wrap text simply (dumb wrap for names)
-            ctx.fillText(fullName.substring(0, 40), canvas.width / 2, 300);
+            // Avatar
+            await drawAvatarOnCanvas(ctx, (canvas.width / 2) - 60, 200, 120, fullName, student['No. Control'] || '');
+
+            // Info
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 36px Inter, sans-serif';
+            ctx.fillText(fullName.substring(0, 40), canvas.width / 2, 370);
 
             ctx.font = '30px Inter, sans-serif';
             ctx.fillStyle = '#9ca3af';
-            ctx.fillText(`No. Control: ${student['No. Control']}`, canvas.width / 2, 380);
-            ctx.fillText(`Carrera: ${student.Carrera.toUpperCase()}`, canvas.width / 2, 440);
-            ctx.fillText(`Grupo: ${student.Grupo}`, canvas.width / 2, 500);
+            ctx.fillText(`No. Control: ${student['No. Control']}`, canvas.width / 2, 430);
+            ctx.fillText(`Carrera: ${student.Carrera.toUpperCase()}`, canvas.width / 2, 480);
+            ctx.fillText(`Grupo: ${student.Grupo}`, canvas.width / 2, 530);
 
-            // Grab the QR SVG
+            // QR
             const svg = document.querySelector('#qr-code-svg');
             if (svg) {
                 const svgData = new XMLSerializer().serializeToString(svg);
                 const img = new Image();
                 const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
                 const url = URL.createObjectURL(svgBlob);
-
                 await new Promise((resolve) => {
                     img.onload = () => {
                         ctx.fillStyle = '#ffffff';
@@ -230,11 +313,17 @@ export default function AulaPass() {
 
                 {/* Student Info */}
                 <div className="px-6 pt-6 pb-2 text-center relative">
-                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-theme-card rounded-full border-4 border-theme-border flex items-center justify-center shadow-lg">
-                        <span className="material-icons-round text-5xl text-theme-muted">person</span>
+                    <div className="absolute -top-14 left-1/2 -translate-x-1/2">
+                        <div className="w-28 h-28 bg-theme-card rounded-full border-4 border-theme-border flex items-center justify-center shadow-lg overflow-hidden">
+                            <StudentAvatar
+                                name={fullName}
+                                control={student['No. Control'] || ''}
+                                size={100}
+                            />
+                        </div>
                     </div>
 
-                    <div className="mt-12 mb-6 space-y-1">
+                    <div className="mt-16 mb-6 space-y-1">
                         <h3 className="text-xl sm:text-2xl font-bold text-theme-text leading-tight">
                             {fullName}
                         </h3>

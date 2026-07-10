@@ -27,7 +27,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     else if (ref) ref.current = node;
                 }}
                 className={cn(
-                    "inline-flex items-center justify-center whitespace-nowrap rounded-lg font-medium ring-offset-gray-950 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] overflow-hidden relative",
+                    "inline-flex items-center justify-center whitespace-nowrap rounded-lg font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-accent1-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-theme-base disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] overflow-hidden relative",
                     {
                         "bg-theme-accent1-600 text-white hover:brightness-110 shadow-[var(--shadow-button-default)]": variant === "default",
                         "bg-red-600 text-white hover:bg-red-700 shadow-[var(--shadow-button-destructive)]": variant === "destructive",

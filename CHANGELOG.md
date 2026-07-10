@@ -2,9 +2,23 @@
 
 ## [Unreleased]
 
-### Commits
+- **dfa4105** — aqui funciona (2026-07-09)
 
-- **9ef84cf** — feat: add teacher and consulta layouts, views, and routing configuration (2026-07-07)
+### Fix
+
+- **Reporte:** Al entrar al reporte desde el docente con `step=3` persistido pero selecciones incompletas (profesor, materia o grupo vacíos), ahora se reinicia al paso 0 mostrando el UI de filtros en lugar de un dashboard vacío sin datos. (`AulaLook.tsx:351-368`)
+- **ThemeSelector global:** Movido de `AppLayout.tsx` (solo visible tras PIN docente/consulta) a `App.tsx` para que esté disponible en TODAS las pantallas (landing, estudiante, 404, etc.) desde que carga la app. Elevado su z-index a `z-[9999]` para que siempre esté sobre cualquier elemento. (`App.tsx`, `ThemeSelector.tsx`, `AppLayout.tsx`)
+- **ThemeSelector oculto en móvil:** El botón flotante de temas (`fixed bottom-4`) quedaba detrás de la barra de navegación inferior (`h-16`, `z-50`). Cambiado a `sm:bottom-4 bottom-20` para que en móvil quede 16px arriba del nav. (`ThemeSelector.tsx:110`)
+- **Auto-load reporte:** El auto-load inicial ahora espera a que TODAS las fetched (config, parciales, studentsDB) terminen via `Promise.allSettled` antes de ejecutar `loadGroupData`, eliminando races condicion que impedían cargar datos al entrar al reporte. Usa refs para evitar closures obsoletas. (`AulaLook.tsx:107-129` → refactor a `Promise.allSettled`)
+
+### Feat
+
+- **Filtros de Reporte (Wizard):** Eliminada la persistencia en `localStorage` de las selecciones del wizard para asegurar que siempre inicie desde cero al ingresar al reporte. Se agregaron limpiezas automáticas de claves heredadas en mount y se corrigieron advertencias de variables no leídas. (`AulaLook.tsx`)
+- **Colores de riesgo:** Agregadas variables CSS `--theme-danger-*` (siempre rojo: `#ef4444`) en todos los temas. Migrados todos los badges, alerts y elementos visuales de riesgo (badge "Riesgo", racha de faltas, barra de progreso <80%, KPI "Foco Rojo", banner de alerta crítica, faltas detectadas en modal, gráfico de patrón, umbral 85%) de `theme-accent1-*` (azul en tema dark) a `theme-danger-*` (rojo consistente en todos los temas). (`index.css`, `AulaLookTable.tsx`, `AulaLookDashboard.tsx`, `AulaLookCharts.tsx`, `AulaLook.tsx`)
+
+### Chore
+
+- **Skill:** Agregada skill `attendance-analytics` en `.opencode/skills/attendance-analytics/SKILL.md` para visualización Chart.js y detección de alumnos en riesgo.
 
 ## [2.1.0] — 2026-07-08
 
