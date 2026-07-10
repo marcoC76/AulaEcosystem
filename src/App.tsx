@@ -6,6 +6,7 @@ import TeacherLayout from './components/layout/TeacherLayout';
 import AulaPass from './pages/student/AulaPass';
 import ConsultaLayout from './components/layout/ConsultaLayout';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import Tour from './components/ui/Tour';
 import { CookieConsent } from './components/ui/CookieConsent';
 import { InstallPWA } from './components/ui/InstallPWA';
 import { ToastProvider } from './components/ui/Toast';
@@ -38,6 +39,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       </Suspense>
+      <Tour />
       </ErrorBoundary>
       <ThemeSelector />
       <CookieConsent />

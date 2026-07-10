@@ -1415,7 +1415,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                         </div>
                     )}
 
-                    <Card className="border-theme-border shadow-2xl p-6 sm:p-8">
+                    <Card id="report-filters" className="border-theme-border shadow-2xl p-6 sm:p-8">
                         {step === 0 && (
                             <div className="mb-8 flex gap-2 p-1 bg-black/20 rounded-lg">
                                 <button
@@ -1618,7 +1618,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 {parciales.length > 0 && ` • ${parciales.find(p => p.id === selectedPeriod)?.nombre || ''}`}
                             </p>
                         </div>
-                        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 w-full sm:w-auto no-print">
+                        <div id="export-actions" className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 w-full sm:w-auto no-print">
                             {parciales.length > 0 && (
                                 <div className="relative col-span-2 sm:col-span-1">
                                     <Select

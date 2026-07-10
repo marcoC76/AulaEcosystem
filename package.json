@@ -11,8 +11,12 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dicebear/bottts-neutral": "^9.4.2",
+    "@dicebear/core": "^9.4.3",
     "animejs": "^4.5.0",
     "clsx": "^2.1.1",
+    "dom-to-image-more": "^3.10.2",
+    "driver.js": "^1.6.0",
     "fuse.js": "^7.3.0",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",

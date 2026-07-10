@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import QRCode from 'react-qr-code';
+import domtoimage from 'dom-to-image-more';
+import { jsPDF } from 'jspdf';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -24,7 +26,8 @@ export default function AulaPass() {
     const [qrVersion, setQrVersion] = useState('1');
     const [placeholderIndex, setPlaceholderIndex] = useState(0);
     const [isFading, setIsFading] = useState(false);
-    const credentialRef = useRef<HTMLDivElement>(null);
+    const [cardTheme, setCardTheme] = useLocalStorage<'dark' | 'light'>('aulaPassTheme', 'dark');
+    const cardRef = useRef<HTMLDivElement>(null);
 
     const EXAMPLE_IDS = [
         'Ej. 24309060760447',
@@ -78,172 +81,81 @@ export default function AulaPass() {
         setShowLogoutModal(true);
     };
 
-    const getCareerColors = (career: string = '') => {
+    const getCareerAccent = (career: string = '') => {
         const c = career.toLowerCase();
-        if (c.includes('enfermería') || c.includes('enfermeria')) return 'from-theme-accent2-600 to-teal-800 border-theme-accent2-500/30';
-        if (c.includes('radiología') || c.includes('radiologia')) return 'from-theme-accent1-600 to-indigo-800 border-theme-accent1-500/30';
-        if (c.includes('sistemas')) return 'from-theme-accent3-600 to-violet-800 border-theme-accent3-500/30';
-        return 'from-gray-600 to-gray-800 border-gray-500/30';
+        if (c.includes('enfermería') || c.includes('enfermeria')) return 'bg-theme-accent2-500';
+        if (c.includes('radiología') || c.includes('radiologia')) return 'bg-theme-accent1-500';
+        if (c.includes('sistemas')) return 'bg-theme-accent3-500';
+        return 'bg-gray-500';
     };
 
-    function generateAvatarSvgForCanvas(name: string, control: string): string {
-        function hashStr(s: string): number {
-            let hash = 0;
-            for (let i = 0; i < s.length; i++) {
-                hash = ((hash << 5) - hash) + s.charCodeAt(i);
-                hash |= 0;
-            }
-            return Math.abs(hash);
+    const getCareerBorder = (career: string = '') => {
+        const c = career.toLowerCase();
+        if (c.includes('enfermería') || c.includes('enfermeria')) return 'border-theme-accent2-500/30';
+        if (c.includes('radiología') || c.includes('radiologia')) return 'border-theme-accent1-500/30';
+        if (c.includes('sistemas')) return 'border-theme-accent3-500/30';
+        return 'border-gray-500/30';
+    };
+
+    const exportCardToCanvas = async (): Promise<HTMLCanvasElement | null> => {
+        const el = cardRef.current;
+        if (!el) return null;
+        try {
+            return await domtoimage.toCanvas(el, {
+                scale: 3,
+                bgcolor: cardTheme === 'dark' ? '#0F1115' : '#ffffff',
+                ignoreCSSRuleErrors: true,
+            });
+        } catch (err) {
+            console.error('exportCardToCanvas failed:', err);
+            return null;
         }
-        const seed = hashStr((name || '') + String(control || ''));
-        const skinColors = ['#FDE3C8', '#E8C39E', '#D4A574', '#C68642', '#8D5524', '#A0714F', '#C68642', '#E8C39E'];
-        const hairColors = ['#1C1C1C', '#3B2F2F', '#5C4033', '#B5651D', '#D4A017', '#F5D06C', '#8B4513', '#4A4A4A', '#2B1B17', '#6B3A2A', '#1A1A2E', '#16213E'];
-        const shirtColors = ['#E74C3C', '#3498DB', '#2ECC71', '#9B59B6', '#F39C12', '#1ABC9C', '#E67E22', '#FF6B6B', '#00CEC9', '#6C5CE7', '#FD79A8', '#0984E3'];
-        const eyeColors = ['#1C1C1C', '#3B2F2F', '#4A3728', '#2C1810', '#1C1C1C', '#3B3028'];
-        const mouthColors = ['#E74C3C', '#C0392B', '#FF6B6B', '#E8A0A8', '#E74C3C', '#D63031'];
-        const bgColors = ['#FFEAA7', '#DFE6E9', '#B8E994', '#F8C291', '#A29BFE', '#FD79A8', '#74B9FF', '#55EFC4', '#FFEAA7', '#81ECEC', '#FAB1A0', '#DDA0DD'];
-        const skinColor = skinColors[seed % skinColors.length];
-        const hairColor = hairColors[(seed >> 2) % hairColors.length];
-        const shirtColor = shirtColors[(seed >> 4) % shirtColors.length];
-        const eyeColor = eyeColors[(seed >> 6) % eyeColors.length];
-        const mouthColor = mouthColors[(seed >> 8) % mouthColors.length];
-        const bgColor = bgColors[(seed >> 10) % bgColors.length];
-
-        const hairStyle = seed % 5; const eyeStyle = (seed >> 3) % 3; const mouthStyle = (seed >> 5) % 3;
-        const hat = ((seed >> 7) & 1) === 0; const blush = ((seed >> 8) & 1) === 1; const glasses = ((seed >> 9) & 1) === 0 && !hat;
-        const grid: string[][] = Array.from({ length: 8 }, () => Array(8).fill(skinColor));
-        const colorMap: Record<string, string> = { A: skinColor, B: hairColor, C: eyeColor, D: mouthColor, E: shirtColor, F: hairColor, G: '#F1C40F', H: '#FF6B6B' };
-        if (hat) {
-            for (let r = 0; r < 3; r++) for (let c = 0; c < 8; c++) grid[r][c] = 'B';
-            grid[0][0] = 'A'; grid[0][7] = 'A';
-        } else if (hairStyle === 0) {
-            for (let c = 0; c < 8; c++) { grid[0][c] = 'B'; grid[1][c] = 'B'; }
-            grid[2][0] = 'B'; grid[2][1] = 'B'; grid[2][6] = 'B'; grid[2][7] = 'B';
-        } else if (hairStyle === 1) {
-            for (let r = 0; r < 3; r++) for (let c = 2; c <= 5; c++) grid[r][c] = 'B';
-        } else if (hairStyle === 2) {
-            for (let c = 0; c < 8; c++) { grid[0][c] = 'B'; grid[1][c] = 'B'; }
-            grid[2][0] = 'B'; grid[2][1] = 'B'; grid[2][6] = 'B'; grid[2][7] = 'B';
-            grid[3][0] = 'B'; grid[3][7] = 'B'; grid[4][0] = 'B'; grid[4][7] = 'B';
-        } else if (hairStyle === 3) {
-            for (let r = 0; r < 2; r++) for (let c = 0; c < 8; c++) grid[r][c] = 'B';
-            for (let c = 0; c < 8; c++) grid[2][c] = 'B';
-            grid[0][2] = 'A'; grid[0][5] = 'A';
-        } else {
-            for (let r = 0; r < 2; r++) for (let c = 0; c < 8; c++) grid[r][c] = 'B';
-            grid[2][0] = 'B'; grid[2][1] = 'B'; grid[2][2] = 'B'; grid[2][5] = 'B'; grid[2][6] = 'B'; grid[2][7] = 'B';
-        }
-        if (glasses) {
-            grid[3][1] = 'G'; grid[3][2] = 'G'; grid[3][3] = 'G'; grid[3][4] = 'G'; grid[3][5] = 'G'; grid[3][6] = 'G';
-            grid[4][2] = 'C'; grid[4][5] = 'C';
-        } else if (eyeStyle === 0) { grid[3][2] = 'C'; grid[3][5] = 'C'; }
-        else if (eyeStyle === 1) { for (let c = 2; c <= 5; c++) grid[3][c] = 'C'; }
-        else { grid[4][2] = 'C'; grid[4][5] = 'C'; }
-        if (blush) { grid[4][1] = 'H'; grid[4][6] = 'H'; }
-        if (mouthStyle === 0) { grid[5][3] = 'D'; grid[5][4] = 'D'; grid[6][2] = 'D'; grid[6][5] = 'D'; }
-        else if (mouthStyle === 1) { grid[5][3] = 'D'; grid[5][4] = 'D'; }
-        else { grid[5][3] = 'D'; }
-        for (let c = 2; c <= 5; c++) grid[6][c] = 'E';
-        for (let c = 0; c < 8; c++) grid[7][c] = 'E';
-
-        const PIXEL = 6; const SIZE = PIXEL * 8; const GAP = 0.5;
-        const cells = grid.map((row, r) =>
-            row.map((cell, c) => `<rect x="${c * PIXEL + GAP}" y="${r * PIXEL + GAP}" width="${PIXEL - GAP * 2}" height="${PIXEL - GAP * 2}" rx="1" fill="${colorMap[cell]}"/>`).join('')
-        ).join('');
-        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}" width="120" height="120">
-            <rect width="${SIZE}" height="${SIZE}" rx="12" fill="${bgColor}"/>${cells}</svg>`;
-    }
-
-    const drawAvatarOnCanvas = async (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, name: string, control: string) => {
-        const svgStr = generateAvatarSvgForCanvas(name, control);
-        const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(svgBlob);
-        const img = new Image();
-        await new Promise<void>((resolve) => {
-            img.onload = () => { ctx.drawImage(img, x, y, size, size); URL.revokeObjectURL(url); resolve(); };
-            img.onerror = () => resolve();
-            img.src = url;
-        });
     };
 
     const downloadPNG = async () => {
         if (!student) return;
         setIsLoading(true);
-
         try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-
-            canvas.width = 800;
-            canvas.height = 1200;
-
-            // Background
-            ctx.fillStyle = '#111827';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Header
-            const headerColor = student.Carrera.toLowerCase().includes('radiología') ? '#2563eb' :
-                student.Carrera.toLowerCase().includes('enfermería') ? '#059669' : '#4b5563';
-            ctx.fillStyle = headerColor;
-            ctx.fillRect(0, 0, canvas.width, 180);
-
-            // Title
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 50px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('AulaPass', canvas.width / 2, 100);
-
-            const fullName = `${student['Nombre(s)']} ${student['Apellido Paterno']} ${student['Apellido Materno']}`;
-
-            // Avatar
-            await drawAvatarOnCanvas(ctx, (canvas.width / 2) - 60, 200, 120, fullName, student['No. Control'] || '');
-
-            // Info
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 36px Inter, sans-serif';
-            ctx.fillText(fullName.substring(0, 40), canvas.width / 2, 370);
-
-            ctx.font = '30px Inter, sans-serif';
-            ctx.fillStyle = '#9ca3af';
-            ctx.fillText(`No. Control: ${student['No. Control']}`, canvas.width / 2, 430);
-            ctx.fillText(`Carrera: ${student.Carrera.toUpperCase()}`, canvas.width / 2, 480);
-            ctx.fillText(`Grupo: ${student.Grupo}`, canvas.width / 2, 530);
-
-            // QR
-            const svg = document.querySelector('#qr-code-svg');
-            if (svg) {
-                const svgData = new XMLSerializer().serializeToString(svg);
-                const img = new Image();
-                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                const url = URL.createObjectURL(svgBlob);
-                await new Promise((resolve) => {
-                    img.onload = () => {
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect((canvas.width / 2) - 220, 580, 440, 440);
-                        ctx.drawImage(img, (canvas.width / 2) - 200, 600, 400, 400);
-                        URL.revokeObjectURL(url);
-                        resolve(null);
-                    };
-                    img.src = url;
-                });
-            }
-
-            ctx.font = 'italic 24px Inter, sans-serif';
-            ctx.fillStyle = '#6b7280';
-            ctx.fillText('Pase digital generado por AulaEcosystem', canvas.width / 2, 1100);
-
+            const canvas = await exportCardToCanvas();
+            if (!canvas) return;
             const link = document.createElement('a');
             link.download = `Pase_Aula_${student['No. Control']}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
-
+            toast('Pase descargado como PNG.', 'success');
         } catch (err) {
             console.error(err);
             toast('Error generando la imagen.', 'error');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const downloadPDF = async () => {
+        if (!student) return;
+        setIsLoading(true);
+        try {
+            const canvas = await exportCardToCanvas();
+            if (!canvas) return;
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+            const pageW = 210;
+            const margin = 10;
+            const imgW = pageW - margin * 2;
+            const imgH = (canvas.height / canvas.width) * imgW;
+            pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
+            pdf.save(`Pase_Aula_${student['No. Control']}.pdf`);
+            toast('Pase descargado como PDF.', 'success');
+        } catch (err) {
+            console.error(err);
+            toast('Error generando el PDF.', 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handlePrint = () => {
+        window.print();
     };
 
     if (!student) {
@@ -329,86 +241,161 @@ export default function AulaPass() {
             </div>
 
             <div
-                ref={credentialRef}
-                className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border ${getCareerColors(student.Carrera)} bg-theme-card/90 backdrop-blur-md relative z-10`}
+                id="student-card"
+                ref={cardRef}
+                data-card-theme={cardTheme}
+                className={cn(
+                    "print-area w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border relative z-10",
+                    getCareerBorder(student.Carrera),
+                    cardTheme === 'dark'
+                        ? 'bg-[#0F1115] text-white'
+                        : 'bg-white text-gray-900'
+                )}
             >
-                {/* Header Color Band */}
-                <div className={`h-32 bg-gradient-to-br ${getCareerColors(student.Carrera)} flex items-center justify-center relative overflow-hidden`}>
-                    <div className="absolute inset-0 bg-black/20" />
-                    <div className="absolute -right-4 -bottom-4 w-32 h-32 opacity-20 rotate-12 mix-blend-overlay">
-                        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" className="w-full h-full object-contain filter grayscale invert" />
+                {/* Thin career accent bar */}
+                <div className={cn("h-1 w-full", getCareerAccent(student.Carrera))} />
+
+                {/* Student Info + Avatar row */}
+                <div className="px-5 pt-5 pb-4">
+                    <div className="flex items-center gap-4">
+                        <div className="shrink-0">
+                            <div className={cn(
+                                "w-16 h-16 rounded-2xl border-2 flex items-center justify-center overflow-hidden shadow-md",
+                                cardTheme === 'dark' ? 'bg-[#1a1d24] border-gray-700/50' : 'bg-gray-100 border-gray-200'
+                            )}>
+                                <StudentAvatar
+                                    name={fullName}
+                                    control={student['No. Control'] || ''}
+                                    size={56}
+                                />
+                            </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h3 className={cn(
+                                "font-bold text-lg leading-tight truncate",
+                                cardTheme === 'dark' ? 'text-white' : 'text-gray-900'
+                            )}>
+                                {fullName}
+                            </h3>
+                            <p className={cn(
+                                "font-mono text-sm tracking-wider font-semibold mt-0.5",
+                                cardTheme === 'dark' ? 'text-theme-accent1-400' : 'text-theme-accent1-600'
+                            )}>
+                                {student['No. Control']}
+                            </p>
+                            <p className={cn(
+                                "text-xs mt-1",
+                                cardTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                            )}>
+                                {student.Carrera} <span className="mx-1 opacity-50">·</span> {student.Grupo}
+                            </p>
+                        </div>
                     </div>
-                    <h2 className="text-3xl font-black text-theme-text z-10 tracking-widest drop-shadow-md uppercase opacity-90">STUDENT</h2>
                 </div>
 
-                {/* Student Info */}
-                <div className="px-6 pt-6 pb-2 text-center relative">
-                    <div className="absolute -top-14 left-1/2 -translate-x-1/2">
-                        <div className="w-28 h-28 bg-theme-card rounded-full border-4 border-theme-border flex items-center justify-center shadow-lg overflow-hidden">
-                            <StudentAvatar
-                                name={fullName}
-                                control={student['No. Control'] || ''}
-                                size={100}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="mt-16 mb-6 space-y-1">
-                        <h3 className="text-xl sm:text-2xl font-bold text-theme-text leading-tight">
-                            {fullName}
-                        </h3>
-                        <p className="text-theme-accent1-400 font-mono tracking-widest font-semibold">{student['No. Control']}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-left">
-                        <div className="bg-theme-card/50 p-3 rounded-xl border border-theme-border">
-                            <span className="block text-theme-muted/80 text-xs uppercase mb-1">Carrera</span>
-                            <span className="text-theme-text font-medium capitalize block truncate">{student.Carrera}</span>
-                        </div>
-                        <div className="bg-theme-card/50 p-3 rounded-xl border border-theme-border">
-                            <span className="block text-theme-muted/80 text-xs uppercase mb-1">Grupo</span>
-                            <span className="text-theme-text font-medium block truncate">{student.Grupo}</span>
-                        </div>
-                    </div>
-                    <div className="mb-4">
-                        <LiveClock />
-                    </div>
-                </div>
+                {/* Divider */}
+                <div className={cn(
+                    "mx-5 h-px",
+                    cardTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+                )} />
 
                 {/* QR Code Section */}
-                <div className="qr-frame bg-white p-6 pb-8 mx-4 mb-6 rounded-2xl flex flex-col items-center justify-center shadow-inner relative">
-                    <span className="qr-corner qr-corner-tl" aria-hidden="true" />
-                    <span className="qr-corner qr-corner-tr" aria-hidden="true" />
-                    <span className="qr-corner qr-corner-bl" aria-hidden="true" />
-                    <span className="qr-corner qr-corner-br" aria-hidden="true" />
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1 bg-gray-300 rounded-full" />
+                <div className="px-5 py-5 flex flex-col items-center">
                     <QRCode
                         id="qr-code-svg"
                         value={getQrValue()}
-                        size={220}
+                        size={200}
                         level="M"
-                        className="h-auto max-w-full w-full"
+                        className={cn(
+                            "h-auto max-w-[200px] w-full p-2 rounded-xl",
+                            cardTheme === 'dark' ? 'bg-white' : 'bg-gray-50 border border-gray-200'
+                        )}
                         viewBox={`0 0 256 256`}
                     />
-                    <p className="text-theme-muted text-xs text-center mt-4 uppercase tracking-widest font-semibold">
+                    <p className={cn(
+                        "text-[10px] text-center mt-3 uppercase tracking-widest font-semibold",
+                        cardTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    )}>
                         Escanear para asistencia
                     </p>
+                    <div className="mt-3">
+                        <LiveClock />
+                    </div>
                 </div>
             </div>
 
-            <div className="w-full max-w-md mt-6 z-10">
+            {/* Action buttons */}
+            <div id="download-section" className="w-full max-w-md mt-5 z-10 flex gap-2 no-print">
                 <Button
                     variant="outline"
-                    className="w-full bg-theme-card/80 backdrop-blur-lg hover:bg-[#1f2229] h-14 text-theme-text text-lg rounded-2xl border-theme-border hover:border-theme-accent1-500/50"
+                    className={cn(
+                        "flex-1 h-12 text-sm rounded-2xl border",
+                        cardTheme === 'dark'
+                            ? 'bg-theme-card/80 border-theme-border text-theme-text'
+                            : 'bg-white border-gray-300 text-gray-700'
+                    )}
+                    onClick={() => setCardTheme(cardTheme === 'dark' ? 'light' : 'dark')}
+                    aria-label="Cambiar tema de la credencial"
+                >
+                    <span className="material-icons-round mr-1.5 text-lg">
+                        {cardTheme === 'dark' ? 'light_mode' : 'dark_mode'}
+                    </span>
+                    {cardTheme === 'dark' ? 'Claro' : 'Oscuro'}
+                </Button>
+                <Button
+                    variant="outline"
+                    className={cn(
+                        "flex-1 h-12 text-sm rounded-2xl border",
+                        cardTheme === 'dark'
+                            ? 'bg-theme-card/80 border-theme-border text-theme-text'
+                            : 'bg-white border-gray-300 text-gray-700'
+                    )}
+                    onClick={handlePrint}
+                    aria-label="Imprimir credencial"
+                >
+                    <span className="material-icons-round mr-1.5 text-lg">print</span>
+                    Imprimir
+                </Button>
+            </div>
+
+            <div className="w-full max-w-md mt-3 z-10 flex gap-2 no-print">
+                <Button
+                    variant="outline"
+                    className={cn(
+                        "flex-1 h-12 text-sm rounded-2xl border",
+                        cardTheme === 'dark'
+                            ? 'bg-theme-card/80 border-gray-700/50 text-gray-300 hover:border-gray-500'
+                            : 'bg-white border-gray-300 text-gray-600'
+                    )}
                     onClick={downloadPNG}
                     disabled={isLoading}
+                    aria-label="Descargar como PNG"
                 >
                     {isLoading ? (
-                        <span className="animate-spin material-icons-round mr-2">refresh</span>
+                        <span className="animate-spin material-icons-round mr-1.5 text-lg">refresh</span>
                     ) : (
-                        <span className="material-icons-round mr-2 text-theme-accent1-400">download</span>
+                        <span className="material-icons-round mr-1.5 text-lg">image</span>
                     )}
-                    {isLoading ? 'Generando...' : 'Descargar Pase'}
+                    PNG
+                </Button>
+                <Button
+                    variant="outline"
+                    className={cn(
+                        "flex-1 h-12 text-sm rounded-2xl border",
+                        cardTheme === 'dark'
+                            ? 'bg-theme-card/80 border-gray-700/50 text-gray-300 hover:border-gray-500'
+                            : 'bg-white border-gray-300 text-gray-600'
+                    )}
+                    onClick={downloadPDF}
+                    disabled={isLoading}
+                    aria-label="Descargar como PDF"
+                >
+                    {isLoading ? (
+                        <span className="animate-spin material-icons-round mr-1.5 text-lg">refresh</span>
+                    ) : (
+                        <span className="material-icons-round mr-1.5 text-lg">picture_as_pdf</span>
+                    )}
+                    PDF
                 </Button>
             </div>
 

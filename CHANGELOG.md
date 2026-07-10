@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Feat
+
+### Fix
+
+- **F1-FIX:** Reemplazo de `html2canvas` por `dom-to-image-more` en AulaPass para soportar colores `oklab()` de Tailwind v4. Soluciona error "Attempting to parse an unsupported color function oklab" al descargar PNG/PDF. (`src/pages/student/AulaPass.tsx`)
+
+- **F1-A:** Rediseño completo de la credencial AulaPass. Nuevo layout con barra delgada de carrera, avatar DiceBear + info en fila, QR sin marco blanco, toggle tema oscuro/claro, descarga PNG/PDF con html2canvas, soporte @media print. (`src/pages/student/AulaPass.tsx`, `src/index.css`)
+
+- **F1-B:** Reemplazo de avatares pixel art custom por DiceBear bottts-neutral. Avatares deterministas por seed (nombre+control). Eliminadas ~150 líneas de lógica de pixel art. (`src/components/ui/StudentAvatar.tsx`, `src/pages/student/AulaPass.tsx`)
+
+- **F1-C:** Tutorial interactivo con driver.js. Botón flotante `?` que muestra tour contextual según la ruta actual (student, teacher/scan, teacher/report, consulta/report). Estilo dark consistente con el tema de la app. (`src/components/ui/Tour.tsx`, `src/App.tsx`, `src/index.css`)
+
+- **602c4b4** — feat: implement frontend visual improvements batch 1 (2026-07-10)
+
 - **dcf4617** — feat: implement PDF export functionality for student and group reports in AulaLook and add front-end roadmap document (2026-07-10)
 
 - **84fa74f** — feat: add 3 new charts to report dashboard (Tipos de Marca, Rachas, Distribución) (2026-07-10)
