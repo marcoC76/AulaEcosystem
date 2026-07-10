@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **cbf8d98** — feat: initialize open-code ecosystem documentation and scaffolding for core components (2026-07-09)
+
 - **dfa4105** — aqui funciona (2026-07-09)
 
 ### Fix
