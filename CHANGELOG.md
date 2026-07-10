@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **6433384** — feat: replace alert()/confirm() with toast/Modal in AulaLook (RH-3) (2026-07-09)
+
 - **5c5c016** — feat: replace alert()/confirm() with toast/Modal in AulaLook (RH-3) (2026-07-09)
 
 - **cbf8d98** — feat: initialize open-code ecosystem documentation and scaffolding for core components (2026-07-09)
