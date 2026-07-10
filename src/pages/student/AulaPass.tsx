@@ -8,6 +8,7 @@ import { LiveClock } from '../../components/ui/LiveClock';
 import StudentAvatar from '../../components/ui/StudentAvatar';
 import { fetchStudentsDB, getConfig } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { cn } from '../../lib/utils';
 import { useToast } from '../../hooks/useToast';
 import type { StudentDBRecord } from '../../types';
 
@@ -21,7 +22,16 @@ export default function AulaPass() {
     const [isLoading, setIsLoading] = useState(false);
     const [isDbLoading, setIsDbLoading] = useState(true);
     const [qrVersion, setQrVersion] = useState('1');
+    const [placeholderIndex, setPlaceholderIndex] = useState(0);
+    const [isFading, setIsFading] = useState(false);
     const credentialRef = useRef<HTMLDivElement>(null);
+
+    const EXAMPLE_IDS = [
+        'Ej. 24309060760447',
+        'Ej. 24309060770123',
+        'Ej. 24309060758901',
+        'Ej. 24309060781234',
+    ];
 
     useEffect(() => {
         fetchStudentsDB().then(result => {
@@ -30,6 +40,22 @@ export default function AulaPass() {
         });
         getConfig().then(c => setQrVersion(c.qr_version || '1'));
     }, []);
+
+    useEffect(() => {
+        if (searchQuery) return;
+        let fadeTimeout: ReturnType<typeof setTimeout>;
+        const interval = setInterval(() => {
+            setIsFading(true);
+            fadeTimeout = setTimeout(() => {
+                setPlaceholderIndex(prev => (prev + 1) % EXAMPLE_IDS.length);
+                setIsFading(false);
+            }, 200);
+        }, 3000);
+        return () => {
+            clearInterval(interval);
+            clearTimeout(fadeTimeout);
+        };
+    }, [searchQuery]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -250,10 +276,14 @@ export default function AulaPass() {
                                     <Input
                                         id="student-search"
                                         type="text"
-                                        placeholder="Ej. 24309060760447"
+                                        placeholder={EXAMPLE_IDS[placeholderIndex]}
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="text-lg text-center font-mono tracking-widest"
+                                        className={cn(
+                                            "text-lg text-center font-mono tracking-widest",
+                                            "placeholder:transition-[opacity] placeholder:duration-200",
+                                            isFading && "placeholder:opacity-0"
+                                        )}
                                         autoFocus
                                         aria-describedby={error ? 'student-search-error' : undefined}
                                         aria-invalid={!!error}
@@ -346,7 +376,11 @@ export default function AulaPass() {
                 </div>
 
                 {/* QR Code Section */}
-                <div className="bg-white p-6 pb-8 mx-4 mb-6 rounded-2xl flex flex-col items-center justify-center shadow-inner relative">
+                <div className="qr-frame bg-white p-6 pb-8 mx-4 mb-6 rounded-2xl flex flex-col items-center justify-center shadow-inner relative">
+                    <span className="qr-corner qr-corner-tl" aria-hidden="true" />
+                    <span className="qr-corner qr-corner-tr" aria-hidden="true" />
+                    <span className="qr-corner qr-corner-bl" aria-hidden="true" />
+                    <span className="qr-corner qr-corner-br" aria-hidden="true" />
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1 bg-gray-300 rounded-full" />
                     <QRCode
                         id="qr-code-svg"

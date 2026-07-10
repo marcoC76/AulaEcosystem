@@ -1870,7 +1870,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
-                                        <thead>
+                                        <thead className="sticky top-0 z-10 backdrop-blur-md">
                                             <tr className="bg-black/20 text-theme-muted text-xs uppercase tracking-wider select-none">
                                                 {(() => {
                                                     const handleSortClick = (field: string) => {

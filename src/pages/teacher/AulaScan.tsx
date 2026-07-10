@@ -620,9 +620,13 @@ export default function AulaScan() {
                                      </Button>
                                  </div>
                              </div>
-                             <div className={cn("bg-gray-900 p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
-                                 <div id="file-scanner-hidden" className="hidden"></div>
-                                 {/* HTML5 QR Scanner Target */}
+                              <div className={cn("scan-frame bg-gray-900 p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
+                                  <span className="corner corner-tl" aria-hidden="true" />
+                                  <span className="corner corner-tr" aria-hidden="true" />
+                                  <span className="corner corner-bl" aria-hidden="true" />
+                                  <span className="corner corner-br" aria-hidden="true" />
+                                  <div id="file-scanner-hidden" className="hidden"></div>
+                                  {/* HTML5 QR Scanner Target */}
                                  <div id={scannerId} className="w-full max-w-[260px] mx-auto override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
                                  <div className="absolute bottom-6 text-center w-full px-4 text-sm font-medium text-theme-muted">
                                      Alinea el código QR con el marco

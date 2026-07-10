@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { heroEntrance, cardsEntrance } from '../lib/animations';
+import { heroEntrance, cardsEntrance, floatingParticles } from '../lib/animations';
 
 export default function LandingPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
+  const particlesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!heroRef.current || !cardsRef.current) return;
@@ -20,12 +21,47 @@ export default function LandingPage() {
     if (cards.length) {
       cardsEntrance(cards);
     }
+    if (particlesRef.current) {
+      floatingParticles(particlesRef.current);
+    }
   }, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 py-12 bg-theme-base overflow-x-hidden relative">
       <div className="absolute inset-0 bg-gradient-to-b from-theme-accent1-600/[0.08] to-transparent pointer-events-none" />
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '32px 32px', color: 'var(--theme-text)' }} />
+
+      {/* Floating particles */}
+      <div ref={particlesRef} className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <svg className="absolute left-[15%] top-[20%] w-4 h-4" viewBox="0 0 16 16">
+          <circle cx="8" cy="8" r="6" fill="none" stroke="var(--theme-accent1-400)" strokeWidth="1.5" opacity="0.25" />
+        </svg>
+        <svg className="absolute left-[75%] top-[15%] w-5 h-5" viewBox="0 0 20 20">
+          <rect x="2" y="2" width="16" height="16" rx="3" fill="var(--theme-accent2-400)" opacity="0.15" transform="rotate(45 10 10)" />
+        </svg>
+        <svg className="absolute left-[40%] top-[70%] w-3 h-3" viewBox="0 0 12 12">
+          <circle cx="6" cy="6" r="4" fill="var(--theme-accent3-400)" opacity="0.2" />
+        </svg>
+        <svg className="absolute left-[60%] top-[40%] w-6 h-6" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8" fill="none" stroke="var(--theme-accent1-400)" strokeWidth="1" opacity="0.2" />
+        </svg>
+        <svg className="absolute left-[25%] top-[50%] w-5 h-5" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="5" fill="var(--theme-accent2-400)" opacity="0.12" />
+        </svg>
+        <svg className="absolute left-[80%] top-[65%] w-4 h-4" viewBox="0 0 16 16">
+          <rect x="1" y="1" width="14" height="14" rx="2" fill="none" stroke="var(--theme-accent3-400)" strokeWidth="1.5" opacity="0.2" transform="rotate(45 8 8)" />
+        </svg>
+        <svg className="absolute left-[50%] top-[10%] w-3 h-3" viewBox="0 0 12 12">
+          <circle cx="6" cy="6" r="4" fill="var(--theme-accent1-400)" opacity="0.15" />
+        </svg>
+      </div>
+
+      {/* Asymmetric decorator ring */}
+      <svg className="hero-decorator" viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="80" strokeDasharray="120 40" />
+        <circle cx="100" cy="100" r="60" strokeDasharray="60 80" strokeWidth="1.5" stroke="var(--theme-accent2-500)" />
+        <circle cx="100" cy="100" r="40" strokeDasharray="30 30" strokeWidth="3" />
+      </svg>
 
       <div className="w-full max-w-5xl flex flex-col items-center z-10">
         <div ref={heroRef} className="text-center mb-16 max-w-lg">

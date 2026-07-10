@@ -214,6 +214,37 @@ export function glowPulse(
   } as AnimationParams);
 }
 
+export function floatingParticles(
+  container: HTMLElement,
+  options?: {
+    count?: number;
+    baseDuration?: number;
+    variance?: number;
+  },
+): JSAnimation[] {
+  if (prefersReducedMotion()) return [noopAnimation()];
+  const { count = 7, baseDuration = 5000, variance = 3000 } = options ?? {};
+  const particles = Array.from(container.children) as HTMLElement[];
+  return particles.slice(0, count).map((p) =>
+    animate(p, {
+      translateX: [
+        `${-(20 + Math.random() * 40)}px`,
+        `${20 + Math.random() * 40}px`,
+      ],
+      translateY: [
+        `${-(30 + Math.random() * 50)}px`,
+        `${30 + Math.random() * 50}px`,
+      ],
+      rotate: [0, 360],
+      duration: baseDuration + Math.random() * variance,
+      direction: 'alternate',
+      loop: true,
+      ease: 'inOutSine',
+      delay: Math.random() * 2000,
+    } as AnimationParams),
+  );
+}
+
 export function rippleEffect(
   button: HTMLElement,
   x: number,
@@ -241,4 +272,36 @@ export function rippleEffect(
     duration: 650,
     ease: 'outQuad',
   } as AnimationParams);
+}
+
+export function animateCount(
+  el: HTMLElement,
+  from: number,
+  to: number,
+  duration = 600,
+): JSAnimation {
+  if (prefersReducedMotion() || from === to) {
+    el.textContent = String(to);
+    return noopAnimation();
+  }
+  const start = performance.now();
+  const diff = to - from;
+  function update(now: number) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - (1 - progress) * (1 - progress);
+    el.textContent = String(Math.round(from + diff * eased));
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+  return noopAnimation();
+}
+
+export function animateShimmer(
+  elements: HTMLElement | HTMLElement[],
+): JSAnimation {
+  if (prefersReducedMotion()) return noopAnimation();
+  const targets = Array.isArray(elements) ? elements : [elements];
+  targets.forEach(el => el.classList.add('skeleton'));
+  return noopAnimation();
 }

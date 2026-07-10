@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **dcf4617** — feat: implement PDF export functionality for student and group reports in AulaLook and add front-end roadmap document (2026-07-10)
+
 - **84fa74f** — feat: add 3 new charts to report dashboard (Tipos de Marca, Rachas, Distribución) (2026-07-10)
 
 - **e86ea67** — feat: implement teacher dashboard charts with Recharts and add utility functions (2026-07-09)
@@ -12,6 +14,34 @@
 
 ### Feat
 
+- **L-4:** Decorator anillo asimétrico en LandingPage. SVG triple concéntrico con `stroke-dasharray` animado, posicionado en bottom-right, opacidad 0.08 + blur(40px). (`src/index.css`, `src/pages/LandingPage.tsx`)
+
+- **L-2:** Partículas SVG flotantes en hero de LandingPage. 7 formas variadas (círculos, anillos, diamantes) anime.js con translateX/Y + rotate, `direction: alternate, loop: true`, random stagger. Respeta `prefers-reduced-motion`. (`src/lib/animations.ts`, `src/pages/LandingPage.tsx`)
+
+- **AL-7:** Sticky table header con backdrop-blur en AulaLook. Clase `sticky top-0 z-10 backdrop-blur-md` en `<thead>` para mantener encabezados visibles al scrollear. (`src/pages/teacher/AulaLook.tsx`)
+
+- **T-3:** Grain texture con `mix-blend-mode: soft-light` en `body::before`. Reacciona con el color de fondo del tema en lugar de superposición gris plana. (`src/index.css`)
+
+- **T-1:** Scrollbar tintado con gradiente del accent1 del tema. Reemplazado `rgba(255,255,255,0.08)` fijo por `linear-gradient` con `var(--theme-accent1-400)` + `color-mix()`. (`src/index.css`)
+
+- **T-2:** Sombras tintadas con `color-mix(in srgb, var(--theme-accent1-500) X%, transparent)` en reemplazo de `rgba()` fijo. Cada tema hereda automáticamente el tono de su accent. `--shadow-button-destructive` usa `var(--theme-danger-500)`. (`src/index.css`: :root, light, forest, midnight, coffee)
+
+- **F-1:** Sustituida tipografía Outfit → Satoshi (Fontshare) e Inter → Figtree (Google Fonts) en `--font-sans`. JetBrains Mono se mantiene. (`index.html`, `src/index.css`)
+
+- **RC-2:** Nuevos helpers `animateCount(el, from, to, duration?)` y `animateShimmer(elements)` en `src/lib/animations.ts`. `animateCount` usa requestAnimationFrame con ease out quad. `animateShimmer` agrega clase `.skeleton` a targets. Ambos respetan `prefers-reduced-motion`. (`src/lib/animations.ts`)
+
+- **AP-1:** Placeholder shuffle animado en input de búsqueda de AulaPass. 4 ejemplos de No. Control ciclan cada 3s con `placeholder:transition-[opacity]`. El ciclo se pausa al escribir. (`src/pages/student/AulaPass.tsx`)
+
+- **N-1:** Nav indicator animado en AppLayout. Underline deslizable en nav desktop y dot indicador en mobile con `cubic-bezier(0.34, 1.56, 0.64, 1)` (overshoot). ResizeObserver para recalcular en resize/orientation change. (`src/components/layout/AppLayout.tsx`)
+
+- **N-2:** Micro-interacción nav bounce en mobile. Reemplazado `active:scale-95` por `active:animate-nav-bounce` con keyframe 1→1.2→0.95→1 en 300ms en la nav inferior. (`src/index.css`, `src/components/layout/AppLayout.tsx`)
+
+- **AP-3:** Esquinas decorativas QR en AulaPass. Marco en L con 4 `<span>` por esquina usando `var(--theme-accent2-400)`, consistente con el estilo de AS-2. (`src/index.css`, `src/pages/student/AulaPass.tsx`)
+
+- **AS-2:** Corner glow pulsante en frame del scanner. 4 esquinas en L con `drop-shadow` animado (`@keyframes corner-glow`) que hereda el accent del tema activo. (`src/index.css`, `src/pages/teacher/AulaScan.tsx`)
+
+- **AS-1:** Línea de escaneo animada en AulaScan. Nuevo `@keyframes scan-line` + clase `.scan-frame` con `::before` pseudo-elemento que cruza verticalmente el frame del scanner con glow gradiente adaptativo al tema activo. Respeta `prefers-reduced-motion`. (`src/index.css`, `src/pages/teacher/AulaScan.tsx`)
+
 - **RM-4:** Exportación de PDF individual por alumno desde el modal de detalle. Nueva función `exportStudentDetailPDF()` con jsPDF dinámico: encabezado, info (materia/grupo/profesor/período), resumen con barra de porcentaje coloreada, tabla cronológica con status coloreados (Asistencia/Retardo/Justificado/Falta), paginación automática y fecha de generación. Botón "Imprimir PDF" en modal reemplaza `window.print()`. (`AulaLook.tsx`)
 - **RM-4 (cont):** Exportación PDF grupal (`exportGroupPDF`) desde la barra de herramientas del reporte. Reemplaza el anterior `exportPDF` (html2canvas) por un PDF programático con tabla cronológica por alumno, manejo de saltos de página con re-encabezado de tabla, y paginación automática. (`AulaLook.tsx`)
 
@@ -20,22 +50,20 @@
 - **RL-1:** Nuevo tab "Gráfico de Actividad" en modal de detalle del alumno con grid tipo GitHub contributions (horizontal, semanas como columnas, días como filas). Micro-interacciones (hover scale, ring glow, fade-in escalonado). Tooltip con fecha y hora, leyenda de colores. (`AulaLook.tsx`)
 - **RM-3:** Avatar pixel-art (`StudentAvatar`) en cada fila de la tabla de alumnos en modo grupo. (`AulaLook.tsx`)
 
+- **Filtros de Reporte (Wizard):** Eliminada la persistencia en `localStorage` de las selecciones del wizard para asegurar que siempre inicie desde cero al ingresar al reporte. Se agregaron limpiezas automáticas de claves heredadas en mount y se corrigieron advertencias de variables no leídas. (`AulaLook.tsx`)
+- **Colores de riesgo:** Agregadas variables CSS `--theme-danger-*` (siempre rojo: `#ef4444`) en todos los temas. Migrados todos los badges, alerts y elementos visuales de riesgo de `theme-accent1-*` a `theme-danger-*`. (`index.css`, `AulaLookTable.tsx`, `AulaLookDashboard.tsx`, `AulaLookCharts.tsx`, `AulaLook.tsx`)
+
 ### Refactor
 
-- **RM-1:** Centralizada función `cssVar()` en `src/lib/utils.ts`. Reemplazados ~20 colores hex hardcodeados en Recharts, tooltips, statusData, backgrounds y estilos de justificadas por variables CSS del tema (`--theme-border`, `--theme-muted`, `--theme-accent1-500`, etc.) en `AulaLook.tsx` y `AulaLookCharts.tsx`.
+- **RM-1:** Centralizada función `cssVar()` en `src/lib/utils.ts`. Reemplazados ~20 colores hex hardcodeados en Recharts, tooltips, statusData, backgrounds y estilos de justificadas por variables CSS del tema. (`AulaLook.tsx`, `AulaLookCharts.tsx`)
 - **RH-3:** Reemplazados 9x `alert()` por `toast()` y 2x `window.confirm()` por modal de confirmación con `setConfirmAction`. (`AulaLook.tsx`)
 
 ### Fix
 
 - **Reporte:** Al entrar al reporte desde el docente con `step=3` persistido pero selecciones incompletas (profesor, materia o grupo vacíos), ahora se reinicia al paso 0 mostrando el UI de filtros en lugar de un dashboard vacío sin datos. (`AulaLook.tsx:351-368`)
-- **ThemeSelector global:** Movido de `AppLayout.tsx` (solo visible tras PIN docente/consulta) a `App.tsx` para que esté disponible en TODAS las pantallas (landing, estudiante, 404, etc.) desde que carga la app. Elevado su z-index a `z-[9999]` para que siempre esté sobre cualquier elemento. (`App.tsx`, `ThemeSelector.tsx`, `AppLayout.tsx`)
-- **ThemeSelector oculto en móvil:** El botón flotante de temas (`fixed bottom-4`) quedaba detrás de la barra de navegación inferior (`h-16`, `z-50`). Cambiado a `sm:bottom-4 bottom-20` para que en móvil quede 16px arriba del nav. (`ThemeSelector.tsx:110`)
-- **Auto-load reporte:** El auto-load inicial ahora espera a que TODAS las fetched (config, parciales, studentsDB) terminen via `Promise.allSettled` antes de ejecutar `loadGroupData`, eliminando races condicion que impedían cargar datos al entrar al reporte. Usa refs para evitar closures obsoletas. (`AulaLook.tsx:107-129` → refactor a `Promise.allSettled`)
-
-### Feat
-
-- **Filtros de Reporte (Wizard):** Eliminada la persistencia en `localStorage` de las selecciones del wizard para asegurar que siempre inicie desde cero al ingresar al reporte. Se agregaron limpiezas automáticas de claves heredadas en mount y se corrigieron advertencias de variables no leídas. (`AulaLook.tsx`)
-- **Colores de riesgo:** Agregadas variables CSS `--theme-danger-*` (siempre rojo: `#ef4444`) en todos los temas. Migrados todos los badges, alerts y elementos visuales de riesgo (badge "Riesgo", racha de faltas, barra de progreso <80%, KPI "Foco Rojo", banner de alerta crítica, faltas detectadas en modal, gráfico de patrón, umbral 85%) de `theme-accent1-*` (azul en tema dark) a `theme-danger-*` (rojo consistente en todos los temas). (`index.css`, `AulaLookTable.tsx`, `AulaLookDashboard.tsx`, `AulaLookCharts.tsx`, `AulaLook.tsx`)
+- **ThemeSelector global:** Movido de `AppLayout.tsx` (solo visible tras PIN docente/consulta) a `App.tsx` para que esté disponible en TODAS las pantallas (landing, estudiante, 404, etc.) desde que carga la app. Elevado su z-index a `z-[9999]`. (`App.tsx`, `ThemeSelector.tsx`, `AppLayout.tsx`)
+- **ThemeSelector oculto en móvil:** El botón flotante de temas (`fixed bottom-4`) quedaba detrás de la barra de navegación inferior (`h-16`, `z-50`). Cambiado a `sm:bottom-4 bottom-20`. (`ThemeSelector.tsx:110`)
+- **Auto-load reporte:** El auto-load inicial ahora espera a que TODAS las fetched (config, parciales, studentsDB) terminen via `Promise.allSettled` antes de ejecutar `loadGroupData`, eliminando races condition. Usa refs para evitar closures obsoletas. (`AulaLook.tsx:107-129`)
 
 ### Chore
 
