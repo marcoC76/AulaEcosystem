@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { heroEntrance, cardsEntrance, floatingParticles } from '../lib/animations';
+import feedback from '../lib/feedback';
 
 export default function LandingPage() {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -65,7 +66,7 @@ export default function LandingPage() {
 
       <div className="w-full max-w-5xl flex flex-col items-center z-10">
         <div ref={heroRef} className="text-center mb-16 max-w-lg">
-          <div className="hero-logo inline-flex items-center justify-center w-24 h-24 p-2 bg-theme-card/80 backdrop-blur-md rounded-3xl shadow-2xl mb-8">
+          <div className="hero-logo inline-flex items-center justify-center w-24 h-24 p-2 bg-theme-card/80 backdrop-blur-md rounded-[2rem] shadow-[var(--shadow-card)] mb-8">
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AulaEcosystem Logo" className="w-full h-full object-contain filter drop-shadow-md" />
           </div>
           <h1 className="hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-theme-text mb-4 drop-shadow-sm text-balance">
@@ -79,7 +80,8 @@ export default function LandingPage() {
         <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-5 gap-6 w-full px-4 md:px-0">
           <Link
             to="/teacher/scan"
-            className="entrance-card group relative flex flex-col items-start justify-center p-8 md:col-span-3 bg-theme-card/80 backdrop-blur-xl rounded-[2.5rem] transition-all duration-300 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
+            onClick={() => feedback.light('navigate')}
+            className="entrance-card group relative flex flex-col items-start justify-center p-8 md:col-span-3 bg-theme-card/80 backdrop-blur-xl rounded-[2rem] transition-all duration-300 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
           >
             <div className="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-theme-accent1-500/10 blur-3xl pointer-events-none" />
             <div className="w-16 h-16 rounded-2xl bg-theme-accent1-500/10 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-500">
@@ -94,6 +96,7 @@ export default function LandingPage() {
           <div className="flex flex-col gap-6 md:col-span-2">
             <Link
               to="/student"
+              onClick={() => feedback.light('navigate')}
               className="entrance-card group relative flex items-center gap-5 p-6 bg-theme-card/80 backdrop-blur-xl rounded-[2rem] transition-all duration-300 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
             >
               <div className="w-14 h-14 rounded-2xl bg-theme-accent2-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
@@ -109,6 +112,7 @@ export default function LandingPage() {
 
             <Link
               to="/consulta/report"
+              onClick={() => feedback.light('navigate')}
               className="entrance-card group relative flex items-center gap-5 p-6 bg-theme-card/80 backdrop-blur-xl rounded-[2rem] transition-all duration-300 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-2 active:scale-[0.98] overflow-hidden"
             >
               <div className="w-14 h-14 rounded-2xl bg-theme-accent3-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">

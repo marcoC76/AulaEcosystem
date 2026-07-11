@@ -4,6 +4,7 @@ import PinGuard from './PinGuard';
 import { cn } from '../../lib/utils';
 import { getConfig } from '../../lib/dataService';
 import { ReloadPrompt } from '../ui/ReloadPrompt';
+import feedback from '../../lib/feedback';
 
 interface NavItem {
     name: string;
@@ -136,6 +137,7 @@ export default function AppLayout({
                                 <Link
                                     key={item.path}
                                     to={item.path}
+                                    onClick={() => feedback.light('navigate')}
                                     className={cn(
                                         "nav-item nav-indicator-target flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 active:scale-95",
                                         isActive && "active",
@@ -157,6 +159,7 @@ export default function AppLayout({
                         <button
                             onClick={(e) => {
                                 e.preventDefault();
+                                feedback.light('click');
                                 localStorage.removeItem(authKey);
                                 navigate('/');
                             }}
@@ -191,6 +194,7 @@ export default function AppLayout({
                                 <Link
                                     key={item.path}
                                     to={item.path}
+                                    onClick={() => feedback.light('navigate')}
                                     aria-label={item.name === 'Escaner' ? 'Escanear asistencia' : 'Ver reportes'}
                                     className={cn(
                                         "nav-indicator-target flex flex-col items-center justify-center w-full h-full gap-1 transition-colors duration-200 active:animate-nav-bounce",
@@ -214,6 +218,7 @@ export default function AppLayout({
                             aria-label="Cerrar sesión"
                             onClick={(e) => {
                                 e.preventDefault();
+                                feedback.light('click');
                                 localStorage.removeItem(authKey);
                                 navigate('/');
                             }}

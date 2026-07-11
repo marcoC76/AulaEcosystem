@@ -20,7 +20,7 @@ export function CookieConsent() {
 
   return (
     <div className="fixed bottom-0 inset-x-0 z-40 p-4">
-      <div className="mx-auto max-w-lg bg-theme-card/95 backdrop-blur-md border border-theme-border rounded-2xl p-4 shadow-2xl">
+      <div className="mx-auto max-w-lg bg-theme-card/80 backdrop-blur-xl rounded-[2rem] p-4 shadow-[var(--shadow-card)]">
         <p className="text-sm text-theme-text leading-relaxed mb-3">
           Este sitio utiliza cookies para mejorar tu experiencia. Al continuar, aceptas su uso conforme a nuestra política de privacidad.
         </p>

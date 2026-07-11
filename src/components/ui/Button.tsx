@@ -1,20 +1,29 @@
 import * as React from "react"
 import { cn } from "../../lib/utils"
 import { rippleEffect } from "../../lib/animations"
+import feedback from "../../lib/feedback"
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     size?: 'default' | 'sm' | 'lg' | 'icon';
     disableRipple?: boolean;
+    disableFeedback?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant = "default", size = "default", disableRipple, onClick, ...props }, ref) => {
+    ({ className, variant = "default", size = "default", disableRipple, disableFeedback, onClick, ...props }, ref) => {
         const innerRef = React.useRef<HTMLButtonElement>(null);
 
         const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
             if (!disableRipple && innerRef.current) {
                 rippleEffect(innerRef.current, e.clientX, e.clientY);
+            }
+            if (!disableFeedback) {
+                if (variant === 'destructive') {
+                    feedback.medium('error');
+                } else {
+                    feedback.light('click');
+                }
             }
             onClick?.(e);
         };

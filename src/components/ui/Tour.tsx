@@ -153,7 +153,7 @@ export default function Tour() {
             animate: true,
             showProgress: true,
             showButtons: ['next', 'previous', 'close'],
-            progressText: 'Paso {current} de {total}',
+            progressText: 'Paso {{current}} de {{total}}',
             nextBtnText: 'Siguiente',
             prevBtnText: 'Anterior',
             doneBtnText: 'Finalizar',
@@ -172,7 +172,7 @@ export default function Tour() {
         <button
             onClick={handleClick}
             className={cn(
-                "tour-fab fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full shadow-2xl",
+                "tour-fab fixed sm:bottom-20 bottom-36 right-4 z-[9998] w-12 h-12 rounded-full shadow-2xl",
                 "flex items-center justify-center text-lg font-bold",
                 "bg-theme-accent1-600 text-white hover:bg-theme-accent1-700 active:scale-90",
                 "transition-all duration-200 border border-white/10 backdrop-blur-md",

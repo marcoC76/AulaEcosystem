@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
 import { ToastContext } from '../../hooks/useToast';
 import { cn } from '../../lib/utils';
 import { toastEnter, toastExit } from '../../lib/animations';
+import feedback from '../../lib/feedback';
 
 interface Toast {
   id: number;
@@ -33,6 +34,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((message: string, type: Toast['type'] = 'info') => {
     const id = nextId++;
     setToasts(prev => [...prev, { id, message, type }]);
+
+    if (type === 'success') {
+      feedback.medium('success');
+    } else if (type === 'error') {
+      feedback.medium('error');
+    } else {
+      feedback.light('navigate');
+    }
 
     const timer = setTimeout(() => startExit(id), 4000);
     timersRef.current.set(id, timer);

@@ -12,6 +12,7 @@ import { fetchStudentsDB, getConfig } from '../../lib/dataService';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../hooks/useToast';
+import feedback from '../../lib/feedback';
 import type { StudentDBRecord } from '../../types';
 
 export default function AulaPass() {
@@ -71,8 +72,10 @@ export default function AulaPass() {
             return String(studentId).trim().toLowerCase() === term;
         });
         if (found) {
+            feedback.medium('success');
             setStudent(found);
         } else {
+            feedback.medium('error');
             setError('Número de control no encontrado. Verifica tus datos.');
         }
     };

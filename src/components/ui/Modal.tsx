@@ -93,7 +93,7 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreenO
             <div
                 ref={contentRef}
                 className={cn(
-                    "w-full flex flex-col bg-theme-card shadow-2xl overflow-hidden print-area",
+                    "w-full flex flex-col bg-theme-card/80 backdrop-blur-xl shadow-[var(--shadow-card)] overflow-hidden print-area",
                     fullScreenOnMobile ? "h-full rounded-none sm:h-auto sm:max-h-[85vh] sm:rounded-2xl sm:max-w-xl" : "max-h-[85vh] rounded-t-2xl sm:rounded-2xl max-w-xl self-end sm:self-auto",
                     className
                 )}

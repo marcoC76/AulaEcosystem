@@ -537,7 +537,7 @@ export default function AulaScan() {
         <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24 space-y-6">
 
             {!isConfigured ? (
-                <Card className="border-gray-700 shadow-xl mt-4">
+                <Card className="mt-4">
                     <div className="p-6 border-b border-theme-border bg-theme-border/50 flex items-center gap-3">
                         <span className="material-icons-round text-3xl text-theme-accent1-500">settings</span>
                         <h2 className="text-xl font-bold">Configuración de Clase</h2>
@@ -577,18 +577,18 @@ export default function AulaScan() {
                 <div className="flex flex-col gap-6 mt-4">
                     {/* Metrics Dashboard */}
                     <div ref={metricsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Card className="metrics-card p-4 flex flex-col items-center justify-center border border-theme-border shadow-lg bg-theme-base/20">
+                        <Card className="metrics-card p-4 flex flex-col items-center justify-center">
                             <span className="material-icons-round text-theme-accent1-500 mb-1 opacity-80">today</span>
                             <span className="text-2xl font-bold text-theme-text">{scansToday}</span>
                             <span className="text-[10px] text-theme-muted uppercase tracking-widest mt-1 font-semibold">Hoy</span>
                         </Card>
-                        <Card className="metrics-card p-4 flex flex-col items-center justify-center border border-theme-border shadow-lg bg-theme-base/20">
+                        <Card className="metrics-card p-4 flex flex-col items-center justify-center">
                             <span className="material-icons-round text-theme-accent2-500 mb-1 opacity-80">storage</span>
                             <span className="text-2xl font-bold text-theme-text">{totalScans}</span>
                             <span className="text-[10px] text-theme-muted uppercase tracking-widest mt-1 font-semibold">En Memoria</span>
                         </Card>
                         {queueCount > 0 && (
-                            <Card className="metrics-card p-4 flex flex-col items-center justify-center border border-theme-warning-500/30 shadow-lg bg-theme-warning-500/10">
+                            <Card className="metrics-card p-4 flex flex-col items-center justify-center">
                                 <span className="material-icons-round text-theme-warning-400 mb-1 opacity-80">sync</span>
                                 <span className="text-2xl font-bold text-theme-warning-400">{queueCount}</span>
                                 <span className="text-[10px] text-theme-warning-400/80 uppercase tracking-widest mt-1 font-semibold">Pendientes</span>
@@ -599,7 +599,7 @@ export default function AulaScan() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Scanner view */}
                         <div className="space-y-6">
-<Card className="border-0 overflow-hidden shadow-xl bg-gray-900 text-theme-text rounded-2xl">
+<Card className="overflow-hidden">
                              <div className="flex items-center justify-between p-4 bg-gray-900/80 border-b border-theme-border/50">
                                  <div className="flex items-center gap-2">
                                      <span className="material-icons-round text-theme-accent1-400 animate-pulse">videocam</span>
@@ -675,10 +675,10 @@ export default function AulaScan() {
                                         lastScanMsg.type === 'success' ? "bg-theme-accent2-500/20" : "bg-theme-accent1-500/20"
                                     )} />
                                     <div className={cn(
-                                        "relative z-10 px-8 py-6 rounded-2xl border shadow-2xl text-center pointer-events-auto",
+                                        "relative z-10 px-8 py-6 bg-theme-card/80 backdrop-blur-xl rounded-[2rem] shadow-[var(--shadow-card)] text-center pointer-events-auto",
                                         lastScanMsg.type === 'success'
-                                            ? "bg-theme-card/60 border-theme-accent2-500/20 text-theme-accent2-400"
-                                            : "bg-theme-card/60 border-theme-accent1-500/20 text-theme-accent1-400"
+                                            ? "text-theme-accent2-400"
+                                            : "text-theme-accent1-400"
                                     )}>
                                         <p className="text-xl font-semibold">{lastScanMsg.text}</p>
                                     </div>
@@ -686,10 +686,10 @@ export default function AulaScan() {
                             ) : (
                                 <div role="alert" className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-fade-in pointer-events-none">
                                     <div className={cn(
-                                        "px-4 py-3 rounded-xl shadow-2xl text-center font-semibold pointer-events-auto",
+                                        "px-4 py-3 bg-theme-card/80 backdrop-blur-xl rounded-[2rem] shadow-[var(--shadow-card)] text-center font-semibold pointer-events-auto",
                                         lastScanMsg.type === 'success'
-                                            ? "bg-theme-card/90 backdrop-blur-md border border-theme-accent2-500/20 text-theme-accent2-400"
-                                            : "bg-theme-card/90 backdrop-blur-md border border-theme-accent1-500/20 text-theme-accent1-400"
+                                            ? "text-theme-accent2-400"
+                                            : "text-theme-accent1-400"
                                     )}>
                                         {lastScanMsg.text}
                                     </div>
@@ -697,7 +697,7 @@ export default function AulaScan() {
                             )
                         )}
 
-                        <Card className="border-gray-700 shadow-xl overflow-visible relative z-50">
+                        <Card className="overflow-visible relative z-50">
                             <div className="p-4 flex gap-2 relative">
                                 <div className="relative flex-1">
                                     <label htmlFor="manual-search" className="sr-only">Buscar alumno por nombre o ID</label>
@@ -736,7 +736,7 @@ export default function AulaScan() {
 
                     {/* History view (Hidden in Kiosk) */}
                     {!isKioskMode && (
-                        <Card ref={historyRef} className="border-gray-700 shadow-xl flex flex-col max-h-[600px] overflow-hidden">
+                        <Card ref={historyRef} className="flex flex-col max-h-[600px] overflow-hidden">
                             <div className="flex items-center justify-between p-4 bg-theme-border/50 border-b border-theme-border">
                             <span className="font-semibold text-theme-text">Historial Reciente</span>
                             <div className="flex gap-2">
@@ -771,7 +771,7 @@ export default function AulaScan() {
                                     const hasMore = dayItems.length > 5;
                                     
                                     return (
-                                        <div key={dateKey} className="bg-theme-card rounded-xl border border-theme-border overflow-hidden shadow-sm">
+                                        <div key={dateKey} className="bg-theme-card/80 backdrop-blur-xl rounded-[2rem] shadow-[var(--shadow-card)] overflow-hidden">
                                             <div className="flex items-center justify-between p-3 bg-theme-border/50 border-b border-theme-border">
                                                 <span className="font-medium text-theme-accent2-400 text-sm flex items-center gap-2">
                                                     <span className="material-icons-round text-sm opacity-80">event</span>

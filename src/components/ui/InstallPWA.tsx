@@ -44,7 +44,7 @@ export function InstallPWA() {
     }
 
     return (
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-theme-card/90 backdrop-blur-xl border border-theme-border shadow-2xl rounded-2xl p-4 z-50 animate-fade-in-up">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-theme-card/80 backdrop-blur-xl rounded-[2rem] shadow-[var(--shadow-card)] p-4 z-50 animate-fade-in-up">
             <div className="flex items-start gap-4">
                 <div className="bg-theme-accent2-500/10 p-2 rounded-xl border border-theme-accent2-500/20 shrink-0">
                     <span className="material-icons-round text-theme-accent2-400 text-2xl">install_mobile</span>

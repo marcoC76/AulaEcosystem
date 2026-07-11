@@ -4,6 +4,23 @@
 
 ### Feat
 
+- **Glass unificado:** Migradas todas las cards de la app al mismo efecto visual de las cards de inicio: `bg-theme-card/80 backdrop-blur-xl shadow-[var(--shadow-card)] rounded-[2rem]`, sin bordes explícitos. Afecta al componente `Card` base y a todas sus instancias (AulaPass, AulaScan, AulaLook, ChartCard), más las cards inline de PinGuard, PinEncoder, Modal, NotFound, CookieConsent, InstallPWA, ReloadPrompt, y las 10 cards internas de AulaScan (config, métricas, escáner, alertas kiosco/toast, búsqueda manual, historial, grupos de fecha). (`ui/Card.tsx`, `LandingPage.tsx`, `PinGuard.tsx`, `PinEncoder.tsx`, `Modal.tsx`, `NotFound.tsx`, `CookieConsent.tsx`, `InstallPWA.tsx`, `ReloadPrompt.tsx`, `AulaScan.tsx`)
+
+- **Tour reposicionado:** Botón de ayuda (Tour) movido a `sm:bottom-20 bottom-36 right-4 z-[9998]` para que siempre quede fijo arriba del ThemeSelector sin solaparse. (`Tour.tsx`)
+
+### Fix
+
+- **Tour progreso:** Corregida sintaxis de placeholders en `progressText` — driver.js requiere llaves dobles `{{current}}`/`{{total}}`, no `{current}`/`{total}`. (`Tour.tsx`)
+- **Encoding UTF-8:** Corregida corrupción de caracteres acentuados en Tour.tsx y AulaScan.tsx causada por herramientas que no preservan UTF-8. (`AulaScan.tsx`, `Tour.tsx`)
+
+- **15b4453** — feat: implement interactive tour system and add student identification interface with QR generation (2026-07-10)
+
+### Feat
+
+- **Feed-1:** Sistema unificado de micro-interacciones: sonidos MP3 reales (éxito/error), retroalimentación háptica (vibración) y animaciones ligeras. Nuevo `src/lib/feedback.ts` con API `feedback.sound()`, `feedback.haptic()`, `feedback.light()`, `feedback.medium()`, `feedback.heavy()`. Los MP3 se cachean offline vía Workbox (estrategia CacheFirst). (`src/lib/feedback.ts`, `vite.config.ts`)
+
+- **Feed-2:** Integración de feedback en todos los componentes: `Button` (click suave + vibración, destructivo con sonido error), `Toast` (sonido según tipo success/error/info), `PinGuard` (login exitoso/fallido), `AppLayout` (navegación), `LandingPage` (tarjetas), `AulaPass` (búsqueda/descarga), `AulaScan` (reemplazo de `playBeep` sintético por MP3 reales + vibración), `AulaLook` (reportes/errores vía Toast). (`src/components/ui/Button.tsx`, `src/components/ui/Toast.tsx`, `src/components/layout/PinGuard.tsx`, `src/components/layout/AppLayout.tsx`, `src/pages/LandingPage.tsx`, `src/pages/student/AulaPass.tsx`, `src/pages/teacher/AulaScan.tsx`)
+
 ### Fix
 
 - **F1-FIX:** Reemplazo de `html2canvas` por `dom-to-image-more` en AulaPass para soportar colores `oklab()` de Tailwind v4. Soluciona error "Attempting to parse an unsupported color function oklab" al descargar PNG/PDF. (`src/pages/student/AulaPass.tsx`)

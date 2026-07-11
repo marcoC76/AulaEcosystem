@@ -31,6 +31,28 @@ export default defineConfig({
               },
             },
           },
+          {
+            urlPattern: /^https:\/\/marcoc76\.github\.io\/audios\/.*\.mp3$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'audio-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/github\.com\/marcoC76\/audios\/.*\.mp3$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'audio-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+            },
+          },
         ],
       },
       manifest: {

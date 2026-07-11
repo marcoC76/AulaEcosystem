@@ -93,7 +93,7 @@ export default function NotFound() {
       <div className="flex flex-col items-center text-center z-10">
 
         {/* Logo */}
-        <div className="w-20 h-20 p-2 bg-theme-card/80 backdrop-blur-md rounded-3xl shadow-2xl mb-8">
+        <div className="w-20 h-20 p-2 bg-theme-card/80 backdrop-blur-md rounded-[2rem] shadow-[var(--shadow-card)] mb-8">
           <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AulaEcosystem" className="w-full h-full object-contain" />
         </div>
 

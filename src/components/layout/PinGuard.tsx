@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Button } from '../ui/Button';
 import { useAnimatedMount } from '../../hooks/useAnimatedMount';
 import { shakeElement } from '../../lib/animations';
+import feedback from '../../lib/feedback';
 
 interface PinGuardProps {
     children: ReactNode;
@@ -54,10 +55,12 @@ export default function PinGuard({
 
         if (pin === correctPin) {
             localStorage.setItem(authKey, 'true');
+            feedback.heavy('success');
             setIsAuthenticated(true);
         } else {
             setError('PIN incorrecto. Intenta de nuevo.');
             setPin('');
+            feedback.heavy('error');
             if (inputRef.current) {
                 shakeElement(inputRef.current);
             }
@@ -81,7 +84,7 @@ export default function PinGuard({
             <div className="absolute inset-0 bg-gradient-to-b from-theme-accent1-600/[0.06] to-transparent pointer-events-none" />
 
             <div ref={formRef} className="w-full max-w-[400px] z-10">
-                <div className="bg-theme-card/90 backdrop-blur-xl border border-theme-border rounded-[2rem] shadow-2xl overflow-hidden relative before:absolute before:inset-[1px] before:rounded-[calc(2rem-1px)] before:border before:border-white/[0.04] before:pointer-events-none">
+                <div className="bg-theme-card/80 backdrop-blur-xl rounded-[2rem] shadow-[var(--shadow-card)] overflow-hidden relative">
                     <div className="absolute top-0 inset-x-0 flex justify-center">
                         <div
                             className={`w-32 h-1.5 rounded-b-md pin-stagger ${isBlue ? 'bg-theme-accent1-500' : 'bg-theme-accent3-500'}`}
