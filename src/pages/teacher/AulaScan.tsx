@@ -540,7 +540,7 @@ export default function AulaScan() {
                 <Card className="mt-4">
                     <div className="p-6 border-b border-theme-border bg-theme-border/50 flex items-center gap-3">
                         <span className="material-icons-round text-3xl text-theme-accent1-500">settings</span>
-                        <h2 className="text-xl font-bold">Configuración de Clase</h2>
+                        <h2 className="font-display text-xl font-bold">Configuración de Clase</h2>
                     </div>
                     <div className="p-6 space-y-6">
                         <div className="space-y-2">
@@ -579,18 +579,18 @@ export default function AulaScan() {
                     <div ref={metricsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <Card className="metrics-card p-4 flex flex-col items-center justify-center">
                             <span className="material-icons-round text-theme-accent1-500 mb-1 opacity-80">today</span>
-                            <span className="text-2xl font-bold text-theme-text">{scansToday}</span>
+                            <span className="font-mono text-2xl font-bold text-theme-text">{scansToday}</span>
                             <span className="text-[10px] text-theme-muted uppercase tracking-widest mt-1 font-semibold">Hoy</span>
                         </Card>
                         <Card className="metrics-card p-4 flex flex-col items-center justify-center">
                             <span className="material-icons-round text-theme-accent2-500 mb-1 opacity-80">storage</span>
-                            <span className="text-2xl font-bold text-theme-text">{totalScans}</span>
+                            <span className="font-mono text-2xl font-bold text-theme-text">{totalScans}</span>
                             <span className="text-[10px] text-theme-muted uppercase tracking-widest mt-1 font-semibold">En Memoria</span>
                         </Card>
                         {queueCount > 0 && (
                             <Card className="metrics-card p-4 flex flex-col items-center justify-center">
                                 <span className="material-icons-round text-theme-warning-400 mb-1 opacity-80">sync</span>
-                                <span className="text-2xl font-bold text-theme-warning-400">{queueCount}</span>
+                                <span className="font-mono text-2xl font-bold text-theme-warning-400">{queueCount}</span>
                                 <span className="text-[10px] text-theme-warning-400/80 uppercase tracking-widest mt-1 font-semibold">Pendientes</span>
                             </Card>
                         )}
@@ -600,7 +600,7 @@ export default function AulaScan() {
                         {/* Scanner view */}
                         <div className="space-y-6">
 <Card className="overflow-hidden">
-                             <div className="flex items-center justify-between p-4 bg-gray-900/80 border-b border-theme-border/50">
+                             <div className="flex items-center justify-between p-4 bg-theme-card/80 border-b border-theme-border/50">
                                  <div className="flex items-center gap-2">
                                      <span className="material-icons-round text-theme-accent1-400 animate-pulse">videocam</span>
                                      <span className="font-semibold text-theme-text">Escaneando...</span>
@@ -620,7 +620,7 @@ export default function AulaScan() {
                                      </Button>
                                  </div>
                              </div>
-                              <div className={cn("scan-frame bg-gray-900 p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
+                              <div className={cn("scan-frame bg-theme-card p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
                                   <span className="corner corner-tl" aria-hidden="true" />
                                   <span className="corner corner-tr" aria-hidden="true" />
                                   <span className="corner corner-bl" aria-hidden="true" />
@@ -634,7 +634,7 @@ export default function AulaScan() {
                              </div>
 
                              {/* Status Selector */}
-                             <div className="p-4 bg-gray-900 border-t border-theme-border rounded-b-2xl">
+                             <div className="p-4 bg-theme-card border-t border-theme-border rounded-b-2xl">
                                  <label className="text-[10px] font-bold text-theme-muted uppercase tracking-widest block mb-3">Estado de Toma</label>
                                  <div className="grid grid-cols-2 gap-3">
                                      <button
@@ -738,7 +738,7 @@ export default function AulaScan() {
                     {!isKioskMode && (
                         <Card ref={historyRef} className="flex flex-col max-h-[600px] overflow-hidden">
                             <div className="flex items-center justify-between p-4 bg-theme-border/50 border-b border-theme-border">
-                            <span className="font-semibold text-theme-text">Historial Reciente</span>
+                            <span className="font-display font-semibold text-theme-text">Historial Reciente</span>
                             <div className="flex gap-2">
                                 {(queueCount > 0 || history.some(h => h.date === todayStr && h.status === 'error')) && (
                                     <Button variant="outline" size="sm" className="bg-theme-warning-500/10 text-theme-warning-400 border-theme-warning-500/30 hover:bg-theme-warning-500/20" onClick={retryFailedScans}>
@@ -758,7 +758,7 @@ export default function AulaScan() {
                                     <div className="p-4 rounded-full bg-theme-border/30 text-theme-muted mb-4">
                                         <span className="material-icons-round text-5xl">qr_code_scanner</span>
                                     </div>
-                                    <h3 className="text-lg font-bold text-theme-text mb-2">Sin Registros</h3>
+                                    <h3 className="font-display text-lg font-bold text-theme-text mb-2">Sin Registros</h3>
                                     <p className="text-sm text-theme-muted max-w-xs">
                                         Escanea códigos QR o busca alumnos manualmente para registrar asistencia. Los registros aparecerán aquí.
                                     </p>

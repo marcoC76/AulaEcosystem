@@ -69,7 +69,7 @@ export default function LandingPage() {
           <div className="hero-logo inline-flex items-center justify-center w-24 h-24 p-2 bg-theme-card/80 backdrop-blur-md rounded-[2rem] shadow-[var(--shadow-card)] mb-8">
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AulaEcosystem Logo" className="w-full h-full object-contain filter drop-shadow-md" />
           </div>
-          <h1 className="hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-theme-text mb-4 drop-shadow-sm text-balance">
+          <h1 className="hero-title font-display text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-theme-text mb-4 drop-shadow-sm text-balance">
             AulaEcosystem
           </h1>
           <p className="hero-subtitle text-lg sm:text-xl text-theme-muted font-medium max-w-md mx-auto leading-relaxed">
@@ -87,7 +87,7 @@ export default function LandingPage() {
             <div className="w-16 h-16 rounded-2xl bg-theme-accent1-500/10 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-500">
               <span className="material-icons-round text-3xl text-theme-accent1-400">admin_panel_settings</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-theme-text mb-2">Docente</h2>
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-theme-text mb-2">Docente</h2>
             <p className="text-theme-muted text-sm md:text-base font-medium leading-relaxed max-w-md">
               Registra y gestiona asistencia, justifica faltas en tiempo real
             </p>
@@ -103,7 +103,7 @@ export default function LandingPage() {
                 <span className="material-icons-round text-2xl text-theme-accent2-400">badge</span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-theme-text">Alumno</h2>
+                <h2 className="font-display text-xl font-bold text-theme-text">Alumno</h2>
                 <p className="text-theme-muted text-sm leading-relaxed">
                   Genera tu pase digital QR
                 </p>
@@ -119,7 +119,7 @@ export default function LandingPage() {
                 <span className="material-icons-round text-2xl text-theme-accent3-400">search</span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-theme-text">Consulta</h2>
+                <h2 className="font-display text-xl font-bold text-theme-text">Consulta</h2>
                 <p className="text-theme-muted text-sm leading-relaxed">
                   Visualiza y exporta reportes
                 </p>

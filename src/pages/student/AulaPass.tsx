@@ -27,7 +27,6 @@ export default function AulaPass() {
     const [qrVersion, setQrVersion] = useState('1');
     const [placeholderIndex, setPlaceholderIndex] = useState(0);
     const [isFading, setIsFading] = useState(false);
-    const [cardTheme, setCardTheme] = useLocalStorage<'dark' | 'light'>('aulaPassTheme', 'dark');
     const cardRef = useRef<HTMLDivElement>(null);
 
     const EXAMPLE_IDS = [
@@ -104,9 +103,10 @@ export default function AulaPass() {
         const el = cardRef.current;
         if (!el) return null;
         try {
+            const cardBg = getComputedStyle(el).backgroundColor || '#1A1A20';
             return await domtoimage.toCanvas(el, {
                 scale: 3,
-                bgcolor: cardTheme === 'dark' ? '#0F1115' : '#ffffff',
+                bgcolor: cardBg,
                 ignoreCSSRuleErrors: true,
             });
         } catch (err) {
@@ -171,7 +171,7 @@ export default function AulaPass() {
                         <div className="inline-flex p-4 bg-theme-card/80 backdrop-blur-xl rounded-full mb-4 border border-theme-border shadow-lg">
                             <span className="material-icons-round text-5xl text-theme-accent2-400">badge</span>
                         </div>
-                        <h1 className="text-3xl font-bold text-theme-text mb-2">Generar Credencial</h1>
+                        <h1 className="font-display text-3xl font-bold text-theme-text mb-2">Generar Credencial</h1>
                         <p className="text-theme-muted">{isDbLoading ? 'Cargando base de datos de alumnos...' : 'Ingresa tu Número de Control para continuar'}</p>
                     </div>
 
@@ -233,7 +233,7 @@ export default function AulaPass() {
             <div className="absolute inset-0 bg-gradient-to-b from-theme-accent2-600/[0.05] to-transparent pointer-events-none" />
             
             <div className="w-full max-w-md flex justify-between items-center mb-6 z-10">
-                <h1 className="text-2xl font-bold text-theme-text tracking-tight flex items-center gap-2">
+                <h1 className="font-display text-2xl font-bold text-theme-text tracking-tight flex items-center gap-2">
                     <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AulaEcosystem" className="w-7 h-7" />
                     AulaPass
                 </h1>
@@ -246,13 +246,9 @@ export default function AulaPass() {
             <div
                 id="student-card"
                 ref={cardRef}
-                data-card-theme={cardTheme}
                 className={cn(
-                    "print-area w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border relative z-10",
-                    getCareerBorder(student.Carrera),
-                    cardTheme === 'dark'
-                        ? 'bg-[#0F1115] text-white'
-                        : 'bg-white text-gray-900'
+                    "print-area pass-card w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border relative z-10 bg-theme-card text-theme-text",
+                    getCareerBorder(student.Carrera)
                 )}
             >
                 {/* Thin career accent bar */}
@@ -262,10 +258,7 @@ export default function AulaPass() {
                 <div className="px-5 pt-5 pb-4">
                     <div className="flex items-center gap-4">
                         <div className="shrink-0">
-                            <div className={cn(
-                                "w-16 h-16 rounded-2xl border-2 flex items-center justify-center overflow-hidden shadow-md",
-                                cardTheme === 'dark' ? 'bg-[#1a1d24] border-gray-700/50' : 'bg-gray-100 border-gray-200'
-                            )}>
+                            <div className="w-16 h-16 rounded-2xl border-2 border-theme-border flex items-center justify-center overflow-hidden shadow-md bg-theme-card/70">
                                 <StudentAvatar
                                     name={fullName}
                                     control={student['No. Control'] || ''}
@@ -274,22 +267,13 @@ export default function AulaPass() {
                             </div>
                         </div>
                         <div className="min-w-0 flex-1">
-                            <h3 className={cn(
-                                "font-bold text-lg leading-tight truncate",
-                                cardTheme === 'dark' ? 'text-white' : 'text-gray-900'
-                            )}>
+                            <h3 className="font-bold text-lg leading-tight truncate text-theme-text">
                                 {fullName}
                             </h3>
-                            <p className={cn(
-                                "font-mono text-sm tracking-wider font-semibold mt-0.5",
-                                cardTheme === 'dark' ? 'text-theme-accent1-400' : 'text-theme-accent1-600'
-                            )}>
+                            <p className="font-mono text-sm tracking-wider font-semibold mt-0.5 text-theme-accent1-500">
                                 {student['No. Control']}
                             </p>
-                            <p className={cn(
-                                "text-xs mt-1",
-                                cardTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                            )}>
+                            <p className="text-xs mt-1 text-theme-muted">
                                 {student.Carrera} <span className="mx-1 opacity-50">·</span> {student.Grupo}
                             </p>
                         </div>
@@ -297,28 +281,27 @@ export default function AulaPass() {
                 </div>
 
                 {/* Divider */}
-                <div className={cn(
-                    "mx-5 h-px",
-                    cardTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
-                )} />
+                <div className="mx-5 h-px bg-theme-border" />
 
                 {/* QR Code Section */}
                 <div className="px-5 py-5 flex flex-col items-center">
-                    <QRCode
-                        id="qr-code-svg"
-                        value={getQrValue()}
-                        size={200}
-                        level="M"
-                        className={cn(
-                            "h-auto max-w-[200px] w-full p-2 rounded-xl",
-                            cardTheme === 'dark' ? 'bg-white' : 'bg-gray-50 border border-gray-200'
-                        )}
-                        viewBox={`0 0 256 256`}
-                    />
-                    <p className={cn(
-                        "text-[10px] text-center mt-3 uppercase tracking-widest font-semibold",
-                        cardTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-                    )}>
+                    <div className="relative inline-flex">
+                        <QRCode
+                            id="qr-code-svg"
+                            value={getQrValue()}
+                            size={200}
+                            level="M"
+                            className="h-auto max-w-[200px] w-full p-2 rounded-xl bg-white"
+                            viewBox={`0 0 256 256`}
+                        />
+                        <div className="qr-frame absolute inset-0" aria-hidden="true">
+                            <div className="qr-corner qr-corner-tl" />
+                            <div className="qr-corner qr-corner-tr" />
+                            <div className="qr-corner qr-corner-bl" />
+                            <div className="qr-corner qr-corner-br" />
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-center mt-3 uppercase tracking-widest font-semibold text-theme-muted">
                         Escanear para asistencia
                     </p>
                     <div className="mt-3">
@@ -328,48 +311,19 @@ export default function AulaPass() {
             </div>
 
             {/* Action buttons */}
-            <div id="download-section" className="w-full max-w-md mt-5 z-10 flex gap-2 no-print">
+            <div className="w-full max-w-md mt-5 z-10 flex gap-2 no-print">
                 <Button
                     variant="outline"
-                    className={cn(
-                        "flex-1 h-12 text-sm rounded-2xl border",
-                        cardTheme === 'dark'
-                            ? 'bg-theme-card/80 border-theme-border text-theme-text'
-                            : 'bg-white border-gray-300 text-gray-700'
-                    )}
-                    onClick={() => setCardTheme(cardTheme === 'dark' ? 'light' : 'dark')}
-                    aria-label="Cambiar tema de la credencial"
-                >
-                    <span className="material-icons-round mr-1.5 text-lg">
-                        {cardTheme === 'dark' ? 'light_mode' : 'dark_mode'}
-                    </span>
-                    {cardTheme === 'dark' ? 'Claro' : 'Oscuro'}
-                </Button>
-                <Button
-                    variant="outline"
-                    className={cn(
-                        "flex-1 h-12 text-sm rounded-2xl border",
-                        cardTheme === 'dark'
-                            ? 'bg-theme-card/80 border-theme-border text-theme-text'
-                            : 'bg-white border-gray-300 text-gray-700'
-                    )}
+                    className="flex-1 h-12 text-sm rounded-2xl border bg-theme-card/80 border-theme-border text-theme-text"
                     onClick={handlePrint}
                     aria-label="Imprimir credencial"
                 >
                     <span className="material-icons-round mr-1.5 text-lg">print</span>
                     Imprimir
                 </Button>
-            </div>
-
-            <div className="w-full max-w-md mt-3 z-10 flex gap-2 no-print">
                 <Button
                     variant="outline"
-                    className={cn(
-                        "flex-1 h-12 text-sm rounded-2xl border",
-                        cardTheme === 'dark'
-                            ? 'bg-theme-card/80 border-gray-700/50 text-gray-300 hover:border-gray-500'
-                            : 'bg-white border-gray-300 text-gray-600'
-                    )}
+                    className="flex-1 h-12 text-sm rounded-2xl border bg-theme-card/80 border-theme-border text-theme-text hover:border-theme-muted"
                     onClick={downloadPNG}
                     disabled={isLoading}
                     aria-label="Descargar como PNG"
@@ -383,12 +337,7 @@ export default function AulaPass() {
                 </Button>
                 <Button
                     variant="outline"
-                    className={cn(
-                        "flex-1 h-12 text-sm rounded-2xl border",
-                        cardTheme === 'dark'
-                            ? 'bg-theme-card/80 border-gray-700/50 text-gray-300 hover:border-gray-500'
-                            : 'bg-white border-gray-300 text-gray-600'
-                    )}
+                    className="flex-1 h-12 text-sm rounded-2xl border bg-theme-card/80 border-theme-border text-theme-text hover:border-theme-muted"
                     onClick={downloadPDF}
                     disabled={isLoading}
                     aria-label="Descargar como PDF"

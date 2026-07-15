@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Satoshi', 'Figtree', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Clash Display', 'Satoshi', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 
   --color-gray-750: #2d3748;
@@ -58,6 +59,31 @@
     100% { transform: scale(1); }
   }
 
+  /* ── Escala tipográfica refinada ── */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+
+  --text-xs--line-height: 1.25rem;
+  --text-sm--line-height: 1.375rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg--line-height: 1.625rem;
+  --text-xl--line-height: 1.75rem;
+
+  --text-2xl--line-height: 1.25;
+  --text-2xl--letter-spacing: -0.01em;
+
+  --text-3xl--line-height: 1.2;
+  --text-3xl--letter-spacing: -0.015em;
+
+  --text-4xl--line-height: 1.15;
+  --text-4xl--letter-spacing: -0.02em;
+
+  --text-5xl--line-height: 1.1;
+  --text-5xl--letter-spacing: -0.025em;
+
+  --text-6xl--line-height: 1.05;
+  --text-6xl--letter-spacing: -0.03em;
+
 }
 
 @theme {
@@ -83,6 +109,18 @@
   --color-theme-danger-400: var(--theme-danger-400);
   --color-theme-danger-500: var(--theme-danger-500);
   --color-theme-danger-600: var(--theme-danger-600);
+}
+
+/* ── Clases para texto denso (tablas, historial, tooltips) ── */
+.dense {
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.dense-sm {
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+  font-size: 0.8125rem;
 }
 
 :root {
@@ -366,9 +404,11 @@ body::before {
 .data-row {
   display: flex;
   align-items: center;
-  padding: 0.625rem 0;
+  padding: 0.5rem 0;
   gap: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  letter-spacing: -0.005em;
+  line-height: 1.35;
 }
 
 .data-row:last-child {
@@ -441,6 +481,18 @@ body::before {
 .scan-frame .corner-tr { top: 8px; right: 8px; border-top-width: 3px; border-right-width: 3px; border-radius: 0 6px 0 0; }
 .scan-frame .corner-bl { bottom: 8px; left: 8px; border-bottom-width: 3px; border-left-width: 3px; border-radius: 0 0 0 6px; }
 .scan-frame .corner-br { bottom: 8px; right: 8px; border-bottom-width: 3px; border-right-width: 3px; border-radius: 0 0 6px 0; }
+
+/* Subtle dot-grid pattern for AulaPass card */
+.pass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--theme-text) 0.5px, transparent 0.5px);
+  background-size: 20px 20px;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
 
 /* QR decorative corners for AulaPass */
 .qr-frame .qr-corner {
@@ -599,21 +651,19 @@ body::before {
     background: #ffffff !important;
     color: #000000 !important;
   }
-  .print-area[data-card-theme="dark"] * {
-    color: #000000 !important;
-  }
   .print-area .text-theme-accent1-400,
+  .print-area .text-theme-accent1-500,
   .print-area .text-theme-accent1-600 {
     color: #2563eb !important;
   }
-  .print-area .text-gray-500,
-  .print-area .text-gray-400,
-  .print-area .text-gray-500 *,
-  .print-area .text-gray-400 * {
+  .print-area .text-theme-muted {
     color: #6b7280 !important;
   }
-  .print-area .bg-gray-800 {
+  .print-area .bg-theme-border {
     background: #e5e7eb !important;
+  }
+  .print-area .pass-card::before {
+    display: none !important;
   }
   .no-print, .no-print * {
     display: none !important;

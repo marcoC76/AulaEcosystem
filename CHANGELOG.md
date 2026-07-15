@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **8c4f3aa** — Feat: Glass unificado + Tour reposicionado Fix: Tour progreso (llaves dobles) + Encoding UTF-8 (2026-07-11)
+
 ### Feat
 
 - **Glass unificado:** Migradas todas las cards de la app al mismo efecto visual de las cards de inicio: `bg-theme-card/80 backdrop-blur-xl shadow-[var(--shadow-card)] rounded-[2rem]`, sin bordes explícitos. Afecta al componente `Card` base y a todas sus instancias (AulaPass, AulaScan, AulaLook, ChartCard), más las cards inline de PinGuard, PinEncoder, Modal, NotFound, CookieConsent, InstallPWA, ReloadPrompt, y las 10 cards internas de AulaScan (config, métricas, escáner, alertas kiosco/toast, búsqueda manual, historial, grupos de fecha). (`ui/Card.tsx`, `LandingPage.tsx`, `PinGuard.tsx`, `PinEncoder.tsx`, `Modal.tsx`, `NotFound.tsx`, `CookieConsent.tsx`, `InstallPWA.tsx`, `ReloadPrompt.tsx`, `AulaScan.tsx`)

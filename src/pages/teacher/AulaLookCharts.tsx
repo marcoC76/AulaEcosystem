@@ -72,7 +72,8 @@ const tooltipStyle = {
     borderColor: cssVar('--theme-border') || '#374151',
     borderRadius: '8px',
     color: cssVar('--theme-text') || '#fff',
-    fontSize: 12,
+    fontSize: 11,
+    letterSpacing: '-0.005em',
 };
 
 export default function AulaLookCharts({

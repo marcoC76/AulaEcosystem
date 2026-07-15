@@ -94,7 +94,7 @@ export default function PinGuard({
 
                     <div className="px-8 pt-12 pb-10">
                         <div className="text-center mb-8">
-                            <h1 className="pin-stagger text-2xl font-bold text-theme-text mb-2">{title}</h1>
+                            <h1 className="pin-stagger font-display text-2xl font-bold text-theme-text mb-2">{title}</h1>
                             <p className="pin-stagger text-sm text-theme-muted">{description}</p>
                         </div>
 

@@ -1382,7 +1382,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 </div>
                                 <div>
                                     <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Alumnos</p>
-                                    <p className="text-xl font-bold">{studentsDB.length}</p>
+                                    <p className="font-mono text-xl font-bold">{studentsDB.length}</p>
                                 </div>
                             </Card>
                             <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
@@ -1391,7 +1391,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 </div>
                                 <div>
                                     <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Grupos</p>
-                                    <p className="text-xl font-bold">{availableGroups.length}</p>
+                                    <p className="font-mono text-xl font-bold">{availableGroups.length}</p>
                                 </div>
                             </Card>
                             <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
@@ -1400,7 +1400,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 </div>
                                 <div>
                                     <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Materias</p>
-                                    <p className="text-xl font-bold">{config.materias.length}</p>
+                                    <p className="font-mono text-xl font-bold">{config.materias.length}</p>
                                 </div>
                             </Card>
                             <Card className="border-theme-border flex items-center gap-4 bg-theme-border/20 p-4">
@@ -1409,7 +1409,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 </div>
                                 <div>
                                     <p className="text-xs text-theme-muted uppercase tracking-wider font-semibold">Profesores</p>
-                                    <p className="text-xl font-bold">{config.profesores.length}</p>
+                                    <p className="font-mono text-xl font-bold">{config.profesores.length}</p>
                                 </div>
                             </Card>
                         </div>
@@ -1444,7 +1444,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                 <>
                                     {step === 0 && (
                                         <div className="space-y-4 animate-fade-in">
-                                            <h3 className="text-xl font-bold text-center mb-6">Selecciona el Profesor</h3>
+                                            <h3 className="font-display text-xl font-bold text-center mb-6">Selecciona el Profesor</h3>
                                             <Select value={selectedTeacher} onChange={e => setSelectedTeacher(e.target.value)} className="h-12 text-lg">
                                                 <option value="">-- Elige un profesor --</option>
                                                 {config.profesores.map(p => <option key={p.value} value={p.text}>{p.text}</option>)}
@@ -1453,7 +1453,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     )}
                                     {step === 1 && (
                                         <div className="space-y-4 animate-fade-in">
-                                            <h3 className="text-xl font-bold text-center mb-6">Selecciona la Materia</h3>
+                                            <h3 className="font-display text-xl font-bold text-center mb-6">Selecciona la Materia</h3>
                                             <Select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="h-12 text-lg">
                                                 <option value="">-- Elige una materia --</option>
                                                 {config.materias.map(m => <option key={m.value} value={m.text}>{m.text}</option>)}
@@ -1462,7 +1462,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     )}
                                     {step === 2 && (
                                         <div className="space-y-4 animate-fade-in">
-                                            <h3 className="text-xl font-bold text-center mb-6">Selecciona los Grupos y Período</h3>
+                                            <h3 className="font-display text-xl font-bold text-center mb-6">Selecciona los Grupos y Período</h3>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-semibold text-theme-text">Grupos (Selecciona uno o más)</label>
                                                 <div className="flex flex-wrap gap-2 p-3 bg-black/25 rounded-2xl border border-theme-border">
@@ -1530,7 +1530,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
 
                             {mode === 'student' && step === 0 && (
                                 <div className="space-y-4 animate-fade-in">
-                                    <h3 className="text-xl font-bold text-center mb-6">Búsqueda de Alumno</h3>
+                                    <h3 className="font-display text-xl font-bold text-center mb-6">Búsqueda de Alumno</h3>
                                     <p className="text-sm text-theme-muted text-center mb-4">Ingresa el nombre o número de control para ver su historial en todas sus materias.</p>
 
                                     <div className="relative">
@@ -1607,10 +1607,10 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                     {/* Dashboard Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-theme-card/80 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-theme-border shadow-md">
                         <div>
-                            <h1 className="text-2xl font-bold text-theme-text mb-1">
+                            <h1 className="font-display text-2xl font-bold text-theme-text mb-1 tracking-wide">
                                 {mode === 'group' ? 'Reporte de Asistencia' : 'Kárdex de Asistencia (Alumno)'}
                             </h1>
-                            <p className="text-theme-muted text-sm">
+                            <p className="text-theme-muted text-sm tracking-wide">
                                 {mode === 'group'
                                     ? `${selectedTeacher} • ${selectedSubject} • ${selectedGroups.join(', ')}`
                                     : `${selectedSearchStudent?.nombre} • Control: ${selectedSearchStudent?.control}`
@@ -1661,7 +1661,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                             <div className="flex items-center gap-3">
                                 <span className="material-icons-round text-red-500 text-2xl animate-pulse">error_outline</span>
                                 <div>
-                                    <h4 className="font-bold text-sm">Alumnos en Riesgo Crítico</h4>
+                                    <h4 className="font-display font-bold text-sm">Alumnos en Riesgo Crítico</h4>
                                     <p className="text-xs text-red-400/80">
                                         {criticalStudents.length === 1 
                                             ? `El alumno ${criticalStudents[0]['Nombre del Alumno']} tiene una racha de ${criticalStudents[0].rachaFaltas} faltas consecutivas.`
@@ -1696,7 +1696,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             <div className={cn("p-2.5 sm:p-3 rounded-2xl shadow-inner backdrop-blur-sm", kpi.bg, kpi.color)}>
                                                 <span className="material-icons-round text-2xl sm:text-3xl">{kpi.icon}</span>
                                             </div>
-                                            <span className={cn("text-3xl sm:text-4xl font-black tracking-tight", kpi.color)}>{kpi.value}</span>
+                                            <span className={cn("font-mono text-3xl sm:text-4xl font-black tracking-tight", kpi.color)}>{kpi.value}</span>
                                         </div>
                                         <div className="z-10 mt-2">
                                             <p className="text-xs sm:text-sm text-theme-text font-bold uppercase tracking-wider mb-1 line-clamp-1">{kpi.title}</p>
@@ -1714,7 +1714,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                     <div className="p-4 rounded-full bg-theme-border/30 text-theme-muted mb-4">
                                         <span className="material-icons-round text-5xl">analytics</span>
                                     </div>
-                                    <h3 className="text-xl font-bold text-theme-text mb-2">Sin Datos Disponibles</h3>
+                                    <h3 className="font-display text-xl font-bold text-theme-text mb-2">Sin Datos Disponibles</h3>
                                     <p className="text-theme-muted text-sm max-w-md">
                                         No se encontraron registros de asistencia para el período o filtros seleccionados. Intenta cambiar de período o ajustar la búsqueda.
                                     </p>
@@ -1868,7 +1868,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="overflow-x-auto">
+                                <div className="overflow-x-auto dense">
                                     <table className="w-full text-left border-collapse">
                                         <thead className="sticky top-0 z-10 backdrop-blur-md">
                                             <tr className="bg-black/20 text-theme-muted text-xs uppercase tracking-wider select-none">
