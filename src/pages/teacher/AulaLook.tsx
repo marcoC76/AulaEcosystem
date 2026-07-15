@@ -1807,7 +1807,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             </h3>
                                             <div className="h-[250px] w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
-                                                    <BarChart data={streakData} margin={{ top: 4, right: 4, bottom: 4, left: -16 }}>
+                                                    <BarChart data={streakData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
                                                         <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
                                                         <XAxis dataKey="label" stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} interval={0} />
                                                         <YAxis hide />
@@ -1826,7 +1826,7 @@ export default function AulaLook({ isReadOnly = false }: { isReadOnly?: boolean 
                                             </h3>
                                             <div className="h-[250px] w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
-                                                    <BarChart data={histogramData} margin={{ top: 4, right: 4, bottom: 4, left: -16 }}>
+                                                    <BarChart data={histogramData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
                                                         <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
                                                         <XAxis dataKey="name" stroke={cssVar('--theme-muted') || '#9ca3af'} tick={{ fill: cssVar('--theme-muted') || '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} interval={0} />
                                                         <YAxis hide />

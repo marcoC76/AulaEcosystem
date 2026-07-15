@@ -1,65 +1,114 @@
-# Manual de Usuario - AulaEcosystem
+# Manual de Usuario — AulaEcosystem
 
-Bienvenido a **AulaEcosystem**, la plataforma diseñada de forma exclusiva para la gestión ágil e inteligente de la asistencia e historial académico. Esta aplicación ha sido creada pensando en la rapidez que requiere un docente dentro de un aula moderna.
+Bienvenido a **AulaEcosystem**, la plataforma diseñada para la gestión ágil de asistencia e
+historial académico. Esta aplicación está pensada para la rapidez que un docente necesita
+dentro del aula.
 
 ---
 
 ## 1. Acceso y Primeros Pasos
-AulaEcosystem es una aplicación **PWA (Progressive Web App)**. Esto significa que puede funcionar directamente desde el navegador de tu computadora, tablet o teléfono web, y también puede ser instalada como una aplicación nativa.
-- **Acceso Web:** Simplemente ingresa a la URL proporcionada para tu institución.
-- **Instalación:** Si tu navegador lo soporta (como Chrome o Safari), verás un ícono de "Instalar Aplicación" en la barra de direcciones o en el menú de opciones.
-- **Uso sin Conexión:** Una vez instalada y cargada por primera vez, la aplicación podrá abrirse incluso si no tienes internet (para la toma de asistencia sin conexión en casos de emergencia, se almacenará de manera automática en una cola que se sincronizará cuando el internet regrese).
+
+AulaEcosystem es una **PWA (Progressive Web App)**. Funciona directamente desde el navegador
+y puede instalarse como aplicación nativa.
+
+- **Acceso web:** Ingresa a la URL proporcionada por tu institución.
+- **Instalación:** En Chrome o Safari verás un icono "Instalar aplicación" en la barra de
+  direcciones o menú de opciones.
+- **Uso sin conexión:** Una vez cargada, la aplicación funciona sin internet. La asistencia
+  tomada offline se almacena en una cola local y se sincroniza automáticamente al recuperar
+  la conexión.
+
+### Rutas de acceso
+
+| Pantalla                 | Ruta               | Botón en inicio              |
+| ------------------------ | ------------------ | ---------------------------- |
+| Pase estudiantil (QR)    | `/student`         | Estudiante                   |
+| Escáner de asistencia    | `/teacher/scan`    | Docente → Escanear          |
+| Reportes                 | `/teacher/report`  | Docente → Reportes           |
+| Consulta (solo lectura)  | `/consulta/report` | Consulta                     |
 
 ---
 
-## 2. Configuración Inicial (Setup)
-Antes de poder escanear credenciales, es necesario que vincules la aplicación con tu servidor de base de datos.
-1. Haz clic en el engrane superior o ve al apartado de **Setup / Configuración**.
-2. Deberás ingresar los enlaces (`URLs`) y Claves Secretas proporcionados por el administrador de tu instituto:
-   - **Base de Datos Principal:** El enlace a la hoja de Google Sheets / Apps Script que aloja todo el registro.
-   - **PIN Maestro:** Una clave de seguridad necesaria para que otras personas no modifiquen la configuración del sistema.
-3. Todo queda guardado de manera cifrada en tu dispositivo.
+## 2. Configuración automática
+
+AulaEcosystem no requiere configuración manual. La aplicación carga automáticamente la
+configuración remota (profesores, materias, grupos) desde una URL definida en el código
+fuente. Con internet obtiene la versión más reciente; sin conexión usa la copia local
+almacenada en el dispositivo.
+
+El acceso a funciones de docente y consulta está protegido por un PIN numérico definido
+en la configuración remota. Se ingresa una sola vez y persiste en el dispositivo.
 
 ---
 
-## 3. Tomas de Asistencia (Módulo AulaScan)
-El corazón del ecosistema. Desde aquí pasarás lista de forma fugaz:
+## 3. Toma de Asistencia — AulaScan
 
-1. Ingresa a **Asistencias** desde el panel principal.
-2. Deberás seleccionar los filtros correctos: Tu **Nombre (Profesor)**, la **Materia** que estás impartiendo y el **Grupo**.
-3. Posteriormente, la cámara se activará. Tienes **3 modalidades** para pasar lista:
-   * **Escáner Manual:** Presiona el botón al centro cada vez que quieras tomar foto al código de barras del alumno.
-   * **Modo Kiosco (Manos Libres):** Especialmente diseñado para colocar un teléfono/tablet sobre un tripié. Al activarse esta opción, la cámara se prenderá indefinidamente. Los estudiantes podrán pasar y acercar su credencial uno tras otro y el sistema registrará la asistencia sin que toques la pantalla.
-   * **Búsqueda Manual (Lupa):** ¿Un estudiante extravió su credencial hoy? Dale clic al ícono de buscar e ingresa las 3 primeras letras de su apellido. Aparecerá en una lista y podrás marcar su asistencia tocando su nombre.
+El módulo de escaneo permite pasar lista de forma rápida:
+
+1. Desde la pantalla de inicio presiona **Docente → Escanear**.
+2. Selecciona tu **Nombre (Profesor)**, la **Materia** que impartes y el **Parcial**
+   correspondiente. El grupo se obtiene automáticamente del código QR al escanearlo.
+3. Presiona **Iniciar Escáner** para activar la cámara. Tienes tres modalidades:
+
+   - **Escáner manual:** Presiona el botón central cada vez que quieras leer un código QR.
+   - **Modo Kiosco (manos libres):** La cámara se mantiene activa continuamente. Los
+     estudiantes acercan su credencial y el sistema registra la asistencia sin intervención.
+   - **Búsqueda manual (lupa):** Si un estudiante no tiene credencial, busca por nombre o
+     número de control y marca su asistencia manualmente.
+
+El historial de escaneo del día se muestra en la parte inferior, con opción de descargar
+CSV por fecha.
 
 ---
 
-## 4. Consultas y Reportes (Módulo AulaLook)
-Al final del día, tu análisis académico requiere datos claros y procesables. Entra al menú **Reportes** para descubrir los tableros interactivos e historiales del periodo.
+## 4. Consultas y Reportes — AulaLook
 
-### Vista Inmediata (Dashboard General)
-Recibirás una visión completa con KPIs: la cantidad de *Alumnos Registrados*, *Grupos*, *Materias* conformadas por la tira de materias, y *Profesores* activos en el instituto.
+Desde la pantalla de inicio presiona **Docente → Reportes** o directamente **Consulta**
+para modo solo lectura. Al entrar verás una vista previa con cuatro indicadores generales
+del instituto: **Alumnos registrados**, **Grupos**, **Materias** y **Profesores** activos.
 
-### 4.1 Consulta Clásica (Por Grupo y Materia)
-Diseñado para la gestión tradicional:
-1. En vez de "Por Alumno", entra a **Por Grupo**.
-2. Selecciona Profesor, Materia y Grupo.
-3. Se generará un análisis general del grupo:
-   - Identificando promedios de asistencia vs faltas.
-   - Listando alumnos con etiquetas visuales e indicadores rojo-amarillo-verde según su porcentaje.
-4. **Hacer clic en el alumno:** Abrirá un *Modal Histórico* para ver su registro de asistencias al minuto, agrupados en mes de calendario.
+Para generar un reporte concreto debes completar el asistente paso a paso. Elige primero
+el modo de consulta:
 
-### 4.2 Kárdex Individual (Consulta Avanzada de Alumno)
-Si tu director, tutor escolar o tú mismo, requieres ver la información transversal a nivel estudiante:
-1. Elige **Modo Alumno**.
-2. Con ayuda del buscador predictivo, teclea e identifica al alumno por Apellido o Número de Control.
-3. Al darle en Generar, AulaEcosystem consultará su historia en **todas las materias base** pertenecientes a su especialidad y grupo. 
-4. Verás una tabla desglosando qué porcentaje de progreso tiene el estudiante en Geometría, en Inglés, en Programación, etc. Mostrando también a qué profesores se le ha ausentado.
+### 4.1 Consulta por Grupo y Materia
+
+Diseñado para la gestión tradicional de grupo:
+
+1. En el selector de modo elige **Por Grupo**.
+2. **Paso 1:** Selecciona el **Profesor**.
+3. **Paso 2:** Selecciona la **Materia**.
+4. **Paso 3:** Elige uno o varios **Grupos** (con fichas de colores) y el **Período**.
+5. **Paso 4:** Se genera el dashboard con:
+   - KPIs del reporte (total alumnos, asistencias acumuladas, índice de asistencia, foco
+     rojo para alumnos con menos del 80 %).
+   - Gráficas de evolución y comparativa.
+   - Tabla detallada con filtro por riesgo, búsqueda local y orden por columnas.
+   - Al hacer clic en un alumno se abre un modal con su historial cronológico completo.
+
+### 4.2 Kárdex Individual (Consulta por Alumno)
+
+Para ver la información transversal de un estudiante en todas sus materias:
+
+1. Elige **Por Alumno**.
+2. Usa el buscador predictivo para encontrar al alumno por nombre o número de control.
+3. Selecciona el **Período** a consultar.
+4. Presiona **Generar**. Se mostrará el rendimiento del estudiante en cada materia base
+   de su grupo: porcentaje de asistencia, total de clases y profesor responsable.
 
 ### 4.3 Reportes para Exportar
-En ambas consultas de reportes encontrarás el botón de acción para descarga:
-- **Descargar Reporte Faltas (CSV):** Exportará en Excel los nombres del registro actual, cruzando sus datos para obtener fechas exactas y total de faltas. Ideal y listo para justificaciones e impresiones desde el área administrativa.
+
+En el dashboard de resultados (paso 4) encontrarás estos botones de descarga:
+
+- **CSV** — Exporta la tabla actual con control, nombre, grupo, asistencias y porcentaje.
+- **PDF** — Reporte detallado con desglose por alumno, estado coloreado y resumen.
+- **Sábana PDF** — Tabla estilo hoja de cálculo con todas las fechas del parcial como
+  columnas y marcas de asistencia (✓, R, J, ✗). Ideal para reportes oficiales.
+- **Faltas (CSV)** — Listado de alumnos con fechas exactas de falta.
+- **PDF individual** — Desde el modal de detalle del alumno puedes generar un PDF con
+  su historial cronológico, resumen y barra de porcentaje.
 
 ---
 
-> En caso de percibir alguna lentitud ocasional al escanear, es normal. AulaEcosystem valida cada entrada contra el control digital en la nube bajo los estándares de seguridad de tu instituto.
+> Si percibes lentitud ocasional al escanear, es normal. AulaEcosystem valida cada
+> entrada contra el control digital en la nube bajo los estándares de seguridad de tu
+> instituto.

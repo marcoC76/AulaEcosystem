@@ -88,7 +88,7 @@ export default function AulaLookCharts({
                     <ChartTitle icon="insights">Tendencia de Asistencia</ChartTitle>
                     <div style={{ height: 250, width: '100%' }}>
                             <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={timelineData} margin={{ top: 4, right: 4, bottom: 4, left: -16 }}>
+                            <LineChart data={timelineData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
 <XAxis dataKey="name" stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 10, opacity: 0.85 }} axisLine={false} tickLine={false} />
                                 <YAxis domain={[0, Math.max(totalItems, 5)]} stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 10, opacity: 0.85 }} axisLine={false} tickLine={false} />
@@ -106,7 +106,7 @@ export default function AulaLookCharts({
                     <ChartTitle icon="warning">Patrón Semanal</ChartTitle>
                     <div style={{ height: 250, width: '100%' }}>
                             <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={weekdayData} margin={{ top: 4, right: 4, bottom: 4, left: -16 }}>
+                            <BarChart data={weekdayData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
 <XAxis dataKey="name" stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 12, opacity: 0.85 }} axisLine={false} tickLine={false} />
                             <YAxis stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 11, opacity: 0.85 }} axisLine={false} tickLine={false} />
@@ -168,7 +168,7 @@ export default function AulaLookCharts({
                     <ChartTitle icon="trending_up">Rachas</ChartTitle>
                     <div style={{ height: 150, width: '100%' }}>
                             <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={streakData} margin={{ top: 2, right: 2, bottom: 0, left: -14 }}>
+                            <BarChart data={streakData} margin={{ top: 2, right: 2, bottom: 0, left: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
                                 <XAxis dataKey="label" stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 10 }} axisLine={false} tickLine={false} interval={0} />
                                 <YAxis hide />
@@ -186,7 +186,7 @@ export default function AulaLookCharts({
                     <ChartTitle icon="bar_chart">Distribución</ChartTitle>
                     <div style={{ height: 150, width: '100%' }}>
                             <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={histogramData} margin={{ top: 2, right: 2, bottom: 0, left: -14 }}>
+                            <BarChart data={histogramData} margin={{ top: 2, right: 2, bottom: 0, left: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke={cssVar('--theme-border') || '#374151'} vertical={false} />
                                 <XAxis dataKey="name" stroke={cssVar('--theme-text') || '#f3f4f6'} tick={{ fill: cssVar('--theme-text') || '#f3f4f6', fontSize: 8 }} axisLine={false} tickLine={false} interval={0} />
                                 <YAxis hide />

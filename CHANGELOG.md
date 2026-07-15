@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **67084cb** — feat: implement core UI pages, authentication guard, and Tailwind theme configuration (2026-07-15)
+
 - **8c4f3aa** — Feat: Glass unificado + Tour reposicionado Fix: Tour progreso (llaves dobles) + Encoding UTF-8 (2026-07-11)
 
 ### Feat
