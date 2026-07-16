@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **ba6bdac** — feat: mejorar viewfinder de cámara responsive + fixes de estabilidad (2026-07-16)
+
 - **e64311e** — feat: implement new AulaLook UI components and update system documentation for reporting features (2026-07-15)
 
 - **67084cb** — feat: implement core UI pages, authentication guard, and Tailwind theme configuration (2026-07-15)
@@ -31,6 +33,8 @@
 - **Blur dropdown prevenido:** Botones de sugerencias en búsqueda manual ahora previenen el blur del input con `onMouseDown.preventDefault()`, evitando que el dropdown se cierre antes de registrar el click. (`AulaScan.tsx`)
 
 - **Modal z-index:** Overlay del Modal elevado de `z-50` a `z-[60]` para evitar solapamiento con el overlay del kiosko. (`Modal.tsx`)
+
+- **ReloadPrompt z-index:** Banner de actualización PWA elevado a `z-[60]` para que los botones "Descargar Ahora" y "Cerrar" no queden tapados por la navegación inferior en móvil. (`ReloadPrompt.tsx`)
 
 - **Tour reposicionado:** Botón de ayuda (Tour) movido a `sm:bottom-20 bottom-36 right-4 z-[9998]` para que siempre quede fijo arriba del ThemeSelector sin solaparse. (`Tour.tsx`)
 
