@@ -167,10 +167,14 @@ export default function AulaScan() {
                         scannerId,
                         { 
                             fps: 10, 
-                            qrbox: { width: 180, height: 180 }, 
+                            qrbox: function (viewfinderWidth: number, viewfinderHeight: number) {
+                                const size = Math.min(viewfinderWidth, viewfinderHeight) * 0.6;
+                                return { width: Math.min(size, 300), height: Math.min(size, 300) };
+                            },
                             rememberLastUsedCamera: false,
                             videoConstraints: {
-                                facingMode: "environment" // Force back camera for iOS compatibility
+                                facingMode: "environment",
+                                aspectRatio: { ideal: 1 }
                             },
                             supportedScanTypes: [0] // Html5QrcodeScanType.QR_CODE = 0
                         },
@@ -365,7 +369,7 @@ export default function AulaScan() {
             const encodedGroup = encodeURIComponent(dGroup);
             const encodedSpecialty = encodeURIComponent(dSpecialty);
 
-            processAttendance(`ID=${input}&No=${encodedName}&Gr=${encodedGroup}&Es=${encodedSpecialty}`);
+            processAttendance(`ID=${input}&No=${encodedName}&Gr=${encodedGroup}&Es=${encodedSpecialty}&V=${masterQrVersion}`);
         } else {
             setLastScanMsg({ type: 'error', text: 'Alumno no encontrado. Selecciona uno de la lista.' });
             playBeep('error');
@@ -620,14 +624,14 @@ export default function AulaScan() {
                                      </Button>
                                  </div>
                              </div>
-                              <div className={cn("scan-frame bg-theme-card p-4 min-h-[180px] flex flex-col justify-center items-center relative transition-all duration-300", isKioskMode ? "h-[70vh]" : "")}>
+                              <div className={cn("scan-frame bg-theme-card p-4 min-h-[300px] flex flex-col justify-center items-center relative transition-all duration-500", isKioskMode ? "fixed inset-0 z-40 h-screen bg-black/90 rounded-none" : "")}>
                                   <span className="corner corner-tl" aria-hidden="true" />
                                   <span className="corner corner-tr" aria-hidden="true" />
                                   <span className="corner corner-bl" aria-hidden="true" />
                                   <span className="corner corner-br" aria-hidden="true" />
                                   <div id="file-scanner-hidden" className="hidden"></div>
                                   {/* HTML5 QR Scanner Target */}
-                                 <div id={scannerId} className="w-full max-w-[260px] mx-auto override-html5-qrcode rounded-xl overflow-hidden font-sans border-none" />
+                                 <div id={scannerId} className="w-full max-w-[500px] mx-auto override-html5-qrcode rounded-2xl overflow-hidden font-sans border-none" />
                                  <div className="absolute bottom-6 text-center w-full px-4 text-sm font-medium text-theme-muted">
                                      Alinea el código QR con el marco
                                  </div>
@@ -719,6 +723,7 @@ export default function AulaScan() {
                                                     type="button"
                                                     role="option"
                                                     className="w-full text-left p-3 hover:bg-theme-base border-b border-theme-border flex flex-col transition-colors"
+                                                    onMouseDown={e => e.preventDefault()}
                                                     onClick={() => executeManualAttendance(s.control)}
                                                 >
                                                     <span className="text-sm text-theme-text font-medium truncate">{s.nombre}</span>

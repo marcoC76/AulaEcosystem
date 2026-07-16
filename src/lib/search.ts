@@ -11,15 +11,15 @@ export function getStudentName(student: StudentDBRecord): string {
 }
 
 export function getStudentControl(student: StudentDBRecord): string {
-    return student['No. Control'] || ''
+    return String(student['No. Control'] ?? '').trim()
 }
 
 export function getStudentGrupo(student: StudentDBRecord): string {
-    return (student['Grupo'] || '').trim()
+    return String(student['Grupo'] ?? '').trim()
 }
 
 export function getStudentEspecialidad(student: StudentDBRecord): string {
-    return (student['Carrera'] || '').trim()
+    return String(student['Carrera'] ?? '').trim()
 }
 
 export function findStudentByControl(db: StudentDBRecord[], control: string): StudentDBRecord | undefined {

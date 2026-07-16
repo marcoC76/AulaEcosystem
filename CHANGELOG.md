@@ -2,17 +2,37 @@
 
 ## [Unreleased]
 
+- **e64311e** — feat: implement new AulaLook UI components and update system documentation for reporting features (2026-07-15)
+
 - **67084cb** — feat: implement core UI pages, authentication guard, and Tailwind theme configuration (2026-07-15)
 
 - **8c4f3aa** — Feat: Glass unificado + Tour reposicionado Fix: Tour progreso (llaves dobles) + Encoding UTF-8 (2026-07-11)
 
 ### Feat
 
-- **Glass unificado:** Migradas todas las cards de la app al mismo efecto visual de las cards de inicio: `bg-theme-card/80 backdrop-blur-xl shadow-[var(--shadow-card)] rounded-[2rem]`, sin bordes explícitos. Afecta al componente `Card` base y a todas sus instancias (AulaPass, AulaScan, AulaLook, ChartCard), más las cards inline de PinGuard, PinEncoder, Modal, NotFound, CookieConsent, InstallPWA, ReloadPrompt, y las 10 cards internas de AulaScan (config, métricas, escáner, alertas kiosco/toast, búsqueda manual, historial, grupos de fecha). (`ui/Card.tsx`, `LandingPage.tsx`, `PinGuard.tsx`, `PinEncoder.tsx`, `Modal.tsx`, `NotFound.tsx`, `CookieConsent.tsx`, `InstallPWA.tsx`, `ReloadPrompt.tsx`, `AulaScan.tsx`)
+- **Scanner responsive:** Viewfinder de cámara expandido de 260px a 500px max-width. QR box ahora escala al 60% del viewfinder con máximo 300px, adaptándose automáticamente al tamaño disponible. Añadido `aspectRatio: { ideal: 1 }` en videoConstraints para cámara menos rectangular. Scan-frame con altura mínima aumentada a 300px. Modo kiosco ahora usa overlay CSS fullscreen (`fixed inset-0 z-40 h-screen bg-black/90`) con fondo negro. (`AulaScan.tsx`, `index.css`)
 
-- **Tour reposicionado:** Botón de ayuda (Tour) movido a `sm:bottom-20 bottom-36 right-4 z-[9998]` para que siempre quede fijo arriba del ThemeSelector sin solaparse. (`Tour.tsx`)
+- **Version check en asistencia manual:** Añadido parámetro `V=${masterQrVersion}` al URL generado en búsqueda manual para validar expiración de credencial, consistente con el escaneo QR. (`AulaScan.tsx`)
 
 ### Fix
+
+- **Scan line full-width:** Línea de escaneo ahora cruza de borde a borde del frame (eliminados márgenes laterales del 10%). Glow más intenso (`box-shadow: 0 0 12px + 0 0 30px`) y gradiente más definido con stops al 5%/50%/95%. (`index.css`)
+
+- **Corner brackets más grandes:** Esquinas decorativas del marco de escaneo aumentadas de 20×20px a 28×28px con radio de esquina 8px para mejor visibilidad en pantallas grandes. (`index.css`)
+
+- **Dashboard html5-qrcode compacto:** Selector de cámara y botones del dashboard reorganizados en fila horizontal con flexbox. Select estilado con variables del tema (`--theme-base`, `--theme-text`, `--theme-border`). Botones con padding reducido y fuente más pequeña. (`index.css`)
+
+- **Video fill en scanner:** El video de la cámara ahora ocupa el 100% del ancho del contenedor con `object-fit: cover` y `border-radius` consistente. Scan region centrada con flexbox. (`index.css`)
+
+- **Null safety en search helpers:** `getStudentControl`, `getStudentGrupo` y `getStudentEspecialidad` ahora convierten valores null/undefined a string vacío mediante `String(... ?? '')` en vez de `|| ''`, previniendo errores "control is undefined". (`search.ts`)
+
+- **Data-row padding horizontal:** Filas del historial con padding horizontal de 0.75rem para mejor legibilidad en pantallas anchas. (`index.css`)
+
+- **Blur dropdown prevenido:** Botones de sugerencias en búsqueda manual ahora previenen el blur del input con `onMouseDown.preventDefault()`, evitando que el dropdown se cierre antes de registrar el click. (`AulaScan.tsx`)
+
+- **Modal z-index:** Overlay del Modal elevado de `z-50` a `z-[60]` para evitar solapamiento con el overlay del kiosko. (`Modal.tsx`)
+
+- **Tour reposicionado:** Botón de ayuda (Tour) movido a `sm:bottom-20 bottom-36 right-4 z-[9998]` para que siempre quede fijo arriba del ThemeSelector sin solaparse. (`Tour.tsx`)
 
 - **Tour progreso:** Corregida sintaxis de placeholders en `progressText` — driver.js requiere llaves dobles `{{current}}`/`{{total}}`, no `{current}`/`{total}`. (`Tour.tsx`)
 - **Encoding UTF-8:** Corregida corrupción de caracteres acentuados en Tour.tsx y AulaScan.tsx causada por herramientas que no preservan UTF-8. (`AulaScan.tsx`, `Tour.tsx`)
